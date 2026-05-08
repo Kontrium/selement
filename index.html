@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Web3 System | Polygon</title>
+    <style>
+        :root { --primary: #8247e5; --bg: #0b0f1a; --card: #161b2b; --text: #f8fafc; --accent: #4ade80; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; overflow: hidden; }
+        
+        /* Mini Profile w rogu */
+        #miniProfile { position: fixed; top: 15px; right: 20px; text-align: right; font-size: 11px; color: #94a3b8; z-index: 100; display: none; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(5px); }
+        .u-name { color: var(--accent); font-weight: bold; font-size: 13px; display: block; margin-bottom: 2px; }
+        
+        .screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; width: 100%; position: absolute; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .container { background: var(--card); padding: 3rem; border-radius: 2rem; box-shadow: 0 25px 60px rgba(0,0,0,0.6); text-align: center; width: 380px; border: 1px solid rgba(255,255,255,0.05); }
+        
+        input { width: 100%; padding: 14px; margin: 15px 0; border-radius: 10px; border: 1px solid #2d334a; background: #0b0f1a; color: white; outline: none; box-sizing: border-box; }
+        button { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(130, 71, 229, 0.4); }
+        
+        .hidden { opacity: 0; pointer-events: none; transform: translateY(30px); }
+        .status-msg { font-size: 13px; margin-top: 15px; min-height: 20px; }
+        .error { color: #f87171; }
+
+        /* PANEL ADMINISTRATORA - PEŁNE OKNO */
+        #adminOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 999; display: none; flex-direction: column; padding: 40px; box-sizing: border-box; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #2d334a; padding-bottom: 20px; }
+        
+        .table-wrapper { flex-grow: 1; overflow-y: auto; background: var(--card); border-radius: 15px; border: 1px solid #2d334a; }
+        table { width: 100%; border-collapse: collapse; color: white; min-width: 800px; }
+        th { position: sticky; top: 0; background: #1f2937; color: var(--primary); text-transform: uppercase; font-size: 12px; letter-spacing: 1px; padding: 18px; text-align: left; z-index: 10; border-bottom: 2px solid var(--primary); }
+        td { padding: 15px 18px; border-bottom: 1px solid #2d334a; font-size: 14px; color: #cbd5e1; }
+        tr:hover { background: rgba(130, 71, 229, 0.05); }
+        
+        .col-id { width: 50px; color: var(--primary); font-weight: bold; }
+        .col-date { width: 180px; font-family: monospace; }
+        .col-wallet { font-family: monospace; color: #94a3b8; }
+        .col-name { color: var(--accent); font-weight: 600; }
+
+        #adminLoginBox { align-self: center; margin-top: 100px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div id="miniProfile">
+        <div id="miniAddress"></div>
+        <div id="miniUser" class="u-name"></div>
+        <div id="miniBalance"></div>
+    </div>
+
+    <!-- KROK 1: START -->
+    <div id="step1" class="screen">
+        <div class="container">
+            <h1 style="margin:0">System Inicjacji</h1>
+            <p style="color: #94a3b8; margin-bottom: 30px;">Połącz portfel Polygon</p>
+            <button id="btnConnect">Połącz MetaMask</button>
+            <div id="log1" class="status-msg"></div>
+        </div>
+    </div>
+
+    <!-- KROK 2: REJESTRACJA -->
+    <div id="step2" class="screen hidden">
+        <div class="container">
+            <h1>Powiąż Nazwę</h1>
+            <input type="text" id="usernameInput" placeholder="Twoja unikalna nazwa..." oninput="previewName(this.value)">
+            <p style="font-size: 12px; color: #94a3b8;">Opłata jednorazowa: 0.001 POL</p>
+            <button id="btnPay">Zapłać i Rejestruj</button>
+            <div id="log2" class="status-msg"></div>
+        </div>
+    </div>
+
+    <!-- KROK 3: DASHBOARD -->
+    <div id="step3" class="screen hidden">
+        <div class="container" style="width: 450px;">
+            <h1 id="welcomeUser">Witaj</h1>
+            <div style="background: rgba(74, 222, 128, 0.1); border: 1px solid var(--accent); padding: 20px; border-radius: 15px; color: var(--accent);">
+                Twoja tożsamość jest bezpiecznie powiązana w bazie danych aplikacji.
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL ADMINISTRATORA -->
+    <div id="adminOverlay">
+        <div class="admin-header">
+            <h2 style="margin:0">Baza Danych Użytkowników <span style="color:var(--primary); font-size: 14px;">| Enterprise Admin</span></h2>
+            <button onclick="toggleAdmin()" style="width:auto; padding: 10px 25px; background: #ef4444;">Wyjdź (Esc)</button>
+        </div>
+
+        <div id="adminLoginBox">
+            <h3 style="margin-bottom:20px">Wymagana Autoryzacja</h3>
+            <input type="password" id="adminPass" placeholder="Podaj hasło..." style="max-width: 300px; display: block; margin: 10px auto;">
+            <button onclick="unlockAdmin()" style="max-width: 200px;">Zaloguj</button>
+        </div>
+
+        <div id="adminTableContent" style="display:none; flex-direction: column; height: 100%;">
+            <div class="table-wrapper">
+                <table id="adminTable">
+                    <thead>
+                        <tr>
+                            <th class="col-id">Nr.</th>
+                            <th class="col-date">Data i Godzina</th>
+                            <th class="col-wallet">Adres Portfela (Polygon)</th>
+                            <th class="col-name">Nazwa Użytkownika</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const TARGET_ADDR = "0x8b7f22672ddeb85566b1afecdd33b18d091dee7f";
+    const FEE_HEX = "0x38D7EA4C68000"; // 0.001 POL
+    const ADMIN_PASS = "DWSE1234";
+    const DB_KEY = "web3_user_vault_v1";
+
+    let currentWallet = null;
+
+    function previewName(val) {
+        document.getElementById('miniUser').innerText = val ? `@${val}` : "";
+    }
+
+    // --- LOGIKA DOSTĘPU ---
+    async function initConnection() {
+        if (!window.ethereum) return alert("MetaMask nie został wykryty!");
+        
+        try {
+            const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            currentWallet = accs[0].toLowerCase();
+            
+            // Wymuś Polygon
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0x89' }],
+            });
+
+            const db = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+            const user = db.find(u => u.wallet.toLowerCase() === currentWallet);
+
+            // Odśwież Mini Profile
+            const balHex = await window.ethereum.request({ method: 'eth_getBalance', params: [currentWallet, 'latest'] });
+            document.getElementById('miniAddress').innerText = currentWallet.slice(0,6) + "..." + currentWallet.slice(-4);
+            document.getElementById('miniBalance').innerText = (parseInt(balHex, 16) / 1e18).toFixed(4) + " POL";
+            document.getElementById('miniProfile').style.display = "block";
+
+            if (user) {
+                // Jeśli istnieje - od razu Ekran 3
+                document.getElementById('miniUser').innerText = `@${user.name}`;
+                document.getElementById('welcomeUser').innerText = `Witaj, ${user.name}!`;
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step3').classList.remove('hidden');
+            } else {
+                // Jeśli nowy - Ekran 2
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+            }
+        } catch (e) {
+            document.getElementById('log1').innerText = "Błąd: " + e.message;
+        }
+    }
+
+    async function processPayment() {
+        const name = document.getElementById('usernameInput').value.trim();
+        const log = document.getElementById('log2');
+        const db = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+
+        if (name.length < 3) return log.innerHTML = "<span class='error'>Nazwa musi mieć min. 3 znaki!</span>";
+        if (db.find(u => u.name.toLowerCase() === name.toLowerCase())) {
+            return log.innerHTML = "<span class='error'>Ta nazwa jest już zajęta!</span>";
+        }
+
+        try {
+            log.innerText = "Oczekiwanie na akceptację transakcji...";
+            const tx = await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{ from: currentWallet, to: TARGET_ADDR, value: FEE_HEX, gas: '0x5208' }]
+            });
+
+            if (tx) {
+                log.innerText = "Zapisywanie w bazie...";
+                const newEntry = {
+                    date: new Date().toLocaleDateString('pl-PL') + " " + new Date().toLocaleTimeString('pl-PL'),
+                    wallet: currentWallet,
+                    name: name
+                };
+                db.push(newEntry);
+                localStorage.setItem(DB_KEY, JSON.stringify(db));
+                
+                document.getElementById('welcomeUser').innerText = `Witaj, ${name}!`;
+                document.getElementById('step2').classList.add('hidden');
+                document.getElementById('step3').classList.remove('hidden');
+            }
+        } catch (e) {
+            log.innerHTML = `<span class='error'>Błąd: ${e.message}</span>`;
+        }
+    }
+
+    // --- SYSTEM ADMINISTRATORA ---
+    function toggleAdmin() {
+        const ov = document.getElementById('adminOverlay');
+        const isOpen = ov.style.display === 'flex';
+        ov.style.display = isOpen ? 'none' : 'flex';
+        if (!isOpen) {
+            document.getElementById('adminPass').value = "";
+            document.getElementById('adminLoginBox').style.display = 'block';
+            document.getElementById('adminTableContent').style.display = 'none';
+        }
+    }
+
+    function unlockAdmin() {
+        if (document.getElementById('adminPass').value === ADMIN_PASS) {
+            document.getElementById('adminLoginBox').style.display = 'none';
+            document.getElementById('adminTableContent').style.display = 'flex';
+            
+            const db = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+            const tbody = document.getElementById('logTableBody');
+            
+            tbody.innerHTML = db.map((u, index) => `
+                <tr>
+                    <td class="col-id">${index + 1}.</td>
+                    <td class="col-date">${u.date}</td>
+                    <td class="col-wallet">${u.wallet}</td>
+                    <td class="col-name">${u.name}</td>
+                </tr>
+            `).reverse().join(''); // Reverse, aby najnowsze były na górze
+        } else {
+            alert("Nieprawidłowe hasło!");
+        }
+    }
+
+    // Obsługa klawiszy
+    window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'F10') {
+            e.preventDefault();
+            toggleAdmin();
+        }
+        if (e.key === 'Escape') {
+            const ov = document.getElementById('adminOverlay');
+            if (ov.style.display === 'flex') toggleAdmin();
+        }
+    });
+
+    document.getElementById('btnConnect').onclick = initConnection;
+    document.getElementById('btnPay').onclick = processPayment;
+
+    // Monitorowanie portfela
+    if (window.ethereum) {
+        window.ethereum.on('accountsChanged', () => window.location.reload());
+        window.ethereum.on('chainChanged', () => window.location.reload());
+    }
+</script>
+</body>
+</html>
