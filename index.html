@@ -6,45 +6,72 @@
     <title>Enterprise Web3 System | Polygon Cloud</title>
     <style>
         :root { --primary: #8247e5; --bg: #0b0f1a; --card: #161b2b; --text: #f8fafc; --accent: #4ade80; --disabled: #334155; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; overflow: hidden; }
         
-        /* Animowane tło wideo */
-        .video-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            object-fit: cover; z-index: -1; opacity: 0.3; filter: grayscale(50%) blur(2px);
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            height: 100%; 
+            width: 100%; 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            overflow: hidden; 
         }
 
-        #miniProfile { position: fixed; top: 15px; right: 20px; text-align: right; font-size: 11px; color: #94a3b8; z-index: 100; display: none; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(5px); }
+        /* Tło wideo na pełny ekran */
+        #video-viewport {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: var(--bg);
+        }
+
+        .video-bg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            transform: translate(-50%, -50%);
+            opacity: 0.35;
+            filter: brightness(0.7) contrast(1.1);
+            object-fit: cover;
+        }
+
+        #miniProfile { position: fixed; top: 15px; right: 20px; text-align: right; font-size: 11px; color: #94a3b8; z-index: 100; display: none; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); }
         .u-name { color: var(--accent); font-weight: bold; font-size: 13px; display: block; margin-bottom: 2px; }
         
-        .screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; width: 100%; position: absolute; transition: 0.4s; }
-        .container { background: rgba(22, 27, 43, 0.9); padding: 3rem; border-radius: 2rem; text-align: center; width: 420px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 20px 50px rgba(0,0,0,0.5); backdrop-filter: blur(10px); }
+        .screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; width: 100%; position: absolute; transition: 0.4s; z-index: 10; }
+        .container { background: rgba(22, 27, 43, 0.8); padding: 3rem; border-radius: 2rem; text-align: center; width: 400px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 20px 50px rgba(0,0,0,0.5); backdrop-filter: blur(15px); }
         
-        input { width: 100%; padding: 14px; margin: 15px 0; border-radius: 10px; border: 1px solid #2d334a; background: #0b0f1a; color: white; outline: none; box-sizing: border-box; font-size: 14px; }
+        button { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 1px; }
+        button:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        button:disabled { background: var(--disabled); cursor: not-allowed; opacity: 0.5; transform: none; }
         
-        button { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-        button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-active { background: var(--accent) !important; color: #000 !important; box-shadow: 0 0 20px rgba(74, 222, 128, 0.3); }
+        .btn-back { position: fixed; top: 20px; left: 20px; width: auto; background: rgba(255,255,255,0.1); padding: 10px 20px; font-size: 11px; z-index: 1000; border: 1px solid rgba(255,255,255,0.1); }
         
-        /* Przycisk nieaktywny */
-        button:disabled { background: var(--disabled); cursor: not-allowed; opacity: 0.5; transform: none; box-shadow: none; }
-        .btn-active { background: var(--accent) !important; color: #000 !important; box-shadow: 0 0 15px var(--accent); }
+        #adminTriggerBtn { position: fixed; bottom: 20px; left: 20px; z-index: 1000; width: auto; padding: 10px 15px; font-size: 10px; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255,255,255,0.1); opacity: 0.5; }
+        #adminTriggerBtn:hover { opacity: 1; background: var(--primary); }
 
-        .btn-back { position: absolute; top: 20px; left: 20px; width: auto; background: rgba(255,255,255,0.1); padding: 10px 20px; font-size: 12px; }
-        .btn-disconnect { background: #ef4444 !important; font-size: 12px; margin-top: 10px; }
-
-        .hidden { opacity: 0; pointer-events: none; transform: translateY(30px); }
-        .status-msg { font-size: 13px; margin-top: 15px; min-height: 20px; color: #94a3b8; }
-
-        #adminOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: none; flex-direction: column; padding: 40px; }
+        #adminOverlay { position: fixed; inset: 0; background: rgba(11, 15, 26, 0.95); z-index: 9999; display: none; flex-direction: column; padding: 40px; backdrop-filter: blur(20px); }
+        .hidden { opacity: 0; pointer-events: none; transform: translateY(20px); }
     </style>
 </head>
 <body>
 
-    <video class="video-bg" autoplay muted loop playsinline>
-        <source src="https://assets.mixkit.co/videos/preview/mixkit-top-view-of-a-billiard-table-with-people-playing-34424-large.mp4" type="video/mp4">
-    </video>
+    <div id="video-viewport">
+        <video class="video-bg" autoplay muted loop playsinline>
+            <source src="https://assets.mixkit.co/videos/preview/mixkit-top-view-of-a-billiard-table-with-people-playing-34424-large.mp4" type="video/mp4">
+        </video>
+    </div>
 
-    <button id="adminTriggerBtn" style="position:fixed; bottom:20px; left:20px; opacity:0.3; width:auto;" onclick="toggleAdmin()">LOGI (Ctrl+F10)</button>
+    <button id="adminTriggerBtn" onclick="toggleAdmin()">LOGI SYSTEMOWE (Ctrl+F10)</button>
 
     <div id="miniProfile">
         <div id="miniAddress"></div>
@@ -56,120 +83,102 @@
     <div id="step1" class="screen">
         <div class="container">
             <h1>Cloud Access</h1>
-            <p style="color: #64748b;">Zautoryzuj się portfelem Polygon</p>
+            <p style="color: #94a3b8; margin-bottom: 25px;">Zautoryzuj portfel Polygon</p>
             <button id="btnConnect">Połącz MetaMask</button>
-            <div id="log1" class="status-msg"></div>
         </div>
     </div>
 
     <div id="step2" class="screen hidden">
         <div class="container">
-            <h1>Finalizacja profilu</h1>
-            <input type="email" id="emailInput" placeholder="nazwa@poczta.pl">
-            <button id="btnPay">Aktywuj konto (0.001 POL)</button>
+            <h1>Rejestracja</h1>
+            <input type="email" id="emailInput" placeholder="E-mail" style="width:100%; padding:14px; margin-bottom:15px; border-radius:10px; border:1px solid #2d334a; background:#0b0f1a; color:white;">
+            <button id="btnPay">Aktywuj (0.001 POL)</button>
         </div>
     </div>
 
     <div id="step3" class="screen hidden">
         <div class="container">
             <h1 id="welcomeUser">Witaj</h1>
-            <p>System Web3 gotowy do pracy.</p>
-            
             <button id="btnEnterGame" disabled>WEJDŹ DO GRY</button>
-            
-            <div style="margin-top: 20px; border-top: 1px solid #2d334a; pt-20">
-                <button class="btn-disconnect" onclick="disconnectWallet()">ODŁĄCZ PORTFEL</button>
-            </div>
+            <button onclick="disconnectWallet()" style="background:#ef4444; font-size:12px;">WYLOGUJ</button>
         </div>
     </div>
 
     <div id="adminOverlay">
-        <button onclick="toggleAdmin()">ZAMKNIJ</button>
-        <div id="adminTableContent"></div>
+        <div style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d334a; padding-bottom: 20px;">
+            <h2>Baza Danych Użytkowników</h2>
+            <button onclick="toggleAdmin()" style="width:auto; background:#ef4444; padding: 10px 30px;">ZAMKNIJ</button>
+        </div>
+        <div id="adminContent" style="margin-top:30px; color:#94a3b8; text-align:center;">
+            <p>Tutaj pojawią się logi z Gista po autoryzacji portfela administratora.</p>
+        </div>
     </div>
 
 <script>
-    const GITHUB_TOKEN = "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"; 
-    const GIST_ID = "a1064525433ae90e4bd9bbe3ef1c9aeb";
-    const TARGET_ADDR = "0x8b7f22672ddeb85566b1afecdd33b18d091dee7f";
-    const FEE_HEX = "0x38D7EA4C68000"; 
-
     let currentWallet = null;
-    let history = ['step1'];
+    let screenHistory = ['step1'];
 
-    async function fetchDatabase() {
-        try {
-            const resp = await fetch(`https://api.github.com/gists/${GIST_ID}?nocache=${Date.now()}`, {
-                headers: { "Authorization": `token ${GITHUB_TOKEN}` }
-            });
-            const data = await resp.json();
-            return JSON.parse(data.files["database.json"].content);
-        } catch (e) { return []; }
+    function toggleAdmin() {
+        const ov = document.getElementById('adminOverlay');
+        const isVisible = ov.style.display === 'flex';
+        ov.style.display = isVisible ? 'none' : 'flex';
     }
 
-    async function initConnection() {
-        if (!window.ethereum) return alert("Brak MetaMask!");
-        
-        try {
-            const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            currentWallet = accs[0].toLowerCase();
-            const db = await fetchDatabase();
-            const user = db.find(u => u.wallet === currentWallet);
-
-            document.getElementById('miniAddress').innerText = currentWallet.substring(0,10) + "...";
-            document.getElementById('miniProfile').style.display = "block";
-
-            if (user) {
-                document.getElementById('welcomeUser').innerText = `Witaj, ${user.email}`;
-                showScreen('step3');
-                activateGameButton(); // Aktywacja przycisku gry
-            } else {
-                showScreen('step2');
-            }
-        } catch (e) { console.error(e); }
-    }
-
-    function activateGameButton() {
-        const btn = document.getElementById('btnEnterGame');
-        btn.disabled = false;
-        btn.classList.add('btn-active');
-        btn.onclick = () => alert("Uruchamianie gry...");
-    }
-
-    function disconnectWallet() {
-        currentWallet = null;
-        document.getElementById('miniProfile').style.display = "none";
-        const btn = document.getElementById('btnEnterGame');
-        btn.disabled = true;
-        btn.classList.remove('btn-active');
-        showScreen('step1');
-    }
+    // Obsługa skrótu Ctrl+F10
+    window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'F10') {
+            e.preventDefault();
+            toggleAdmin();
+        }
+        if (e.key === 'Escape') {
+            document.getElementById('adminOverlay').style.display = 'none';
+        }
+    });
 
     function showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
         
-        if (id !== 'step1') {
-            document.getElementById('globalBack').classList.remove('hidden');
-            if(history[history.length-1] !== id) history.push(id);
+        const backBtn = document.getElementById('globalBack');
+        if (id === 'step1') {
+            backBtn.classList.add('hidden');
+            screenHistory = ['step1'];
         } else {
-            document.getElementById('globalBack').classList.add('hidden');
-            history = ['step1'];
+            backBtn.classList.remove('hidden');
+            if(screenHistory[screenHistory.length-1] !== id) screenHistory.push(id);
         }
     }
 
     function goBack() {
-        if (history.length > 1) {
-            history.pop();
-            const prev = history[history.length - 1];
+        if (screenHistory.length > 1) {
+            screenHistory.pop();
+            const prev = screenHistory[screenHistory.length - 1];
             showScreen(prev);
-            history.pop(); // zapobiegamy dublowaniu w history.push wewnątrz showScreen
+            screenHistory.pop(); 
         }
     }
 
-    function toggleAdmin() {
-        const ov = document.getElementById('adminOverlay');
-        ov.style.display = (ov.style.display === 'flex') ? 'none' : 'flex';
+    async function initConnection() {
+        if (!window.ethereum) return alert("Brak MetaMask!");
+        try {
+            const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            currentWallet = accs[0].toLowerCase();
+            document.getElementById('miniAddress').innerText = currentWallet.substring(0,12) + "...";
+            document.getElementById('miniProfile').style.display = "block";
+            
+            showScreen('step3');
+            const gameBtn = document.getElementById('btnEnterGame');
+            gameBtn.disabled = false;
+            gameBtn.classList.add('btn-active');
+        } catch (e) { console.error(e); }
+    }
+
+    function disconnectWallet() {
+        currentWallet = null;
+        document.getElementById('miniProfile').style.display = "none";
+        document.getElementById('btnEnterGame').disabled = true;
+        document.getElementById('btnEnterGame').classList.remove('btn-active');
+        showScreen('step1');
     }
 
     document.getElementById('btnConnect').onclick = initConnection;
