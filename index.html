@@ -8,7 +8,7 @@
         :root { 
             --primary: #8247e5; 
             --bg: #030712; 
-            --card: rgba(17, 24, 39, 0.75); 
+            --card: rgba(17, 24, 39, 0.85); 
             --text: #f8fafc; 
             --accent: #4ade80; 
             --disabled: #1f2937; 
@@ -20,50 +20,66 @@
             color: var(--text); overflow: hidden; 
         }
 
-        /* NOWOCZESNE TŁO WIDEO FULL SCREEN */
+        /* REWOLUCYJNE TŁO WIDEO - PROFESSIONAL BILLIARDS */
         #video-background {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             z-index: -1; background: #000;
         }
         .billiards-video {
             width: 100%; height: 100%; object-fit: cover;
-            opacity: 0.45; filter: brightness(0.6) contrast(1.1);
+            opacity: 0.5; filter: brightness(0.5) contrast(1.2) saturate(1.1);
         }
 
-        /* SZKLANY INTERFEJS */
+        /* WARSTWA OVERLAY DLA EFEKTU GŁĘBI */
+        .vignette {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background: radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.8) 100%);
+        }
+
+        /* SZKLANY INTERFEJS (GLASSMORPHISM) */
         .screen { 
             display: flex; flex-direction: column; justify-content: center; 
             align-items: center; height: 100vh; width: 100%; 
-            position: absolute; transition: 0.5s ease-in-out; z-index: 10; 
+            position: absolute; transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1); z-index: 10; 
         }
         .container { 
-            background: var(--card); padding: 3rem; border-radius: 2rem; 
-            text-align: center; width: 420px; border: 1px solid rgba(255,255,255,0.1); 
-            box-shadow: 0 25px 50px rgba(0,0,0,0.6); backdrop-filter: blur(15px);
+            background: var(--card); padding: 3.5rem; border-radius: 2.5rem; 
+            text-align: center; width: 440px; border: 1px solid rgba(255,255,255,0.1); 
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8); backdrop-filter: blur(25px);
         }
 
-        h1 { margin-bottom: 0.5rem; font-weight: 800; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        h1 { margin-bottom: 0.5rem; font-weight: 900; letter-spacing: -1px; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-        /* PRZYCISKI */
+        /* NOWOCZESNE PRZYCISKI */
         button { 
             background: var(--primary); color: white; border: none; padding: 18px; 
-            border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; 
-            transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+            border-radius: 14px; font-weight: 700; cursor: pointer; width: 100%; 
+            transition: 0.3s all ease; text-transform: uppercase; letter-spacing: 2px; font-size: 13px; margin-bottom: 12px;
         }
-        button:hover { transform: translateY(-2px); filter: brightness(1.1); }
-        button:disabled { background: var(--disabled); cursor: not-allowed; opacity: 0.4; transform: none; }
+        button:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(130, 71, 229, 0.4); filter: brightness(1.1); }
+        button:disabled { background: var(--disabled); cursor: not-allowed; opacity: 0.3; transform: none; }
 
-        /* PRZYCISK AKTYWNY (Z PODŚWIETLENIEM) */
+        /* EFEKT REWOLUCYJNEGO PODŚWIETLENIA DLA AKTYWNEJ GRY */
         .btn-active { 
-            background: var(--accent) !important; color: #064e3b !important; 
-            box-shadow: 0 0 25px rgba(74, 222, 128, 0.4) !important; 
+            background: linear-gradient(45deg, var(--accent), #22c55e) !important; 
+            color: #052e16 !important; 
+            box-shadow: 0 0 35px rgba(74, 222, 128, 0.5) !important;
+            animation: pulse 2s infinite;
         }
 
-        .btn-back { position: fixed; top: 20px; left: 20px; width: auto; background: rgba(255,255,255,0.1); padding: 10px 20px; font-size: 11px; z-index: 100; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
-        #adminTriggerBtn { position: fixed; bottom: 20px; left: 20px; z-index: 100; width: auto; font-size: 10px; opacity: 0.5; background: transparent; border: 1px solid white; padding: 8px; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 20px rgba(74, 222, 128, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(74, 222, 128, 0.7); }
+            100% { box-shadow: 0 0 20px rgba(74, 222, 128, 0.4); }
+        }
 
-        #adminOverlay { position: fixed; inset: 0; background: rgba(3, 7, 18, 0.98); z-index: 9999; display: none; flex-direction: column; padding: 40px; overflow-y: auto; }
-        .hidden { opacity: 0; pointer-events: none; transform: translateY(30px); }
+        .btn-back { position: fixed; top: 25px; left: 25px; width: auto; background: rgba(255,255,255,0.05); padding: 12px 24px; font-size: 11px; z-index: 100; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
+        
+        #adminTriggerBtn { position: fixed; bottom: 25px; left: 25px; z-index: 100; width: auto; font-size: 10px; opacity: 0.4; background: transparent; border: 1px solid white; padding: 10px; color: white; border-radius: 6px; cursor: pointer; transition: 0.3s; }
+        #adminTriggerBtn:hover { opacity: 1; background: var(--primary); }
+
+        #adminOverlay { position: fixed; inset: 0; background: rgba(3, 7, 18, 0.98); z-index: 9999; display: none; flex-direction: column; padding: 50px; overflow-y: auto; }
+        .hidden { opacity: 0; pointer-events: none; transform: translateY(40px) scale(0.95); }
     </style>
 </head>
 <body>
@@ -73,6 +89,7 @@
             <source src="https://cdn.pixabay.com/video/2020/09/16/50264-457416345_tiny.mp4" type="video/mp4">
         </video>
     </div>
+    <div class="vignette"></div>
 
     <button id="adminTriggerBtn" onclick="toggleAdmin()">LOGI SYSTEMOWE (Ctrl+F10)</button>
     <button id="globalBack" class="btn-back hidden" onclick="goBack()">← WSTECZ</button>
@@ -80,7 +97,7 @@
     <div id="step1" class="screen">
         <div class="container">
             <h1>Web3 Billiards</h1>
-            <p style="color:#94a3b8; margin-bottom:2rem;">Zaloguj się portfelem Polygon</p>
+            <p style="color:#94a3b8; margin-bottom:2.5rem;">Zaloguj się portfelem Polygon, aby wejść na arenę</p>
             <button id="btnConnect">Połącz MetaMask</button>
         </div>
     </div>
@@ -88,21 +105,21 @@
     <div id="step3" class="screen hidden">
         <div class="container">
             <h1>Panel Gracza</h1>
-            <p style="margin-bottom:2rem; opacity:0.8;">Tożsamość zweryfikowana pomyślnie.</p>
+            <p style="margin-bottom:2.5rem; opacity:0.8;">Wykryto aktywną subskrypcję Polyball.</p>
             
-            <button id="btnEnterGame" disabled onclick="location.href='polyball.html'">WEJDŹ DO GRY</button>
+            <button id="btnEnterGame" disabled onclick="location.href='polyball/index.html'">GRAJ TERAZ</button>
             
-            <button onclick="location.reload()" style="background:transparent; border:1px solid #ef4444; color:#ef4444; font-size:12px;">Wyloguj</button>
+            <button onclick="location.reload()" style="background:transparent; border:1px solid #ef4444; color:#ef4444; font-size:12px; box-shadow: none;">Wyloguj sesję</button>
         </div>
     </div>
 
     <div id="adminOverlay">
-        <div style="display:flex; justify-content: space-between; align-items:center; border-bottom: 1px solid #1f2937; padding-bottom: 20px;">
-            <h2>Baza Danych Użytkowników</h2>
-            <button onclick="toggleAdmin()" style="width:auto; background:#ef4444;">ZAMKNIJ</button>
+        <div style="display:flex; justify-content: space-between; align-items:center;">
+            <h2>Baza Użytkowników Systemu</h2>
+            <button onclick="toggleAdmin()" style="width:auto; background:#ef4444; padding: 10px 30px;">ZAMKNIJ</button>
         </div>
-        <div id="adminTableContent" style="margin-top: 30px; text-align: center; color: #64748b;">
-            Dane bazy zostaną załadowane po autoryzacji.
+        <div style="margin-top: 50px; text-align: center; color: #64748b; font-size: 14px;">
+            Trwa synchronizacja z siecią Polygon...
         </div>
     </div>
 
@@ -110,7 +127,7 @@
     let currentWallet = null;
     let screenHistory = ['step1'];
 
-    // Obsługa skrótu Ctrl+F10
+    // Obsługa skrótu Ctrl+F10 oraz Escape
     window.onkeydown = e => { 
         if(e.ctrlKey && e.key === 'F10') {
             e.preventDefault();
@@ -125,19 +142,19 @@
     }
 
     async function initConnection() {
-        if (!window.ethereum) return alert("MetaMask nie został wykryty!");
+        if (!window.ethereum) return alert("Zainstaluj MetaMask!");
         try {
             const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
             currentWallet = accs[0].toLowerCase();
             
             showScreen('step3');
             
-            // AKTYWACJA PRZYCISKU GRY
+            // Aktywacja rewolucyjnego przycisku wejścia
             const gameBtn = document.getElementById('btnEnterGame');
             gameBtn.disabled = false;
             gameBtn.classList.add('btn-active');
             
-        } catch (e) { console.error("Błąd połączenia:", e); }
+        } catch (e) { console.error("Web3 Error:", e); }
     }
 
     function showScreen(id) {
