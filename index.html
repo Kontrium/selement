@@ -5,250 +5,165 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enterprise Web3 System | Polygon Cloud</title>
     <style>
-        :root { --primary: #8247e5; --bg: #0b0f1a; --card: #161b2b; --text: #f8fafc; --accent: #4ade80; }
+        :root { --primary: #8247e5; --bg: #0b0f1a; --card: #161b2b; --text: #f8fafc; --accent: #4ade80; --disabled: #334155; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; overflow: hidden; }
         
+        /* Animowane tło wideo */
+        .video-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; z-index: -1; opacity: 0.3; filter: grayscale(50%) blur(2px);
+        }
+
         #miniProfile { position: fixed; top: 15px; right: 20px; text-align: right; font-size: 11px; color: #94a3b8; z-index: 100; display: none; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(5px); }
         .u-name { color: var(--accent); font-weight: bold; font-size: 13px; display: block; margin-bottom: 2px; }
+        
         .screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; width: 100%; position: absolute; transition: 0.4s; }
-        .container { background: var(--card); padding: 3rem; border-radius: 2rem; text-align: center; width: 420px; border: 1px solid rgba(255,255,255,0.05); }
+        .container { background: rgba(22, 27, 43, 0.9); padding: 3rem; border-radius: 2rem; text-align: center; width: 420px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 20px 50px rgba(0,0,0,0.5); backdrop-filter: blur(10px); }
         
         input { width: 100%; padding: 14px; margin: 15px 0; border-radius: 10px; border: 1px solid #2d334a; background: #0b0f1a; color: white; outline: none; box-sizing: border-box; font-size: 14px; }
-        input:focus { border-color: var(--primary); }
-        button { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; text-transform: uppercase; }
-        button:disabled { background: #475569; cursor: not-allowed; opacity: 0.7; }
+        
+        button { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        
+        /* Przycisk nieaktywny */
+        button:disabled { background: var(--disabled); cursor: not-allowed; opacity: 0.5; transform: none; box-shadow: none; }
+        .btn-active { background: var(--accent) !important; color: #000 !important; box-shadow: 0 0 15px var(--accent); }
+
+        .btn-back { position: absolute; top: 20px; left: 20px; width: auto; background: rgba(255,255,255,0.1); padding: 10px 20px; font-size: 12px; }
+        .btn-disconnect { background: #ef4444 !important; font-size: 12px; margin-top: 10px; }
 
         .hidden { opacity: 0; pointer-events: none; transform: translateY(30px); }
         .status-msg { font-size: 13px; margin-top: 15px; min-height: 20px; color: #94a3b8; }
-        .error { color: #f87171; }
 
         #adminOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: none; flex-direction: column; padding: 40px; }
-        .table-wrapper { flex-grow: 1; overflow-y: auto; background: var(--card); border: 1px solid #2d334a; border-radius: 15px; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #1f2937; color: var(--primary); padding: 15px; text-align: left; position: sticky; top: 0; z-index: 10; }
-        td { padding: 12px 15px; border-bottom: 1px solid #2d334a; font-size: 13px; }
-
-        #adminTriggerBtn { position: fixed; bottom: 20px; left: 20px; z-index: 1000; padding: 10px; opacity: 0.4; font-size: 10px; background: #1e293b; color: white; border: 1px solid #334155; border-radius: 5px; cursor: pointer; }
-        #adminTriggerBtn:hover { opacity: 1; color: var(--primary); }
     </style>
 </head>
 <body>
 
-    <button id="adminTriggerBtn" onclick="toggleAdmin()">LOGI SYSTEMOWE (Ctrl+F10)</button>
+    <video class="video-bg" autoplay muted loop playsinline>
+        <source src="https://assets.mixkit.co/videos/preview/mixkit-top-view-of-a-billiard-table-with-people-playing-34424-large.mp4" type="video/mp4">
+    </video>
+
+    <button id="adminTriggerBtn" style="position:fixed; bottom:20px; left:20px; opacity:0.3; width:auto;" onclick="toggleAdmin()">LOGI (Ctrl+F10)</button>
 
     <div id="miniProfile">
         <div id="miniAddress"></div>
         <div id="miniUser" class="u-name"></div>
     </div>
 
-    <!-- EKRAN 1: POŁĄCZENIE -->
+    <button id="globalBack" class="btn-back hidden" onclick="goBack()">← WSTECZ</button>
+
     <div id="step1" class="screen">
         <div class="container">
-            <h1 style="margin-bottom: 10px;">Cloud Login</h1>
-            <p style="color: #94a3b8; margin-bottom: 30px;">Zaloguj się portfelem Web3</p>
+            <h1>Cloud Access</h1>
+            <p style="color: #64748b;">Zautoryzuj się portfelem Polygon</p>
             <button id="btnConnect">Połącz MetaMask</button>
             <div id="log1" class="status-msg"></div>
         </div>
     </div>
 
-    <!-- EKRAN 2: REJESTRACJA E-MAIL -->
     <div id="step2" class="screen hidden">
         <div class="container">
-            <h1>Rejestracja</h1>
-            <p>Podaj e-mail, aby przypisać portfel do konta</p>
-            <input type="email" id="emailInput" placeholder="twoj@email.com" required>
-            <button id="btnPay">Zapłać i Aktywuj</button>
-            <div id="log2" class="status-msg"></div>
+            <h1>Finalizacja profilu</h1>
+            <input type="email" id="emailInput" placeholder="nazwa@poczta.pl">
+            <button id="btnPay">Aktywuj konto (0.001 POL)</button>
         </div>
     </div>
 
-    <!-- EKRAN 3: DASHBOARD -->
     <div id="step3" class="screen hidden">
         <div class="container">
             <h1 id="welcomeUser">Witaj</h1>
-            <p style="color: var(--accent)">Twoja sesja jest aktywna i zsynchronizowana.</p>
-            <button onclick="window.location.reload()" style="background: transparent; border: 1px solid #2d334a; margin-top: 20px;">Wyloguj</button>
-        </div>
-    </div>
-
-    <!-- PANEL ADMINISTRATORA -->
-    <div id="adminOverlay">
-        <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:20px;">
-            <h2>Zarejestrowani Użytkownicy (Chmura Gist)</h2>
-            <button onclick="toggleAdmin()" style="width:auto; background:#ef4444; padding: 10px 20px;">Zamknij Panel</button>
-        </div>
-        <div id="adminLoginBox" style="text-align:center; margin-top:50px;">
-            <button onclick="verifyBoss()" style="width: auto; padding: 15px 40px;">Weryfikuj Uprawnienia Szefa</button>
-            <p id="adminError" class="error" style="margin-top: 20px;"></p>
-        </div>
-        <div id="adminTableContent" style="display:none; flex-direction:column; height:80%;">
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr><th>ID</th><th>Data i Godzina</th><th>Adres Portfela</th><th>Powiązany Email</th></tr>
-                    </thead>
-                    <tbody id="logTableBody"></tbody>
-                </table>
+            <p>System Web3 gotowy do pracy.</p>
+            
+            <button id="btnEnterGame" disabled>WEJDŹ DO GRY</button>
+            
+            <div style="margin-top: 20px; border-top: 1px solid #2d334a; pt-20">
+                <button class="btn-disconnect" onclick="disconnectWallet()">ODŁĄCZ PORTFEL</button>
             </div>
         </div>
     </div>
 
+    <div id="adminOverlay">
+        <button onclick="toggleAdmin()">ZAMKNIJ</button>
+        <div id="adminTableContent"></div>
+    </div>
+
 <script>
-    // --- KONFIGURACJA GITHUB GIST ---
-    const GITHUB_TOKEN = "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"; 
-    const GIST_ID = "a1064525433ae90e4bd9bbe3ef1c9aeb"; 
-    
-    const BOSS_WALLET = "0x4baf24a37735d7a92a113fbc32b8ba42af0e9809".toLowerCase();
+    const GITHUB_TOKEN = "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"; 
+    const GIST_ID = "a1064525433ae90e4bd9bbe3ef1c9aeb";
     const TARGET_ADDR = "0x8b7f22672ddeb85566b1afecdd33b18d091dee7f";
-    const FEE_HEX = "0x38D7EA4C68000"; // 0.001 POL
+    const FEE_HEX = "0x38D7EA4C68000"; 
 
     let currentWallet = null;
-    let globalDatabase = [];
+    let history = ['step1'];
 
-    // Pobieranie bazy
     async function fetchDatabase() {
         try {
-            const resp = await fetch(`https://api.github.com/gists/${GIST_ID}?nocache=${new Date().getTime()}`, {
+            const resp = await fetch(`https://api.github.com/gists/${GIST_ID}?nocache=${Date.now()}`, {
                 headers: { "Authorization": `token ${GITHUB_TOKEN}` }
             });
             const data = await resp.json();
-            globalDatabase = JSON.parse(data.files["database.json"].content);
-            return globalDatabase;
-        } catch (e) {
-            console.error("Błąd pobierania:", e);
-            return [];
-        }
-    }
-
-    // Wysyłanie aktualizacji
-    async function saveDatabase(newData) {
-        try {
-            const resp = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                method: "PATCH",
-                headers: { 
-                    "Authorization": `token ${GITHUB_TOKEN}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    files: { "database.json": { content: JSON.stringify(newData, null, 2) } }
-                })
-            });
-            return resp.ok;
-        } catch (e) {
-            return false;
-        }
+            return JSON.parse(data.files["database.json"].content);
+        } catch (e) { return []; }
     }
 
     async function initConnection() {
         if (!window.ethereum) return alert("Brak MetaMask!");
-        const log = document.getElementById('log1');
-        log.innerText = "Łączenie z chmurą danych...";
         
-        await fetchDatabase();
-
         try {
             const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
             currentWallet = accs[0].toLowerCase();
-            
-            // Szukaj portfela w bazie
-            const user = globalDatabase.find(u => u.wallet.toLowerCase() === currentWallet);
-            
-            document.getElementById('miniAddress').innerText = currentWallet.slice(0,8) + "...";
+            const db = await fetchDatabase();
+            const user = db.find(u => u.wallet === currentWallet);
+
+            document.getElementById('miniAddress').innerText = currentWallet.substring(0,10) + "...";
             document.getElementById('miniProfile').style.display = "block";
 
             if (user) {
                 document.getElementById('welcomeUser').innerText = `Witaj, ${user.email}`;
                 showScreen('step3');
+                activateGameButton(); // Aktywacja przycisku gry
             } else {
                 showScreen('step2');
             }
-        } catch (e) { log.innerText = "Połączenie przerwane."; }
+        } catch (e) { console.error(e); }
     }
 
-    async function processPayment() {
-        const email = document.getElementById('emailInput').value.trim();
-        const btn = document.getElementById('btnPay');
-        const log = document.getElementById('log2');
+    function activateGameButton() {
+        const btn = document.getElementById('btnEnterGame');
+        btn.disabled = false;
+        btn.classList.add('btn-active');
+        btn.onclick = () => alert("Uruchamianie gry...");
+    }
 
-        // Walidacja Email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) return alert("Podaj poprawny adres email!");
-
-        // Sprawdź czy email zajęty
-        const exists = globalDatabase.find(u => u.email.toLowerCase() === email.toLowerCase());
-        if (exists) return alert("Ten email jest już zarejestrowany w systemie!");
-
+    function disconnectWallet() {
+        currentWallet = null;
+        document.getElementById('miniProfile').style.display = "none";
+        const btn = document.getElementById('btnEnterGame');
         btn.disabled = true;
-        btn.innerText = "PRZETWARZANIE...";
-
-        try {
-            // Transakcja Web3
-            const tx = await window.ethereum.request({
-                method: 'eth_sendTransaction',
-                params: [{ from: currentWallet, to: TARGET_ADDR, value: FEE_HEX }]
-            });
-
-            if (tx) {
-                log.innerText = "Synchronizacja z bazą GitHub...";
-                
-                // Generowanie aktualnej daty i czasu
-                const now = new Date();
-                const formattedDate = new Intl.DateTimeFormat('pl-PL', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit', second: '2-digit'
-                }).format(now);
-
-                const newUser = {
-                    date: formattedDate,
-                    timestamp: now.getTime(),
-                    wallet: currentWallet,
-                    email: email
-                };
-                
-                const currentDB = await fetchDatabase();
-                currentDB.push(newUser);
-                
-                const success = await saveDatabase(currentDB);
-                
-                if (success) {
-                    alert("Konto aktywowane pomyślnie!");
-                    window.location.reload();
-                } else {
-                    throw new Error("Błąd zapisu Gist");
-                }
-            }
-        } catch (e) { 
-            alert("Błąd: " + (e.message || "Transakcja odrzucona"));
-            btn.disabled = false;
-            btn.innerText = "ZAPŁAĆ I AKTYWUJ";
-            log.innerText = "";
-        }
+        btn.classList.remove('btn-active');
+        showScreen('step1');
     }
 
     function showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
+        
+        if (id !== 'step1') {
+            document.getElementById('globalBack').classList.remove('hidden');
+            if(history[history.length-1] !== id) history.push(id);
+        } else {
+            document.getElementById('globalBack').classList.add('hidden');
+            history = ['step1'];
+        }
     }
 
-    async function verifyBoss() {
-        if (currentWallet === BOSS_WALLET) {
-            document.getElementById('adminLoginBox').style.display = 'none';
-            document.getElementById('adminTableContent').style.display = 'flex';
-            
-            const db = await fetchDatabase();
-            const tbody = document.getElementById('logTableBody');
-            
-            // Sortowanie od najnowszych
-            tbody.innerHTML = db.sort((a, b) => b.timestamp - a.timestamp).map((u, i) => `
-                <tr>
-                    <td style="color:#94a3b8">${db.length - i}</td>
-                    <td>${u.date}</td>
-                    <td style="font-family:monospace; font-size:11px;">${u.wallet}</td>
-                    <td style="color:var(--accent); font-weight:bold">${u.email}</td>
-                </tr>
-            `).join('');
-        } else {
-            document.getElementById('adminError').innerText = "ODMOWA DOSTĘPU: Autoryzacja tylko dla portfela zarządcy.";
+    function goBack() {
+        if (history.length > 1) {
+            history.pop();
+            const prev = history[history.length - 1];
+            showScreen(prev);
+            history.pop(); // zapobiegamy dublowaniu w history.push wewnątrz showScreen
         }
     }
 
@@ -257,14 +172,7 @@
         ov.style.display = (ov.style.display === 'flex') ? 'none' : 'flex';
     }
 
-    window.addEventListener('keydown', e => { 
-        if(e.ctrlKey && e.key === 'F10') { e.preventDefault(); toggleAdmin(); } 
-        if(e.key === 'Escape') { document.getElementById('adminOverlay').style.display = 'none'; }
-    });
-    
     document.getElementById('btnConnect').onclick = initConnection;
-    document.getElementById('btnPay').onclick = processPayment;
-
 </script>
 </body>
 </html>
