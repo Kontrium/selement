@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Pro 8-Ball Physics Engine v2</title>
+    <style>
+        body { background: #121212; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; }
+        #ui { margin: 10px; text-align: center; }
+        canvas { background: #1b5e20; border: 12px solid #3e2723; border-radius: 15px; box-shadow: 0 0 40px rgba(0,0,0,0.8); cursor: crosshair; }
+        .tunnel-container { width: 800px; height: 60px; background: #000; border: 3px solid #333; margin-top: 15px; border-radius: 30px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        .tunnel-label { position: absolute; left: 10px; color: #555; font-size: 10px; text-transform: uppercase; }
+        .ball-in-tunnel { width: 30px; height: 30px; border-radius: 50%; margin: 0 5px; animation: slideIn 0.5s ease-out; box-shadow: inset -3px -3px 5px rgba(0,0,0,0.5); }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .power-bar-bg { width: 200px; height: 10px; background: #333; border-radius: 5px; margin: 10px auto; overflow: hidden; }
+        #power-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #4caf50, #ffeb3b, #f44336); transition: width 0.1s; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <h2>8-Ball Pro Simulator</h2>
+    <div class="power-bar-bg"><div id="power-fill"></div></div>
+    <small>Przytrzymaj Lewy Przycisk: Naciągnij siłę | Puść: Strzał</small>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div class="tunnel-container" id="tunnel">
+    <div class="tunnel-label">Tunel łuz</div>
+    </div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const tunnel = document.getElementById('tunnel');
+const powerFill = document.getElementById('power-fill');
+
+canvas.width = 800;
+canvas.height = 400;
+
+const SETTINGS = {
+    friction: 0.988,
+    wallBounciness: 0.7,
+    ballRadius: 12,
+    maxPower: 25,
+    pocketRadius: 25
+};
+
+let balls = [];
+let pocketedBalls = [];
+let cueBall;
+let isCharging = false;
+let chargePower = 0;
+let mousePos = { x: 0, y: 0 };
+
+class Ball {
+    constructor(x, y, color, num, type) {
+        this.x = x; this.y = y;
+        this.vx = 0; this.vy = 0;
+        this.color = color;
+        this.num = num;
+        this.type = type; // 'white', 'solid', 'striped', 'black'
+        this.inPocket = false;
+    }
+
+    draw() {
+        if (this.inPocket) return;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, SETTINGS.ballRadius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        
+        // Odblask (3D effect)
+        let gradient = ctx.createRadialGradient(this.x-3, this.y-3, 1, this.x, this.y, SETTINGS.ballRadius);
+        gradient.addColorStop(0, 'rgba(255,255,255,0.4)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0.1)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        if(this.num !== 0) {
+            ctx.fillStyle = "white";
+            ctx.font = "bold 9px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(this.num, this.x, this.y + 3);
+        }
+        ctx.closePath();
+        ctx.restore();
+    }
+
+    update() {
+        if (this.inPocket) return;
+        
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx *= SETTINGS.friction;
+        this.vy *= SETTINGS.friction;
+
+        if (Math.hypot(this.vx, this.vy) < 0.15) { this.vx = 0; this.vy = 0; }
+
+        // Kolizje ze ścianami
+        if (this.x < SETTINGS.ballRadius || this.x > canvas.width - SETTINGS.ballRadius) {
+            this.vx *= -SETTINGS.wallBounciness;
+            this.x = this.x < SETTINGS.ballRadius ? SETTINGS.ballRadius : canvas.width - SETTINGS.ballRadius;
+        }
+        if (this.y < SETTINGS.ballRadius || this.y > canvas.height - SETTINGS.ballRadius) {
+            this.vy *= -SETTINGS.wallBounciness;
+            this.y = this.y < SETTINGS.ballRadius ? SETTINGS.ballRadius : canvas.height - SETTINGS.ballRadius;
+        }
+
+        // Detekcja łuz
+        const corners = [{x:0,y:0}, {x:400,y:0}, {x:800,y:0}, {x:0,y:400}, {x:400,y:400}, {x:800,y:400}];
+        corners.forEach(p => {
+            if (Math.hypot(this.x - p.x, this.y - p.y) < SETTINGS.pocketRadius) {
+                this.pocket();
+            }
+        });
+    }
+
+    pocket() {
+        this.inPocket = true;
+        if (this.num === 0) {
+            setTimeout(() => { this.inPocket = false; this.x = 200; this.y = 200; this.vx = 0; this.vy = 0; }, 500);
+        } else {
+            addToTunnel(this.color);
+        }
+    }
+}
+
+function addToTunnel(color) {
+    const ballDiv = document.createElement('div');
+    ballDiv.className = 'ball-in-tunnel';
+    ballDiv.style.backgroundColor = color;
+    tunnel.appendChild(ballDiv);
+}
+
+function initTable() {
+    balls = [];
+    cueBall = new Ball(200, 200, '#fff', 0, 'white');
+    balls.push(cueBall);
+
+    const colors = ['#ffeb3b', '#1e88e5', '#e53935', '#5e35b1', '#fb8c00', '#43a047', '#8d6e63', '#000'];
+    let idx = 0;
+    for (let i = 0; i < 5; i++) {
+        for (let j = 0; j <= i; j++) {
+            let color = (idx === 4) ? '#000' : colors[idx % colors.length];
+            balls.push(new Ball(550 + i * 22, 200 - (i * 12) + j * 24, color, idx + 1, 'solid'));
+            idx++;
+        }
+    }
+}
+
+function resolveCollisions() {
+    for (let i = 0; i < balls.length; i++) {
+        for (let j = i + 1; j < balls.length; j++) {
+            let b1 = balls[i], b2 = balls[j];
+            if (b1.inPocket || b2.inPocket) continue;
+
+            let dx = b2.x - b1.x;
+            let dy = b2.y - b1.y;
+            let dist = Math.hypot(dx, dy);
+
+            if (dist < SETTINGS.ballRadius * 2) {
+                let angle = Math.atan2(dy, dx);
+                let targetX = b1.x + Math.cos(angle) * SETTINGS.ballRadius * 2;
+                let targetY = b1.y + Math.sin(angle) * SETTINGS.ballRadius * 2;
+                let ax = (targetX - b2.x) * 0.5;
+                let ay = (targetY - b2.y) * 0.5;
+                b1.vx -= ax; b1.vy -= ay;
+                b2.vx += ax; b2.vy += ay;
+            }
+        }
+    }
+}
+
+// Obsługa sterowania
+canvas.onmousedown = () => { if (Math.hypot(cueBall.vx, cueBall.vy) === 0) isCharging = true; };
+window.onmouseup = () => {
+    if (isCharging) {
+        const angle = Math.atan2(mousePos.y - cueBall.y, mousePos.x - cueBall.x);
+        cueBall.vx = -Math.cos(angle) * chargePower;
+        cueBall.vy = -Math.sin(angle) * chargePower;
+        isCharging = false;
+        chargePower = 0;
+    }
+};
+canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mousePos.x = e.clientX - rect.left;
+    mousePos.y = e.clientY - rect.top;
+};
+
+function drawGuide() {
+    if (Math.hypot(cueBall.vx, cueBall.vy) > 0) return;
+    
+    const angle = Math.atan2(mousePos.y - cueBall.y, mousePos.x - cueBall.x);
+    
+    // Kierunek strzału
+    ctx.beginPath();
+    ctx.setLineDash([5, 10]);
+    ctx.moveTo(cueBall.x, cueBall.y);
+    ctx.lineTo(cueBall.x - Math.cos(angle) * 100, cueBall.y - Math.sin(angle) * 100);
+    ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    if (isCharging) {
+        chargePower = Math.min(chargePower + 0.5, SETTINGS.maxPower);
+        powerFill.style.width = (chargePower / SETTINGS.maxPower * 100) + "%";
+    } else {
+        powerFill.style.width = "0%";
+    }
+}
+
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Stół i łuz
+    ctx.fillStyle = '#1a3e1c';
+    ctx.fillRect(0,0,800,400);
+    ctx.fillStyle = '#000';
+    [{x:0,y:0}, {x:400,y:0}, {x:800,y:0}, {x:0,y:400}, {x:400,y:400}, {x:800,y:400}].forEach(p => {
+        ctx.beginPath(); ctx.arc(p.x, p.y, SETTINGS.pocketRadius, 0, Math.PI*2); ctx.fill();
+    });
+
+    resolveCollisions();
+    balls.forEach(b => { b.update(); b.draw(); });
+    drawGuide();
+    
+    requestAnimationFrame(gameLoop);
+}
+
+initTable();
+gameLoop();
+</script>
+</body>
+</html>
