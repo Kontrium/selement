@@ -8,170 +8,196 @@
         :root { 
             --primary: #8247e5; 
             --bg: #030712; 
-            --card: rgba(17, 24, 39, 0.85); 
+            --card: rgba(17, 24, 39, 0.9); 
             --text: #f8fafc; 
             --accent: #4ade80; 
-            --disabled: #1f2937; 
+            --warning: #facc15;
         }
         
+        /* Reset i baza */
         body, html { 
-            margin: 0; padding: 0; height: 100%; width: 100%; 
-            font-family: 'Inter', sans-serif; background: var(--bg); 
-            color: var(--text); overflow: hidden; 
+            margin: 0; padding: 0; 
+            width: 100%; height: 100%; 
+            font-family: 'Inter', sans-serif; 
+            background-color: #000;
+            color: var(--text); 
+            overflow: hidden; 
         }
 
-        /* REWOLUCYJNE TŁO WIDEO - PROFESSIONAL BILLIARDS */
-        #video-background {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: -1; background: #000;
-        }
-        .billiards-video {
-            width: 100%; height: 100%; object-fit: cover;
-            opacity: 0.5; filter: brightness(0.5) contrast(1.2) saturate(1.1);
+        /* NAPRAWIONE TŁO - PEŁNE WYPEŁNIENIE I PRZEŚWIT */
+        #background-fixed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('./knajpa_cartoon_bg.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.8; /* Prześwitywanie tła */
+            animation: slowPan 25s infinite alternate ease-in-out;
         }
 
-        /* WARSTWA OVERLAY DLA EFEKTU GŁĘBI */
-        .vignette {
-            position: fixed; inset: 0; z-index: 0; pointer-events: none;
-            background: radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.8) 100%);
+        @keyframes slowPan {
+            from { transform: scale(1) translateX(0); }
+            to { transform: scale(1.1) translateX(-10px); }
         }
 
-        /* SZKLANY INTERFEJS (GLASSMORPHISM) */
+        /* Ekrany i kontenery */
         .screen { 
             display: flex; flex-direction: column; justify-content: center; 
             align-items: center; height: 100vh; width: 100%; 
-            position: absolute; transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1); z-index: 10; 
+            position: absolute; transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1); 
+            z-index: 10; 
         }
+
         .container { 
-            background: var(--card); padding: 3.5rem; border-radius: 2.5rem; 
-            text-align: center; width: 440px; border: 1px solid rgba(255,255,255,0.1); 
-            box-shadow: 0 30px 60px rgba(0,0,0,0.8); backdrop-filter: blur(25px);
+            background: var(--card); 
+            padding: 3rem; 
+            border-radius: 2.5rem; 
+            text-align: center; 
+            width: 440px; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8); 
+            backdrop-filter: blur(20px);
         }
 
-        h1 { margin-bottom: 0.5rem; font-weight: 900; letter-spacing: -1px; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        h1 { 
+            margin-bottom: 0.5rem; 
+            font-weight: 900; 
+            background: linear-gradient(to right, #fff, var(--primary)); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+            font-size: 2.5rem; 
+        }
 
-        /* NOWOCZESNE PRZYCISKI */
+        /* Przyciski */
         button { 
             background: var(--primary); color: white; border: none; padding: 18px; 
             border-radius: 14px; font-weight: 700; cursor: pointer; width: 100%; 
-            transition: 0.3s all ease; text-transform: uppercase; letter-spacing: 2px; font-size: 13px; margin-bottom: 12px;
+            transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; 
+            margin-bottom: 12px; font-size: 14px;
         }
-        button:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(130, 71, 229, 0.4); filter: brightness(1.1); }
-        button:disabled { background: var(--disabled); cursor: not-allowed; opacity: 0.3; transform: none; }
 
-        /* EFEKT REWOLUCYJNEGO PODŚWIETLENIA DLA AKTYWNEJ GRY */
+        button:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(130, 71, 229, 0.5); }
+        
+        .btn-guest { 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #ccc;
+        }
+        
         .btn-active { 
             background: linear-gradient(45deg, var(--accent), #22c55e) !important; 
             color: #052e16 !important; 
-            box-shadow: 0 0 35px rgba(74, 222, 128, 0.5) !important;
-            animation: pulse 2s infinite;
+            box-shadow: 0 0 35px rgba(74, 222, 128, 0.6) !important;
         }
 
-        @keyframes pulse {
-            0% { box-shadow: 0 0 20px rgba(74, 222, 128, 0.4); }
-            50% { box-shadow: 0 0 40px rgba(74, 222, 128, 0.7); }
-            100% { box-shadow: 0 0 20px rgba(74, 222, 128, 0.4); }
+        /* Komunikat o wersji testowej */
+        .warning-box {
+            background: rgba(250, 204, 21, 0.1);
+            color: var(--warning);
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(250, 204, 21, 0.3);
+            line-height: 1.5;
+            display: none;
         }
 
-        .btn-back { position: fixed; top: 25px; left: 25px; width: auto; background: rgba(255,255,255,0.05); padding: 12px 24px; font-size: 11px; z-index: 100; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
-        
-        #adminTriggerBtn { position: fixed; bottom: 25px; left: 25px; z-index: 100; width: auto; font-size: 10px; opacity: 0.4; background: transparent; border: 1px solid white; padding: 10px; color: white; border-radius: 6px; cursor: pointer; transition: 0.3s; }
-        #adminTriggerBtn:hover { opacity: 1; background: var(--primary); }
-
-        #adminOverlay { position: fixed; inset: 0; background: rgba(3, 7, 18, 0.98); z-index: 9999; display: none; flex-direction: column; padding: 50px; overflow-y: auto; }
-        .hidden { opacity: 0; pointer-events: none; transform: translateY(40px) scale(0.95); }
+        .hidden { opacity: 0; pointer-events: none; transform: translateY(40px); }
     </style>
 </head>
 <body>
 
-    <div id="video-background">
-        <video class="billiards-video" autoplay muted loop playsinline>
-            <source src="https://cdn.pixabay.com/video/2020/09/16/50264-457416345_tiny.mp4" type="video/mp4">
-        </video>
-    </div>
-    <div class="vignette"></div>
+    <div id="background-fixed"></div>
 
-    <button id="adminTriggerBtn" onclick="toggleAdmin()">LOGI SYSTEMOWE (Ctrl+F10)</button>
-    <button id="globalBack" class="btn-back hidden" onclick="goBack()">← WSTECZ</button>
+    <audio id="arcadeMusic" loop preload="auto">
+        <source src="muzykawtle.mp3" type="audio/mpeg">
+    </audio>
 
     <div id="step1" class="screen">
         <div class="container">
             <h1>Web3 Billiards</h1>
-            <p style="color:#94a3b8; margin-bottom:2.5rem;">Zaloguj się portfelem Polygon, aby wejść na arenę</p>
-            <button id="btnConnect">Połącz MetaMask</button>
+            <p style="color:#94a3b8; margin-bottom:2rem; font-size: 14px;">Witaj w lokalnej knajpie. Wybierz jak chcesz grać.</p>
+            
+            <button id="btnConnect">Połącz MetaMask (Tryb PRO)</button>
+            <button id="btnGuest" class="btn-guest">Graj jako Gość (DEMO)</button>
         </div>
     </div>
 
-    <div id="step3" class="screen hidden">
+    <div id="step2" class="screen hidden">
         <div class="container">
-            <h1>Panel Gracza</h1>
-            <p style="margin-bottom:2.5rem; opacity:0.8;">Wykryto aktywną subskrypcję Polyball.</p>
+            <h1 id="statusHeader">Panel Gracza</h1>
             
-            <button id="btnEnterGame" disabled onclick="location.href='polyball/index.html'">GRAJ TERAZ</button>
-            
-            <button onclick="location.reload()" style="background:transparent; border:1px solid #ef4444; color:#ef4444; font-size:12px; box-shadow: none;">Wyloguj sesję</button>
-        </div>
-    </div>
+            <div id="guestWarning" class="warning-box">
+                Grasz za darmo w wersję testową. <br>
+                <strong>Podłącz portfel, jeśli chcesz grać na prawdziwe pieniądze!</strong>
+            </div>
 
-    <div id="adminOverlay">
-        <div style="display:flex; justify-content: space-between; align-items:center;">
-            <h2>Baza Użytkowników Systemu</h2>
-            <button onclick="toggleAdmin()" style="width:auto; background:#ef4444; padding: 10px 30px;">ZAMKNIJ</button>
-        </div>
-        <div style="margin-top: 50px; text-align: center; color: #64748b; font-size: 14px;">
-            Trwa synchronizacja z siecią Polygon...
+            <button id="btnStartGame" class="btn-active" onclick="launchGame()">URUCHOM ARENĘ</button>
+            
+            <p style="color: #666; font-size: 10px; cursor: pointer; margin-top: 10px;" onclick="location.reload()">Rozłącz i wróć</p>
         </div>
     </div>
 
 <script>
-    let currentWallet = null;
-    let screenHistory = ['step1'];
+    const music = document.getElementById('arcadeMusic');
+    let isDemoMode = true;
 
-    // Obsługa skrótu Ctrl+F10 oraz Escape
-    window.onkeydown = e => { 
-        if(e.ctrlKey && e.key === 'F10') {
-            e.preventDefault();
-            toggleAdmin();
-        }
-        if(e.key === 'Escape') document.getElementById('adminOverlay').style.display = 'none';
-    };
-
-    function toggleAdmin() {
-        const ov = document.getElementById('adminOverlay');
-        ov.style.display = (ov.style.display === 'flex') ? 'none' : 'flex';
+    // Funkcja odblokowania muzyki
+    function handleMusic() {
+        music.volume = 0.4;
+        music.play().then(() => {
+            document.removeEventListener('mousedown', handleMusic);
+        }).catch(e => console.log("Audio block active"));
     }
+    document.addEventListener('mousedown', handleMusic);
 
-    async function initConnection() {
-        if (!window.ethereum) return alert("Zainstaluj MetaMask!");
-        try {
-            const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            currentWallet = accs[0].toLowerCase();
-            
-            showScreen('step3');
-            
-            // Aktywacja rewolucyjnego przycisku wejścia
-            const gameBtn = document.getElementById('btnEnterGame');
-            gameBtn.disabled = false;
-            gameBtn.classList.add('btn-active');
-            
-        } catch (e) { console.error("Web3 Error:", e); }
-    }
-
-    function showScreen(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        document.getElementById(id).classList.remove('hidden');
-        document.getElementById('globalBack').classList.toggle('hidden', id === 'step1');
-        if (id !== 'step1' && screenHistory[screenHistory.length-1] !== id) screenHistory.push(id);
-    }
-
-    function goBack() {
-        if (screenHistory.length > 1) {
-            screenHistory.pop();
-            showScreen(screenHistory.pop());
+    // Połączenie z portfelem (Tryb PRO)
+    async function connectWallet() {
+        if (typeof window.ethereum !== 'undefined') {
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                isDemoMode = false;
+                transitionToGame();
+            } catch (err) {
+                alert("Połączenie przerwane.");
+            }
+        } else {
+            alert("Nie znaleziono MetaMask! Zainstaluj dodatek, aby grać w trybie PRO.");
         }
     }
 
-    document.getElementById('btnConnect').onclick = initConnection;
+    // Wejście jako gość (Tryb DEMO)
+    function enterAsGuest() {
+        isDemoMode = true;
+        transitionToGame();
+    }
+
+    function transitionToGame() {
+        document.getElementById('step1').classList.add('hidden');
+        document.getElementById('step2').classList.remove('hidden');
+        
+        if (isDemoMode) {
+            document.getElementById('statusHeader').innerText = "Tryb Gościa";
+            document.getElementById('guestWarning').style.display = "block";
+        } else {
+            document.getElementById('statusHeader').innerText = "Tryb Web3";
+            document.getElementById('guestWarning').style.display = "none";
+        }
+    }
+
+    function launchGame() {
+        const urlParams = isDemoMode ? "?mode=demo" : "?mode=pro";
+        location.href = "./polyball/index.html" + urlParams;
+    }
+
+    document.getElementById('btnConnect').onclick = connectWallet;
+    document.getElementById('btnGuest').onclick = enterAsGuest;
 </script>
 </body>
 </html>
