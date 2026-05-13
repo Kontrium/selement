@@ -11,20 +11,21 @@
         #miniProfile { position: fixed; top: 15px; right: 20px; text-align: right; font-size: 11px; color: #94a3b8; z-index: 100; display: none; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(5px); }
         .u-name { color: var(--accent); font-weight: bold; font-size: 13px; display: block; margin-bottom: 2px; }
         .screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; width: 100%; position: absolute; transition: 0.4s; }
-        .container { background: var(--card); padding: 3rem; border-radius: 2rem; text-align: center; width: 380px; border: 1px solid rgba(255,255,255,0.05); }
+        .container { background: var(--card); padding: 3rem; border-radius: 2rem; text-align: center; width: 420px; border: 1px solid rgba(255,255,255,0.05); }
         
-        input { width: 100%; padding: 14px; margin: 15px 0; border-radius: 10px; border: 1px solid #2d334a; background: #0b0f1a; color: white; outline: none; box-sizing: border-box; }
+        input { width: 100%; padding: 14px; margin: 15px 0; border-radius: 10px; border: 1px solid #2d334a; background: #0b0f1a; color: white; outline: none; box-sizing: border-box; font-size: 14px; }
+        input:focus { border-color: var(--primary); }
         button { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; text-transform: uppercase; }
-        button:disabled { background: #475569; cursor: not-allowed; }
+        button:disabled { background: #475569; cursor: not-allowed; opacity: 0.7; }
 
         .hidden { opacity: 0; pointer-events: none; transform: translateY(30px); }
-        .status-msg { font-size: 13px; margin-top: 15px; min-height: 20px; }
+        .status-msg { font-size: 13px; margin-top: 15px; min-height: 20px; color: #94a3b8; }
         .error { color: #f87171; }
 
         #adminOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: none; flex-direction: column; padding: 40px; }
         .table-wrapper { flex-grow: 1; overflow-y: auto; background: var(--card); border: 1px solid #2d334a; border-radius: 15px; }
         table { width: 100%; border-collapse: collapse; }
-        th { background: #1f2937; color: var(--primary); padding: 15px; text-align: left; position: sticky; top: 0; }
+        th { background: #1f2937; color: var(--primary); padding: 15px; text-align: left; position: sticky; top: 0; z-index: 10; }
         td { padding: 12px 15px; border-bottom: 1px solid #2d334a; font-size: 13px; }
 
         #adminTriggerBtn { position: fixed; bottom: 20px; left: 20px; z-index: 1000; padding: 10px; opacity: 0.4; font-size: 10px; background: #1e293b; color: white; border: 1px solid #334155; border-radius: 5px; cursor: pointer; }
@@ -33,31 +34,30 @@
 </head>
 <body>
 
-    <!-- Przycisk dostępu do bazy -->
-    <button id="adminTriggerBtn" onclick="toggleAdmin()">BAZA DANYCH UŻYTKOWNIKÓW (Ctrl+F10)</button>
+    <button id="adminTriggerBtn" onclick="toggleAdmin()">LOGI SYSTEMOWE (Ctrl+F10)</button>
 
     <div id="miniProfile">
         <div id="miniAddress"></div>
         <div id="miniUser" class="u-name"></div>
-        <div id="miniBalance"></div>
     </div>
 
     <!-- EKRAN 1: POŁĄCZENIE -->
     <div id="step1" class="screen">
         <div class="container">
-            <h1>System Inicjacji</h1>
-            <p>Połącz portfel Polygon (POL)</p>
+            <h1 style="margin-bottom: 10px;">Cloud Login</h1>
+            <p style="color: #94a3b8; margin-bottom: 30px;">Zaloguj się portfelem Web3</p>
             <button id="btnConnect">Połącz MetaMask</button>
             <div id="log1" class="status-msg"></div>
         </div>
     </div>
 
-    <!-- EKRAN 2: REJESTRACJA -->
+    <!-- EKRAN 2: REJESTRACJA E-MAIL -->
     <div id="step2" class="screen hidden">
         <div class="container">
-            <h1>Powiąż Nazwę</h1>
-            <input type="text" id="usernameInput" placeholder="Twoja unikalna nazwa...">
-            <button id="btnPay">Zapłać i Rejestruj</button>
+            <h1>Rejestracja</h1>
+            <p>Podaj e-mail, aby przypisać portfel do konta</p>
+            <input type="email" id="emailInput" placeholder="twoj@email.com" required>
+            <button id="btnPay">Zapłać i Aktywuj</button>
             <div id="log2" class="status-msg"></div>
         </div>
     </div>
@@ -66,25 +66,26 @@
     <div id="step3" class="screen hidden">
         <div class="container">
             <h1 id="welcomeUser">Witaj</h1>
-            <p style="color: var(--accent)">Tożsamość zweryfikowana globalnie.</p>
+            <p style="color: var(--accent)">Twoja sesja jest aktywna i zsynchronizowana.</p>
+            <button onclick="window.location.reload()" style="background: transparent; border: 1px solid #2d334a; margin-top: 20px;">Wyloguj</button>
         </div>
     </div>
 
     <!-- PANEL ADMINISTRATORA -->
     <div id="adminOverlay">
         <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:20px;">
-            <h2>Globalna Baza Użytkowników</h2>
-            <button onclick="toggleAdmin()" style="width:auto; background:#ef4444; padding: 10px 20px;">Zamknij (Esc)</button>
+            <h2>Zarejestrowani Użytkownicy (Chmura Gist)</h2>
+            <button onclick="toggleAdmin()" style="width:auto; background:#ef4444; padding: 10px 20px;">Zamknij Panel</button>
         </div>
         <div id="adminLoginBox" style="text-align:center; margin-top:50px;">
-            <button onclick="verifyBoss()">Weryfikuj uprawnienia administratora</button>
-            <p id="adminError" class="error"></p>
+            <button onclick="verifyBoss()" style="width: auto; padding: 15px 40px;">Weryfikuj Uprawnienia Szefa</button>
+            <p id="adminError" class="error" style="margin-top: 20px;"></p>
         </div>
         <div id="adminTableContent" style="display:none; flex-direction:column; height:80%;">
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <tr><th>Nr</th><th>Data Rejestracji</th><th>Portfel</th><th>Nazwa</th></tr>
+                        <tr><th>ID</th><th>Data i Godzina</th><th>Adres Portfela</th><th>Powiązany Email</th></tr>
                     </thead>
                     <tbody id="logTableBody"></tbody>
                 </table>
@@ -93,7 +94,7 @@
     </div>
 
 <script>
-    // --- KONFIGURACJA CHMURY ---
+    // --- KONFIGURACJA GITHUB GIST ---
     const GITHUB_TOKEN = "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"; 
     const GIST_ID = "a1064525433ae90e4bd9bbe3ef1c9aeb"; 
     
@@ -104,22 +105,22 @@
     let currentWallet = null;
     let globalDatabase = [];
 
-    // Pobieranie danych z GitHub
+    // Pobieranie bazy
     async function fetchDatabase() {
         try {
-            const resp = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+            const resp = await fetch(`https://api.github.com/gists/${GIST_ID}?nocache=${new Date().getTime()}`, {
                 headers: { "Authorization": `token ${GITHUB_TOKEN}` }
             });
             const data = await resp.json();
             globalDatabase = JSON.parse(data.files["database.json"].content);
             return globalDatabase;
         } catch (e) {
-            console.error("Błąd bazy danych:", e);
+            console.error("Błąd pobierania:", e);
             return [];
         }
     }
 
-    // Zapisywanie danych na GitHub
+    // Wysyłanie aktualizacji
     async function saveDatabase(newData) {
         try {
             const resp = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
@@ -132,16 +133,16 @@
                     files: { "database.json": { content: JSON.stringify(newData, null, 2) } }
                 })
             });
-            if (!resp.ok) throw new Error("Błąd synchronizacji");
+            return resp.ok;
         } catch (e) {
-            alert("Błąd połączenia z chmurą!");
+            return false;
         }
     }
 
     async function initConnection() {
-        if (!window.ethereum) return alert("Zainstaluj MetaMask!");
+        if (!window.ethereum) return alert("Brak MetaMask!");
         const log = document.getElementById('log1');
-        log.innerText = "Synchronizacja danych...";
+        log.innerText = "Łączenie z chmurą danych...";
         
         await fetchDatabase();
 
@@ -149,57 +150,78 @@
             const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
             currentWallet = accs[0].toLowerCase();
             
+            // Szukaj portfela w bazie
             const user = globalDatabase.find(u => u.wallet.toLowerCase() === currentWallet);
             
-            document.getElementById('miniAddress').innerText = currentWallet.slice(0,6) + "..." + currentWallet.slice(-4);
+            document.getElementById('miniAddress').innerText = currentWallet.slice(0,8) + "...";
             document.getElementById('miniProfile').style.display = "block";
 
             if (user) {
-                document.getElementById('welcomeUser').innerText = `Witaj, ${user.name}!`;
+                document.getElementById('welcomeUser').innerText = `Witaj, ${user.email}`;
                 showScreen('step3');
             } else {
                 showScreen('step2');
             }
-        } catch (e) { log.innerText = "Nie udało się połączyć portfela."; }
+        } catch (e) { log.innerText = "Połączenie przerwane."; }
     }
 
     async function processPayment() {
-        const name = document.getElementById('usernameInput').value.trim();
+        const email = document.getElementById('emailInput').value.trim();
         const btn = document.getElementById('btnPay');
-        if (name.length < 3) return alert("Nazwa musi mieć min. 3 znaki!");
+        const log = document.getElementById('log2');
 
-        // Czy nazwa jest już w bazie?
-        const exists = globalDatabase.find(u => u.name.toLowerCase() === name.toLowerCase());
-        if (exists) return alert("Ta nazwa jest już zajęta!");
+        // Walidacja Email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) return alert("Podaj poprawny adres email!");
+
+        // Sprawdź czy email zajęty
+        const exists = globalDatabase.find(u => u.email.toLowerCase() === email.toLowerCase());
+        if (exists) return alert("Ten email jest już zarejestrowany w systemie!");
 
         btn.disabled = true;
-        btn.innerText = "AUTORYZACJA PŁATNOŚCI...";
+        btn.innerText = "PRZETWARZANIE...";
 
         try {
+            // Transakcja Web3
             const tx = await window.ethereum.request({
                 method: 'eth_sendTransaction',
                 params: [{ from: currentWallet, to: TARGET_ADDR, value: FEE_HEX }]
             });
 
             if (tx) {
-                btn.innerText = "AKTUALIZACJA CHMURY...";
+                log.innerText = "Synchronizacja z bazą GitHub...";
+                
+                // Generowanie aktualnej daty i czasu
+                const now = new Date();
+                const formattedDate = new Intl.DateTimeFormat('pl-PL', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                }).format(now);
+
                 const newUser = {
-                    date: new Date().toLocaleString('pl-PL'),
+                    date: formattedDate,
+                    timestamp: now.getTime(),
                     wallet: currentWallet,
-                    name: name
+                    email: email
                 };
                 
                 const currentDB = await fetchDatabase();
                 currentDB.push(newUser);
-                await saveDatabase(currentDB);
                 
-                alert("Sukces! Dane zsynchronizowane.");
-                window.location.reload();
+                const success = await saveDatabase(currentDB);
+                
+                if (success) {
+                    alert("Konto aktywowane pomyślnie!");
+                    window.location.reload();
+                } else {
+                    throw new Error("Błąd zapisu Gist");
+                }
             }
         } catch (e) { 
-            alert("Transakcja anulowana.");
+            alert("Błąd: " + (e.message || "Transakcja odrzucona"));
             btn.disabled = false;
-            btn.innerText = "ZAPŁAĆ I REJESTRUJ";
+            btn.innerText = "ZAPŁAĆ I AKTYWUJ";
+            log.innerText = "";
         }
     }
 
@@ -215,16 +237,18 @@
             
             const db = await fetchDatabase();
             const tbody = document.getElementById('logTableBody');
-            tbody.innerHTML = db.map((u, i) => `
+            
+            // Sortowanie od najnowszych
+            tbody.innerHTML = db.sort((a, b) => b.timestamp - a.timestamp).map((u, i) => `
                 <tr>
-                    <td>${i+1}</td>
+                    <td style="color:#94a3b8">${db.length - i}</td>
                     <td>${u.date}</td>
-                    <td style="font-family:monospace">${u.wallet}</td>
-                    <td style="color:var(--accent); font-weight:bold">${u.name}</td>
+                    <td style="font-family:monospace; font-size:11px;">${u.wallet}</td>
+                    <td style="color:var(--accent); font-weight:bold">${u.email}</td>
                 </tr>
-            `).reverse().join('');
+            `).join('');
         } else {
-            document.getElementById('adminError').innerText = "BRAK UPRAWNIEŃ: Twój adres portfela nie jest zarejestrowany jako szef.";
+            document.getElementById('adminError').innerText = "ODMOWA DOSTĘPU: Autoryzacja tylko dla portfela zarządcy.";
         }
     }
 
@@ -233,10 +257,9 @@
         ov.style.display = (ov.style.display === 'flex') ? 'none' : 'flex';
     }
 
-    // Obsługa klawiszy
     window.addEventListener('keydown', e => { 
         if(e.ctrlKey && e.key === 'F10') { e.preventDefault(); toggleAdmin(); } 
-        if(e.key === 'Escape' && document.getElementById('adminOverlay').style.display === 'flex') toggleAdmin();
+        if(e.key === 'Escape') { document.getElementById('adminOverlay').style.display = 'none'; }
     });
     
     document.getElementById('btnConnect').onclick = initConnection;
