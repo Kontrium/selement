@@ -3,114 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Web3 System | Polygon Cloud</title>
+    <title>Web3 Billiards Pro | Enterprise System</title>
     <style>
-        :root { --primary: #8247e5; --bg: #0b0f1a; --card: #161b2b; --text: #f8fafc; --accent: #4ade80; --disabled: #334155; }
+        :root { 
+            --primary: #8247e5; 
+            --bg: #030712; 
+            --card: rgba(17, 24, 39, 0.75); 
+            --text: #f8fafc; 
+            --accent: #4ade80; 
+            --disabled: #1f2937; 
+        }
         
         body, html { 
-            margin: 0; 
-            padding: 0; 
-            height: 100%; 
-            width: 100%; 
-            font-family: 'Inter', sans-serif; 
-            background: var(--bg); 
-            color: var(--text); 
-            overflow: hidden; 
+            margin: 0; padding: 0; height: 100%; width: 100%; 
+            font-family: 'Inter', sans-serif; background: var(--bg); 
+            color: var(--text); overflow: hidden; 
         }
 
-        /* Tło wideo na pełny ekran */
-        #video-viewport {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            background: var(--bg);
+        /* NOWOCZESNE TŁO WIDEO FULL SCREEN */
+        #video-background {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1; background: #000;
+        }
+        .billiards-video {
+            width: 100%; height: 100%; object-fit: cover;
+            opacity: 0.45; filter: brightness(0.6) contrast(1.1);
         }
 
-        .video-bg {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            min-width: 100%;
-            min-height: 100%;
-            width: auto;
-            height: auto;
-            transform: translate(-50%, -50%);
-            opacity: 0.35;
-            filter: brightness(0.7) contrast(1.1);
-            object-fit: cover;
+        /* SZKLANY INTERFEJS */
+        .screen { 
+            display: flex; flex-direction: column; justify-content: center; 
+            align-items: center; height: 100vh; width: 100%; 
+            position: absolute; transition: 0.5s ease-in-out; z-index: 10; 
+        }
+        .container { 
+            background: var(--card); padding: 3rem; border-radius: 2rem; 
+            text-align: center; width: 420px; border: 1px solid rgba(255,255,255,0.1); 
+            box-shadow: 0 25px 50px rgba(0,0,0,0.6); backdrop-filter: blur(15px);
         }
 
-        #miniProfile { position: fixed; top: 15px; right: 20px; text-align: right; font-size: 11px; color: #94a3b8; z-index: 100; display: none; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); }
-        .u-name { color: var(--accent); font-weight: bold; font-size: 13px; display: block; margin-bottom: 2px; }
-        
-        .screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; width: 100%; position: absolute; transition: 0.4s; z-index: 10; }
-        .container { background: rgba(22, 27, 43, 0.8); padding: 3rem; border-radius: 2rem; text-align: center; width: 400px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 20px 50px rgba(0,0,0,0.5); backdrop-filter: blur(15px); }
-        
-        button { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 1px; }
-        button:hover { filter: brightness(1.1); transform: translateY(-2px); }
-        button:disabled { background: var(--disabled); cursor: not-allowed; opacity: 0.5; transform: none; }
-        
-        .btn-active { background: var(--accent) !important; color: #000 !important; box-shadow: 0 0 20px rgba(74, 222, 128, 0.3); }
-        .btn-back { position: fixed; top: 20px; left: 20px; width: auto; background: rgba(255,255,255,0.1); padding: 10px 20px; font-size: 11px; z-index: 1000; border: 1px solid rgba(255,255,255,0.1); }
-        
-        #adminTriggerBtn { position: fixed; bottom: 20px; left: 20px; z-index: 1000; width: auto; padding: 10px 15px; font-size: 10px; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255,255,255,0.1); opacity: 0.5; }
-        #adminTriggerBtn:hover { opacity: 1; background: var(--primary); }
+        h1 { margin-bottom: 0.5rem; font-weight: 800; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-        #adminOverlay { position: fixed; inset: 0; background: rgba(11, 15, 26, 0.95); z-index: 9999; display: none; flex-direction: column; padding: 40px; backdrop-filter: blur(20px); }
-        .hidden { opacity: 0; pointer-events: none; transform: translateY(20px); }
+        /* PRZYCISKI */
+        button { 
+            background: var(--primary); color: white; border: none; padding: 18px; 
+            border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; 
+            transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+        }
+        button:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        button:disabled { background: var(--disabled); cursor: not-allowed; opacity: 0.4; transform: none; }
+
+        /* PRZYCISK AKTYWNY (Z PODŚWIETLENIEM) */
+        .btn-active { 
+            background: var(--accent) !important; color: #064e3b !important; 
+            box-shadow: 0 0 25px rgba(74, 222, 128, 0.4) !important; 
+        }
+
+        .btn-back { position: fixed; top: 20px; left: 20px; width: auto; background: rgba(255,255,255,0.1); padding: 10px 20px; font-size: 11px; z-index: 100; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+        #adminTriggerBtn { position: fixed; bottom: 20px; left: 20px; z-index: 100; width: auto; font-size: 10px; opacity: 0.5; background: transparent; border: 1px solid white; padding: 8px; }
+
+        #adminOverlay { position: fixed; inset: 0; background: rgba(3, 7, 18, 0.98); z-index: 9999; display: none; flex-direction: column; padding: 40px; overflow-y: auto; }
+        .hidden { opacity: 0; pointer-events: none; transform: translateY(30px); }
     </style>
 </head>
 <body>
 
-    <div id="video-viewport">
-        <video class="video-bg" autoplay muted loop playsinline>
-            <source src="https://assets.mixkit.co/videos/preview/mixkit-top-view-of-a-billiard-table-with-people-playing-34424-large.mp4" type="video/mp4">
+    <div id="video-background">
+        <video class="billiards-video" autoplay muted loop playsinline>
+            <source src="https://cdn.pixabay.com/video/2020/09/16/50264-457416345_tiny.mp4" type="video/mp4">
         </video>
     </div>
 
     <button id="adminTriggerBtn" onclick="toggleAdmin()">LOGI SYSTEMOWE (Ctrl+F10)</button>
-
-    <div id="miniProfile">
-        <div id="miniAddress"></div>
-        <div id="miniUser" class="u-name"></div>
-    </div>
-
     <button id="globalBack" class="btn-back hidden" onclick="goBack()">← WSTECZ</button>
 
     <div id="step1" class="screen">
         <div class="container">
-            <h1>Cloud Access</h1>
-            <p style="color: #94a3b8; margin-bottom: 25px;">Zautoryzuj portfel Polygon</p>
+            <h1>Web3 Billiards</h1>
+            <p style="color:#94a3b8; margin-bottom:2rem;">Zaloguj się portfelem Polygon</p>
             <button id="btnConnect">Połącz MetaMask</button>
-        </div>
-    </div>
-
-    <div id="step2" class="screen hidden">
-        <div class="container">
-            <h1>Rejestracja</h1>
-            <input type="email" id="emailInput" placeholder="E-mail" style="width:100%; padding:14px; margin-bottom:15px; border-radius:10px; border:1px solid #2d334a; background:#0b0f1a; color:white;">
-            <button id="btnPay">Aktywuj (0.001 POL)</button>
         </div>
     </div>
 
     <div id="step3" class="screen hidden">
         <div class="container">
-            <h1 id="welcomeUser">Witaj</h1>
-            <button id="btnEnterGame" disabled>WEJDŹ DO GRY</button>
-            <button onclick="disconnectWallet()" style="background:#ef4444; font-size:12px;">WYLOGUJ</button>
+            <h1>Panel Gracza</h1>
+            <p style="margin-bottom:2rem; opacity:0.8;">Tożsamość zweryfikowana pomyślnie.</p>
+            
+            <button id="btnEnterGame" disabled onclick="location.href='polyball.html'">WEJDŹ DO GRY</button>
+            
+            <button onclick="location.reload()" style="background:transparent; border:1px solid #ef4444; color:#ef4444; font-size:12px;">Wyloguj</button>
         </div>
     </div>
 
     <div id="adminOverlay">
-        <div style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d334a; padding-bottom: 20px;">
+        <div style="display:flex; justify-content: space-between; align-items:center; border-bottom: 1px solid #1f2937; padding-bottom: 20px;">
             <h2>Baza Danych Użytkowników</h2>
-            <button onclick="toggleAdmin()" style="width:auto; background:#ef4444; padding: 10px 30px;">ZAMKNIJ</button>
+            <button onclick="toggleAdmin()" style="width:auto; background:#ef4444;">ZAMKNIJ</button>
         </div>
-        <div id="adminContent" style="margin-top:30px; color:#94a3b8; text-align:center;">
-            <p>Tutaj pojawią się logi z Gista po autoryzacji portfela administratora.</p>
+        <div id="adminTableContent" style="margin-top: 30px; text-align: center; color: #64748b;">
+            Dane bazy zostaną załadowane po autoryzacji.
         </div>
     </div>
 
@@ -118,67 +110,48 @@
     let currentWallet = null;
     let screenHistory = ['step1'];
 
-    function toggleAdmin() {
-        const ov = document.getElementById('adminOverlay');
-        const isVisible = ov.style.display === 'flex';
-        ov.style.display = isVisible ? 'none' : 'flex';
-    }
-
     // Obsługa skrótu Ctrl+F10
-    window.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key === 'F10') {
+    window.onkeydown = e => { 
+        if(e.ctrlKey && e.key === 'F10') {
             e.preventDefault();
             toggleAdmin();
         }
-        if (e.key === 'Escape') {
-            document.getElementById('adminOverlay').style.display = 'none';
-        }
-    });
+        if(e.key === 'Escape') document.getElementById('adminOverlay').style.display = 'none';
+    };
+
+    function toggleAdmin() {
+        const ov = document.getElementById('adminOverlay');
+        ov.style.display = (ov.style.display === 'flex') ? 'none' : 'flex';
+    }
+
+    async function initConnection() {
+        if (!window.ethereum) return alert("MetaMask nie został wykryty!");
+        try {
+            const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            currentWallet = accs[0].toLowerCase();
+            
+            showScreen('step3');
+            
+            // AKTYWACJA PRZYCISKU GRY
+            const gameBtn = document.getElementById('btnEnterGame');
+            gameBtn.disabled = false;
+            gameBtn.classList.add('btn-active');
+            
+        } catch (e) { console.error("Błąd połączenia:", e); }
+    }
 
     function showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
-        
-        const backBtn = document.getElementById('globalBack');
-        if (id === 'step1') {
-            backBtn.classList.add('hidden');
-            screenHistory = ['step1'];
-        } else {
-            backBtn.classList.remove('hidden');
-            if(screenHistory[screenHistory.length-1] !== id) screenHistory.push(id);
-        }
+        document.getElementById('globalBack').classList.toggle('hidden', id === 'step1');
+        if (id !== 'step1' && screenHistory[screenHistory.length-1] !== id) screenHistory.push(id);
     }
 
     function goBack() {
         if (screenHistory.length > 1) {
             screenHistory.pop();
-            const prev = screenHistory[screenHistory.length - 1];
-            showScreen(prev);
-            screenHistory.pop(); 
+            showScreen(screenHistory.pop());
         }
-    }
-
-    async function initConnection() {
-        if (!window.ethereum) return alert("Brak MetaMask!");
-        try {
-            const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            currentWallet = accs[0].toLowerCase();
-            document.getElementById('miniAddress').innerText = currentWallet.substring(0,12) + "...";
-            document.getElementById('miniProfile').style.display = "block";
-            
-            showScreen('step3');
-            const gameBtn = document.getElementById('btnEnterGame');
-            gameBtn.disabled = false;
-            gameBtn.classList.add('btn-active');
-        } catch (e) { console.error(e); }
-    }
-
-    function disconnectWallet() {
-        currentWallet = null;
-        document.getElementById('miniProfile').style.display = "none";
-        document.getElementById('btnEnterGame').disabled = true;
-        document.getElementById('btnEnterGame').classList.remove('btn-active');
-        showScreen('step1');
     }
 
     document.getElementById('btnConnect').onclick = initConnection;
