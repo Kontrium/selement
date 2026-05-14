@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Royal Gold 5 - Final Masterpiece</title>
+    <style>
+        :root { --neon-pink: #ff00ff; --neon-blue: #00ffff; --gold: #ffd700; --bg: #050505; }
+        body { background: var(--bg); color: white; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Arial Black', sans-serif; overflow: hidden; }
+        #game-container { position: relative; padding: 20px; border-radius: 20px; background: #111; border: 2px solid var(--neon-blue); box-shadow: 0 0 30px rgba(0, 255, 255, 0.3); display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .main-layout { display: flex; gap: 20px; align-items: flex-start; }
+        .paytable { background: rgba(0,0,0,0.9); border: 1px solid var(--neon-pink); padding: 12px; border-radius: 10px; font-size: 11px; min-width: 180px; box-shadow: 0 0 15px var(--neon-pink); }
+        canvas { border-radius: 10px; background: #000; box-shadow: inset 0 0 30px #000; }
+        .ui-panel { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .stat-box { background: #000; padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #333; border-bottom: 3px solid var(--neon-blue); }
+        .val { font-size: 20px; color: var(--gold); font-weight: bold; }
+        .btn-spin { width: 100%; height: 75px; background: linear-gradient(45deg, #ff00ff, #00ffff); border: none; border-radius: 40px; color: white; font-size: 30px; font-weight: 900; cursor: pointer; box-shadow: 0 0 25px rgba(255, 0, 255, 0.6); transition: 0.1s; }
+        .btn-spin:active { transform: scale(0.96); }
+        .btn-spin:disabled { opacity: 0.3; cursor: not-allowed; }
+        #win-msg { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); z-index: 100; pointer-events: none; transition: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-align: center; }
+        #win-msg.active { transform: translate(-50%, -50%) scale(1.6); }
+        .neon-glow { text-shadow: 0 0 10px #fff, 0 0 20px var(--gold), 0 0 40px var(--gold); }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="main-layout">
+        <div class="paytable">
+            <h3 style="margin:0 0 10px 0; color:var(--neon-pink); text-align:center; letter-spacing:1px;">PAYTABLE</h3>
+            <div id="pay-info" style="line-height: 1.6; color: #ccc;">
+                7️⃣: x3:100 | x4:500 | x5:2000<br>
+                🔔: x3:50 | x4:200 | x5:800<br>
+                🍉: x3:20 | x4:100 | x5:400<br>
+                🍒: <span style="color:var(--gold)">x2:2</span> | x3:5 | x4:15 | x5:50
+            </div>
+        </div>
+        <div style="position: relative;">
+            <canvas id="slotCanvas"></canvas>
+            <div id="win-msg">
+                <div class="neon-glow" style="font-size: 50px; color: gold;">BIG WIN!</div>
+                <div id="win-amt-display" style="font-size: 40px; color: white; font-weight: 900;">0.00</div>
+            </div>
+        </div>
+    </div>
+    <div class="ui-panel">
+        <div class="stat-box"><div style="font-size:10px; color:#888;">BALANCE</div><div id="balance-ui" class="val">100.00</div></div>
+        <div class="stat-box"><div style="font-size:10px; color:#888;">STAKE</div><div class="val"><span onclick="changeStake(-1)" style="cursor:pointer; padding:0 10px;">-</span><span id="stake-ui">1.00</span><span onclick="changeStake(1)" style="cursor:pointer; padding:0 10px;">+</span></div></div>
+        <div class="stat-box"><div style="font-size:10px; color:#888;">LAST WIN</div><div id="last-win-ui" class="val">0.00</div></div>
+    </div>
+    <button id="spin-btn" class="btn-spin" onclick="handleSpin()">SPIN</button>
+</div>
+
+<script>
+/** 
+ * FINAL PRODUCTION BUILD - ROYAL GOLD 5
+ */
+const canvas = document.getElementById('slotCanvas');
+const ctx = canvas.getContext('2d');
+const SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '🍉', '🔔', '7️⃣'];
+const PAY_DATA = {
+    '7️⃣': [0, 100, 500, 2000], '🔔': [0, 50, 200, 800],
+    '🍉': [0, 20, 100, 400], '🍇': [0, 15, 60, 200],
+    '🍊': [0, 10, 40, 150], '🍋': [0, 5, 20, 100],
+    '🍒': [2, 5, 15, 50]
+};
+const WIN_LINES = [
+    [1, 1, 1, 1, 1], [0, 0, 0, 0, 0], [2, 2, 2, 2, 2],
+    [0, 1, 2, 1, 0], [2, 1, 0, 1, 2]
+];
+
+canvas.width = 450; canvas.height = 300;
+const REELS = 5; const ROWS = 3;
+const SYM_W = canvas.width / REELS; const SYM_H = canvas.height / ROWS;
+
+// AUDIO SYSTEM
+let audioCtx = null;
+function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function playTone(freq, type, dur, vol) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    g.gain.setValueAtTime(vol, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + dur);
+}
+
+let state = {
+    balance: 100.00, stake: 1.00, isSpinning: false, winningLines: [],
+    reels: Array.from({length: REELS}, () => ({
+        y: 0, speed: 0, targetY: 0, isStopping: false,
+        symbols: Array.from({length: 120}, () => SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)])
+    }))
+};
+
+function draw() {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Ambient Neon Glow
+    let pulse = Math.sin(Date.now()/500)*0.1 + 0.15;
+    ctx.strokeStyle = `rgba(255, 0, 255, ${pulse})`;
+    ctx.lineWidth = 4; ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+    state.reels.forEach((r, i) => {
+        ctx.save(); ctx.translate(i * SYM_W, 0);
+        if(r.speed > 10) ctx.filter = `blur(${Math.min(r.speed/6, 8)}px)`;
+        
+        let offset = r.y % SYM_H;
+        let startIdx = Math.floor(r.y / SYM_H);
+        
+        for(let j = -1; j <= ROWS; j++) {
+            let sym = r.symbols[(startIdx + j + r.symbols.length) % r.symbols.length];
+            ctx.font = "55px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillStyle = "white"; 
+            ctx.fillText(sym, SYM_W/2, j * SYM_H + offset + SYM_H/2);
+        }
+        ctx.restore();
+
+        if(r.speed > 0) {
+            r.y += r.speed;
+            if(r.isStopping && Math.abs(r.targetY - r.y) < r.speed) {
+                r.y = r.targetY; r.speed = 0; r.isStopping = false;
+                playTone(200 + i*50, 'sine', 0.2, 0.05);
+                if(i === REELS-1) finishSpin();
+            }
+        }
+    });
+
+    if(!state.isSpinning && state.winningLines.length > 0) {
+        state.winningLines.forEach(lIdx => {
+            ctx.beginPath(); ctx.lineWidth = 6;
+            ctx.strokeStyle = `rgba(255, 215, 0, ${0.6 + Math.sin(Date.now()/100)*0.4})`;
+            WIN_LINES[lIdx].forEach((row, col) => {
+                let x = col * SYM_W + SYM_W/2; let y = row * SYM_H + SYM_H/2;
+                if(col === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+        });
+    }
+    requestAnimationFrame(draw);
+}
+
+function handleSpin() {
+    initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    startSpin();
+}
+
+function startSpin() {
+    if(state.isSpinning || state.balance < state.stake) return;
+    state.isSpinning = true; state.balance -= state.stake; state.winningLines = [];
+    updateUI();
+    document.getElementById('win-msg').classList.remove('active');
+    document.getElementById('spin-btn').disabled = true;
+    playTone(100, 'sawtooth', 0.5, 0.1);
+
+    state.reels.forEach((r, i) => {
+        r.speed = 35 + i*3; r.isStopping = false;
+        setTimeout(() => {
+            r.targetY = Math.ceil(r.y / SYM_H) * SYM_H + (SYM_H * 60);
+            r.isStopping = true;
+        }, 1000 + i*350);
+    });
+}
+
+function finishSpin() {
+    state.isSpinning = false;
+    document.getElementById('spin-btn').disabled = false;
+    
+    const grid = state.reels.map(r => {
+        let topIdx = Math.round(r.y / SYM_H);
+        return [
+            r.symbols[(topIdx + 0) % r.symbols.length],
+            r.symbols[(topIdx + 1) % r.symbols.length],
+            r.symbols[(topIdx + 2) % r.symbols.length]
+        ];
+    });
+    checkWins(grid);
+}
+
+function checkWins(grid) {
+    let totalWin = 0; let linesFound = [];
+    WIN_LINES.forEach((line, lIdx) => {
+        let sym = grid[0][line[0]]; let match = 1;
+        for(let i=1; i<5; i++) {
+            if(grid[i][line[i]] === sym) match++;
+            else break;
+        }
+        let min = (sym === '🍒') ? 2 : 3;
+        if(match >= min) {
+            let win = PAY_DATA[sym][match-2] * state.stake;
+            totalWin += win; linesFound.push(lIdx);
+        }
+    });
+    if(totalWin > 0) {
+        state.winningLines = linesFound;
+        showWin(totalWin);
+    }
+}
+
+function showWin(amt) {
+    const msg = document.getElementById('win-msg');
+    document.getElementById('win-amt-display').innerText = amt.toFixed(2) + " PLN";
+    msg.classList.add('active');
+    playTone(600, 'sine', 1.0, 0.1);
+    state.balance += amt;
+    document.getElementById('last-win-ui').innerText = amt.toFixed(2);
+    updateUI();
+    setTimeout(() => msg.classList.remove('active'), 3500);
+}
+
+function changeStake(dir) {
+    if(state.isSpinning) return;
+    const s = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50];
+    let i = s.indexOf(state.stake);
+    state.stake = s[Math.max(0, Math.min(s.length-1, i+dir))];
+    updateUI();
+    playTone(400, 'sine', 0.1, 0.05);
+}
+
+function updateUI() {
+    document.getElementById('balance-ui').innerText = state.balance.toFixed(2);
+    document.getElementById('stake-ui').innerText = state.stake.toFixed(2);
+}
+
+draw(); updateUI();
+</script>
+</body>
+</html>

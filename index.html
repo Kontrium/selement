@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web3 Billiards Pro | Enterprise System</title>
+    <title>Web3 Gaming Hub | Enterprise System</title>
     <style>
         :root { 
             --primary: #8247e5; 
@@ -12,9 +12,9 @@
             --text: #f8fafc; 
             --accent: #4ade80; 
             --warning: #facc15;
+            --neon-pink: #ff00ea;
         }
         
-        /* Reset i baza */
         body, html { 
             margin: 0; padding: 0; 
             width: 100%; height: 100%; 
@@ -24,91 +24,98 @@
             overflow: hidden; 
         }
 
-        /* NAPRAWIONE TŁO - PEŁNE WYPEŁNIENIE I PRZEŚWIT */
         #background-fixed {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: -1;
-            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('./knajpa_cartoon_bg.png');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            opacity: 0.8; /* Prześwitywanie tła */
-            animation: slowPan 25s infinite alternate ease-in-out;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
+            background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('./knajpa_cartoon_bg.png');
+            background-size: cover; background-position: center;
+            opacity: 0.8; animation: slowPan 25s infinite alternate ease-in-out;
         }
 
-        @keyframes slowPan {
-            from { transform: scale(1) translateX(0); }
-            to { transform: scale(1.1) translateX(-10px); }
-        }
+        @keyframes slowPan { from { transform: scale(1); } to { transform: scale(1.1); } }
 
-        /* Ekrany i kontenery */
         .screen { 
             display: flex; flex-direction: column; justify-content: center; 
             align-items: center; height: 100vh; width: 100%; 
-            position: absolute; transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1); 
-            z-index: 10; 
+            position: absolute; transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1); z-index: 10; 
         }
 
         .container { 
-            background: var(--card); 
-            padding: 3rem; 
-            border-radius: 2.5rem; 
-            text-align: center; 
-            width: 440px; 
-            border: 1px solid rgba(255,255,255,0.1); 
-            box-shadow: 0 30px 60px rgba(0,0,0,0.8); 
-            backdrop-filter: blur(20px);
+            background: var(--card); padding: 2.5rem; border-radius: 2.5rem; 
+            text-align: center; width: 580px; border: 1px solid rgba(255,255,255,0.1); 
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8); backdrop-filter: blur(25px);
         }
 
-        h1 { 
-            margin-bottom: 0.5rem; 
-            font-weight: 900; 
-            background: linear-gradient(to right, #fff, var(--primary)); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-            font-size: 2.5rem; 
+        h1 { margin-bottom: 0.5rem; font-weight: 900; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.2rem; }
+
+        .game-selection {
+            display: flex;
+            justify-content: space-between;
+            margin: 30px 0;
+            gap: 15px;
         }
 
-        /* Przyciski */
+        .arcade-card {
+            flex: 1;
+            padding: 0; /* Usunięto padding, by obrazek wypełniał kartę */
+            border-radius: 20px;
+            background: rgba(255,255,255,0.02);
+            border: 2px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0.3;
+            height: 220px; /* Zwiększono wysokość, by lepiej eksponować plakietkę */
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* GRAFIKI PLAKIETEK */
+        #optPolyball {
+            background-image: url('polyball_plakietka.png');
+            background-size: cover;
+            background-position: center;
+        }
+
+        #optSlots {
+            background-image: url('myhotslot_plakietka.png');
+            background-size: cover;
+            background-position: center;
+        }
+
+        #optNeon {
+            background-image: url('seslotneon_plakietka.png');
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* EFEKTY DLA AKTYWNYCH KART */
+        .arcade-card.active {
+            opacity: 1;
+            transform: translateY(-10px) scale(1.05);
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        #optPolyball.active { border-color: var(--primary); box-shadow: 0 0 25px rgba(130, 71, 229, 0.6); }
+        #optSlots.active { border-color: #facc15; box-shadow: 0 0 25px rgba(250, 204, 21, 0.5); }
+        #optNeon.active { border-color: var(--neon-pink); box-shadow: 0 0 30px rgba(255, 0, 234, 0.6); }
+
         button { 
-            background: var(--primary); color: white; border: none; padding: 18px; 
-            border-radius: 14px; font-weight: 700; cursor: pointer; width: 100%; 
-            transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; 
-            margin-bottom: 12px; font-size: 14px;
+            background: var(--primary); color: white; border: none; padding: 20px; 
+            border-radius: 16px; font-weight: 800; cursor: pointer; width: 100%; 
+            transition: 0.3s; text-transform: uppercase; letter-spacing: 2px; font-size: 15px;
         }
-
-        button:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(130, 71, 229, 0.5); }
-        
-        .btn-guest { 
-            background: rgba(255,255,255,0.05); 
-            border: 1px solid rgba(255,255,255,0.2);
-            color: #ccc;
-        }
+        button:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(130, 71, 229, 0.6); }
         
         .btn-active { 
             background: linear-gradient(45deg, var(--accent), #22c55e) !important; 
-            color: #052e16 !important; 
-            box-shadow: 0 0 35px rgba(74, 222, 128, 0.6) !important;
+            color: #052e16 !important; box-shadow: 0 0 40px rgba(74, 222, 128, 0.5) !important;
         }
 
-        /* Komunikat o wersji testowej */
         .warning-box {
-            background: rgba(250, 204, 21, 0.1);
-            color: var(--warning);
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 13px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(250, 204, 21, 0.3);
-            line-height: 1.5;
-            display: none;
+            background: rgba(250, 204, 21, 0.1); color: var(--warning); padding: 12px;
+            border-radius: 12px; font-size: 12px; margin-bottom: 20px; border: 1px solid rgba(250, 204, 21, 0.3); display: none;
         }
 
-        .hidden { opacity: 0; pointer-events: none; transform: translateY(40px); }
+        .hidden { opacity: 0; pointer-events: none; transform: translateY(50px); }
     </style>
 </head>
 <body>
@@ -121,79 +128,83 @@
 
     <div id="step1" class="screen">
         <div class="container">
-            <h1>Web3 Billiards</h1>
-            <p style="color:#94a3b8; margin-bottom:2rem; font-size: 14px;">Witaj w lokalnej knajpie. Wybierz jak chcesz grać.</p>
-            
-            <button id="btnConnect">Połącz MetaMask (Tryb PRO)</button>
-            <button id="btnGuest" class="btn-guest">Graj jako Gość (DEMO)</button>
+            <h1>Web3 Gaming Hub</h1>
+            <p style="color:#94a3b8; margin-bottom:2.5rem; font-size: 15px;">Wybierz swój profil w klubie</p>
+            <button id="btnConnect" style="margin-bottom: 15px;">Połącz Portfel (PRO)</button>
+            <button id="btnGuest" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#94a3b8;">Graj jako Gość (FREE)</button>
         </div>
     </div>
 
     <div id="step2" class="screen hidden">
         <div class="container">
-            <h1 id="statusHeader">Panel Gracza</h1>
+            <h1 id="statusHeader">Wybierz Automat</h1>
             
             <div id="guestWarning" class="warning-box">
-                Grasz za darmo w wersję testową. <br>
-                <strong>Podłącz portfel, jeśli chcesz grać na prawdziwe pieniądze!</strong>
+                ⚠️ Grasz za darmo. Podłącz portfel, aby odblokować stawki!
             </div>
 
-            <button id="btnStartGame" class="btn-active" onclick="launchGame()">URUCHOM ARENĘ</button>
-            
-            <p style="color: #666; font-size: 10px; cursor: pointer; margin-top: 10px;" onclick="location.reload()">Rozłącz i wróć</p>
+            <div class="game-selection">
+                <div id="optPolyball" class="arcade-card active" onclick="selectGame('polyball')"></div>
+                <div id="optSlots" class="arcade-card" onclick="selectGame('myhotslot')"></div>
+                <div id="optNeon" class="arcade-card" onclick="selectGame('seslotneon')"></div>
+            </div>
+
+            <button id="btnStartGame" class="btn-active" onclick="launchGame()">URUCHOM MASZYNĘ</button>
+            <p style="color: #666; font-size: 11px; cursor: pointer; margin-top: 15px;" onclick="location.reload()">Wróć do wyboru profilu</p>
         </div>
     </div>
 
 <script>
     const music = document.getElementById('arcadeMusic');
     let isDemoMode = true;
+    let selectedPath = "/polyball/index.html"; 
 
-    // Funkcja odblokowania muzyki
     function handleMusic() {
         music.volume = 0.4;
-        music.play().then(() => {
-            document.removeEventListener('mousedown', handleMusic);
-        }).catch(e => console.log("Audio block active"));
+        music.play().catch(e => {});
+        document.removeEventListener('mousedown', handleMusic);
     }
     document.addEventListener('mousedown', handleMusic);
 
-    // Połączenie z portfelem (Tryb PRO)
+    function selectGame(game) {
+        document.querySelectorAll('.arcade-card').forEach(card => card.classList.remove('active'));
+
+        if (game === 'polyball') {
+            document.getElementById('optPolyball').classList.add('active');
+            selectedPath = "/polyball/index.html";
+        } else if (game === 'myhotslot') {
+            document.getElementById('optSlots').classList.add('active');
+            selectedPath = "/myhotslot/index.html";
+        } else if (game === 'seslotneon') {
+            document.getElementById('optNeon').classList.add('active');
+            selectedPath = "/seslotneon/index.html";
+        }
+    }
+
     async function connectWallet() {
         if (typeof window.ethereum !== 'undefined') {
             try {
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
                 isDemoMode = false;
-                transitionToGame();
-            } catch (err) {
-                alert("Połączenie przerwane.");
-            }
-        } else {
-            alert("Nie znaleziono MetaMask! Zainstaluj dodatek, aby grać w trybie PRO.");
-        }
+                transitionToSelection();
+            } catch (err) { alert("Anulowano połączenie."); }
+        } else { alert("Proszę zainstalować MetaMask!"); }
     }
 
-    // Wejście jako gość (Tryb DEMO)
     function enterAsGuest() {
         isDemoMode = true;
-        transitionToGame();
+        transitionToSelection();
     }
 
-    function transitionToGame() {
+    function transitionToSelection() {
         document.getElementById('step1').classList.add('hidden');
         document.getElementById('step2').classList.remove('hidden');
-        
-        if (isDemoMode) {
-            document.getElementById('statusHeader').innerText = "Tryb Gościa";
-            document.getElementById('guestWarning').style.display = "block";
-        } else {
-            document.getElementById('statusHeader').innerText = "Tryb Web3";
-            document.getElementById('guestWarning').style.display = "none";
-        }
+        if (isDemoMode) document.getElementById('guestWarning').style.display = "block";
     }
 
     function launchGame() {
-        const urlParams = isDemoMode ? "?mode=demo" : "?mode=pro";
-        location.href = "./polyball/index.html" + urlParams;
+        const mode = isDemoMode ? "?mode=demo" : "?mode=pro";
+        location.href = "." + selectedPath + mode;
     }
 
     document.getElementById('btnConnect').onclick = connectWallet;

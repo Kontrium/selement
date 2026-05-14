@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Royal Gold 5 Progressive</title>
+    <style>
+        :root { --gold: #ffd700; --dark: #0a0a0a; --accent: #ff0000; }
+        body { background: #111; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
+        
+        #game-wrapper { width: 100%; max-width: 500px; background: #222; border: 3px solid var(--gold); border-radius: 20px; padding: 15px; box-shadow: 0 0 40px rgba(0,0,0,0.8); position: relative; }
+
+        /* Jackpot Panel */
+        #jackpot-container { background: linear-gradient(90deg, #000, #400, #000); border: 2px solid var(--gold); border-radius: 10px; text-align: center; margin-bottom: 10px; padding: 5px; }
+        #jackpot-val { color: var(--gold); font-size: 24px; font-weight: bold; text-shadow: 0 0 10px gold; }
+
+        /* Slot Area */
+        #slot-container { display: flex; gap: 5px; background: #000; padding: 10px; border-radius: 10px; justify-content: center; position: relative; }
+        .reel { width: 18%; height: 210px; overflow: hidden; display: flex; flex-direction: column; }
+        .symbol { height: 70px; display: flex; justify-content: center; align-items: center; font-size: 35px; border: 1px solid #222; transition: all 0.2s; }
+        
+        /* Win Overlays */
+        #win-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.9); width: 90%; text-align: center; padding: 20px; border: 3px solid var(--gold); z-index: 100; transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #win-overlay.active { transform: translate(-50%, -50%) scale(1); }
+        .big-win-text { font-size: 40px; color: var(--gold); text-shadow: 2px 2px red; font-weight: 900; }
+
+        /* Controls */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+        .stat-box { background: #333; padding: 10px; border-radius: 8px; text-align: center; border-bottom: 3px solid var(--gold); }
+        .btn-main { background: linear-gradient(to bottom, #2ecc71, #27ae60); border: none; width: 100%; height: 60px; border-radius: 30px; font-size: 24px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 4px #1b5e20; }
+        .btn-main:active { transform: translateY(2px); box-shadow: 0 2px #1b5e20; }
+        
+        .stake-ctrl { display: flex; align-items: center; justify-content: center; gap: 15px; }
+        .btn-small { background: #444; color: white; border: 1px solid var(--gold); width: 35px; height: 35px; border-radius: 50%; cursor: pointer; }
+
+        /* Gamble Menu */
+        #gamble-menu { display: none; margin-top: 10px; background: #440000; padding: 10px; border-radius: 10px; text-align: center; }
+        .gamble-btn { width: 45%; padding: 10px; margin: 2px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .red { background: red; color: white; }
+        .black { background: black; color: white; }
+
+        .winning-symbol { animation: pulse 0.4s infinite alternate; border-color: gold; z-index: 10; transform: scale(1.1); background: #330000; }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+    </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+    <div id="jackpot-container">
+        <div style="font-size: 10px; color: #aaa;">PROGRESSIVE JACKPOT</div>
+        <div id="jackpot-val">100.00 PLN</div>
+    </div>
+
+    <div id="slot-container">
+        <div id="win-overlay">
+            <div id="win-type-text" class="big-win-text">BIG WIN!</div>
+            <div id="win-amount-text" style="font-size: 30px;">0.00 PLN</div>
+        </div>
+        <div class="reel" id="reel0"></div>
+        <div class="reel" id="reel1"></div>
+        <div class="reel" id="reel2"></div>
+        <div class="reel" id="reel3"></div>
+        <div class="reel" id="reel4"></div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-box">
+            <div style="font-size: 12px; color: #888;">SALDO</div>
+            <div id="balance" style="font-size: 20px; font-weight: bold;">50.00 PLN</div>
+        </div>
+        <div class="stat-box">
+            <div style="font-size: 12px; color: #888;">STAWKA</div>
+            <div class="stake-ctrl">
+                <button class="btn-small" onclick="adjustStake(-0.1)">-</button>
+                <span id="stake-val" style="font-weight: bold;">1.00</span>
+                <button class="btn-small" onclick="adjustStake(0.1)">+</button>
+            </div>
+        </div>
+    </div>
+
+    <button id="spin-btn" class="btn-main" onclick="startSpin()">START</button>
+
+    <div id="gamble-menu">
+        <p style="margin: 5px; font-size: 14px;">PODBIJ WYGRANĄ (x2)?</p>
+        <button class="gamble-btn red" onclick="gamble('red')">CZERWONE</button>
+        <button class="gamble-btn black" onclick="gamble('black')">CZARNE</button>
+        <button class="gamble-btn" style="background: #666; color: white; width: 92%;" onclick="collectWin()">ODBIERZ</button>
+    </div>
+</div>
+
+<script>
+    const symbols = ['🍒', '🍋', '🍊', '🍇', '🍉', '🔔', '7️⃣'];
+    const payouts = { '7️⃣': 1000, '🔔': 500, '🍉': 200, '🍇': 150, '🍊': 100, '🍋': 50, '🍒': 20 };
+    
+    let balance = 50.00;
+    let stake = 1.00;
+    let jackpot = 100.00;
+    let currentWin = 0;
+    let isSpinning = false;
+    
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Inicjalizacja bębnów
+    function init() {
+        for(let i=0; i<5; i++) {
+            const r = document.getElementById('reel'+i);
+            r.innerHTML = '';
+            for(let j=0; j<3; j++) {
+                r.innerHTML += `<div class="symbol">${symbols[Math.floor(Math.random()*symbols.length)]}</div>`;
+            }
+        }
+    }
+
+    function adjustStake(val) {
+        if(isSpinning) return;
+        stake = Math.max(0.1, Math.min(50, stake + val));
+        document.getElementById('stake-val').innerText = stake.toFixed(2);
+        playTone(400, 'sine', 0.05);
+    }
+
+    function playTone(freq, type, dur, vol = 0.1) {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        g.gain.setValueAtTime(vol, audioCtx.currentTime);
+        osc.connect(g);
+        g.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + dur);
+    }
+
+    function playFanfare(level) {
+        const notes = level === 1 ? [440, 554, 659] : level === 2 ? [523, 659, 783, 1046] : [523, 659, 783, 1046, 1318, 1567];
+        notes.forEach((f, i) => {
+            setTimeout(() => playTone(f, 'square', 0.4, 0.05), i * 150);
+        });
+    }
+
+    async function startSpin() {
+        if(balance < stake || isSpinning) return;
+        
+        isSpinning = true;
+        balance -= stake;
+        jackpot += (stake * 0.02); // 2% stawki idzie na jackpot
+        updateUI();
+        
+        document.getElementById('gamble-menu').style.display = 'none';
+        document.getElementById('win-overlay').classList.remove('active');
+        document.querySelectorAll('.symbol').forEach(s => s.classList.remove('winning-symbol'));
+
+        // Symulacja kręcenia
+        for(let i=0; i<5; i++) {
+            setTimeout(() => playTone(200 + (i*100), 'sawtooth', 0.1), i * 100);
+        }
+
+        await new Promise(r => setTimeout(r, 800));
+
+        const results = [];
+        for(let i=0; i<5; i++) {
+            const col = [];
+            const r = document.getElementById('reel'+i);
+            r.innerHTML = '';
+            for(let j=0; j<3; j++) {
+                const sym = symbols[Math.floor(Math.random() * symbols.length)];
+                col.push(sym);
+                r.innerHTML += `<div class="symbol">${sym}</div>`;
+            }
+            results.push(col);
+        }
+
+        checkLogic(results);
+    }
+
+    function checkLogic(grid) {
+        let totalWin = 0;
+        const winningLines = [
+            [1,1,1,1,1], [0,0,0,0,0], [2,2,2,2,2], [0,1,2,1,0], [2,1,0,1,2]
+        ];
+
+        winningLines.forEach((line, index) => {
+            const sym = grid[0][line[0]];
+            let match = 1;
+            for(let i=1; i<5; i++) {
+                if(grid[i][line[i]] === sym) match++;
+                else break;
+            }
+
+            if(match >= 3 || (sym === '🍒' && match >= 2)) {
+                let linePrize = (payouts[sym] * (match/5) * (stake/5));
+                totalWin += linePrize;
+                // Podświetlenie
+                for(let i=0; i<match; i++) {
+                    document.getElementById('reel'+i).children[line[i]].classList.add('winning-symbol');
+                }
+            }
+        });
+
+        // Losowy Jackpot (RNG)
+        if(Math.random() < 0.005) { // Bardzo rzadko
+            totalWin += jackpot;
+            showWinOverlay("JACKPOT!!!", jackpot);
+            jackpot = 100.00;
+        } else if(totalWin > 0) {
+            handleWinEffects(totalWin);
+        } else {
+            isSpinning = false;
+        }
+        updateUI();
+    }
+
+    function handleWinEffects(win) {
+        currentWin = win;
+        const ratio = win / stake;
+        
+        let msg = "WYGRANA";
+        if(ratio > 50) { msg = "SUPER MEGA WIN!"; playFanfare(3); }
+        else if(ratio > 20) { msg = "MEGA WIN!"; playFanfare(2); }
+        else if(ratio > 5) { msg = "BIG WIN!"; playFanfare(1); }
+        else { playTone(800, 'sine', 0.2); }
+
+        showWinOverlay(msg, win);
+        document.getElementById('gamble-menu').style.display = 'block';
+        isSpinning = false;
+    }
+
+    function showWinOverlay(text, amt) {
+        const o = document.getElementById('win-overlay');
+        document.getElementById('win-type-text').innerText = text;
+        document.getElementById('win-amount-text').innerText = amt.toFixed(2) + " PLN";
+        o.classList.add('active');
+        setTimeout(() => o.classList.remove('active'), 3000);
+    }
+
+    function gamble(choice) {
+        const win = Math.random() > 0.55; // 45% szans na wygraną w gamble
+        if(win) {
+            currentWin *= 2;
+            playTone(1000, 'sine', 0.3);
+            showWinOverlay("X2!", currentWin);
+        } else {
+            currentWin = 0;
+            playTone(150, 'sawtooth', 0.5);
+            document.getElementById('gamble-menu').style.display = 'none';
+        }
+        updateUI();
+    }
+
+    function collectWin() {
+        balance += currentWin;
+        currentWin = 0;
+        document.getElementById('gamble-menu').style.display = 'none';
+        playTone(1200, 'sine', 0.1);
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('balance').innerText = balance.toFixed(2) + " PLN";
+        document.getElementById('jackpot-val').innerText = jackpot.toFixed(2) + " PLN";
+    }
+
+    init();
+</script>
+</body>
+</html>
