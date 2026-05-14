@@ -2,213 +2,207 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web3 Gaming Hub | Enterprise System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Web3 Gaming Hub | Global Control</title>
     <style>
         :root { 
             --primary: #8247e5; 
             --bg: #030712; 
-            --card: rgba(17, 24, 39, 0.9); 
+            --card: rgba(17, 24, 39, 0.95); 
             --text: #f8fafc; 
             --accent: #4ade80; 
-            --warning: #facc15;
             --neon-pink: #ff00ea;
         }
         
         body, html { 
-            margin: 0; padding: 0; 
-            width: 100%; height: 100%; 
-            font-family: 'Inter', sans-serif; 
-            background-color: #000;
-            color: var(--text); 
-            overflow: hidden; 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background-color: #000; color: var(--text); 
+            font-family: 'Inter', sans-serif; overflow: hidden; 
         }
 
+        /* TŁO GŁÓWNE */
         #background-fixed {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
-            background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('./knajpa_cartoon_bg.png');
-            background-size: cover; background-position: center;
-            opacity: 0.8; animation: slowPan 25s infinite alternate ease-in-out;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('./knajpa_cartoon_bg.png') center/cover;
         }
 
-        @keyframes slowPan { from { transform: scale(1); } to { transform: scale(1.1); } }
+        /* STRZAŁKA POWROTU - ZAWSZE NA WIERZCHU */
+        #global-back-arrow {
+            position: fixed; top: 20px; left: 20px; z-index: 9999;
+            cursor: pointer; display: none; /* Ukryta w menu głównym */
+            filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+            transition: 0.3s;
+        }
+        #global-back-arrow:hover { transform: scale(1.2); }
 
+        /* KONTENER NA GRY (IFRAME) */
+        #game-viewport {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            border: none; z-index: 5000; display: none;
+            background: #000;
+        }
+
+        /* INTERFEJS MENU */
         .screen { 
             display: flex; flex-direction: column; justify-content: center; 
             align-items: center; height: 100vh; width: 100%; 
-            position: absolute; transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1); z-index: 10; 
+            position: absolute; z-index: 100; transition: 0.5s;
         }
 
         .container { 
-            background: var(--card); padding: 2.5rem; border-radius: 2.5rem; 
-            text-align: center; width: 580px; border: 1px solid rgba(255,255,255,0.1); 
-            box-shadow: 0 30px 60px rgba(0,0,0,0.8); backdrop-filter: blur(25px);
+            background: var(--card); padding: 2rem; border-radius: 2rem; 
+            text-align: center; width: 90%; max-width: 600px; 
+            border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(20px);
         }
 
-        h1 { margin-bottom: 0.5rem; font-weight: 900; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.2rem; }
-
-        .game-selection {
-            display: flex;
-            justify-content: space-between;
-            margin: 30px 0;
-            gap: 15px;
+        .game-selection { display: flex; gap: 15px; margin: 25px 0; }
+        
+        @media (max-width: 600px) {
+            .game-selection { flex-direction: column; }
+            .arcade-card { height: 130px !important; }
         }
 
         .arcade-card {
-            flex: 1;
-            padding: 0; /* Usunięto padding, by obrazek wypełniał kartę */
-            border-radius: 20px;
-            background: rgba(255,255,255,0.02);
-            border: 2px solid rgba(255,255,255,0.05);
-            cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            opacity: 0.3;
-            height: 220px; /* Zwiększono wysokość, by lepiej eksponować plakietkę */
-            position: relative;
-            overflow: hidden;
+            flex: 1; height: 200px; border-radius: 20px;
+            background-size: cover; background-position: center;
+            cursor: pointer; opacity: 0.4; transition: 0.3s;
+            border: 2px solid transparent;
         }
+        .arcade-card.active { opacity: 1; transform: scale(1.05); }
 
-        /* GRAFIKI PLAKIETEK */
-        #optPolyball {
-            background-image: url('polyball_plakietka.png');
-            background-size: cover;
-            background-position: center;
-        }
+        #optPolyball { background-image: url('polyball_plakietka.png'); }
+        #optSlots { background-image: url('myhotslot_plakietka.png'); }
+        #optNeon { background-image: url('seslotneon_plakietka.png'); }
 
-        #optSlots {
-            background-image: url('myhotslot_plakietka.png');
-            background-size: cover;
-            background-position: center;
-        }
-
-        #optNeon {
-            background-image: url('seslotneon_plakietka.png');
-            background-size: cover;
-            background-position: center;
-        }
-
-        /* EFEKTY DLA AKTYWNYCH KART */
-        .arcade-card.active {
-            opacity: 1;
-            transform: translateY(-10px) scale(1.05);
-            background: rgba(255, 255, 255, 0.07);
-        }
-
-        #optPolyball.active { border-color: var(--primary); box-shadow: 0 0 25px rgba(130, 71, 229, 0.6); }
-        #optSlots.active { border-color: #facc15; box-shadow: 0 0 25px rgba(250, 204, 21, 0.5); }
-        #optNeon.active { border-color: var(--neon-pink); box-shadow: 0 0 30px rgba(255, 0, 234, 0.6); }
+        #optPolyball.active { border-color: var(--primary); box-shadow: 0 0 20px var(--primary); }
+        #optSlots.active { border-color: #facc15; box-shadow: 0 0 20px #facc15; }
+        #optNeon.active { border-color: var(--neon-pink); box-shadow: 0 0 20px var(--neon-pink); }
 
         button { 
             background: var(--primary); color: white; border: none; padding: 20px; 
-            border-radius: 16px; font-weight: 800; cursor: pointer; width: 100%; 
-            transition: 0.3s; text-transform: uppercase; letter-spacing: 2px; font-size: 15px;
-        }
-        button:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(130, 71, 229, 0.6); }
-        
-        .btn-active { 
-            background: linear-gradient(45deg, var(--accent), #22c55e) !important; 
-            color: #052e16 !important; box-shadow: 0 0 40px rgba(74, 222, 128, 0.5) !important;
+            border-radius: 15px; font-weight: 800; cursor: pointer; width: 100%; 
+            text-transform: uppercase; font-size: 14px;
         }
 
-        .warning-box {
-            background: rgba(250, 204, 21, 0.1); color: var(--warning); padding: 12px;
-            border-radius: 12px; font-size: 12px; margin-bottom: 20px; border: 1px solid rgba(250, 204, 21, 0.3); display: none;
-        }
-
-        .hidden { opacity: 0; pointer-events: none; transform: translateY(50px); }
+        .hidden { opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body>
 
-    <div id="background-fixed"></div>
+    <div id="global-back-arrow" onclick="exitToMenu()">
+        <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+    </div>
 
-    <audio id="arcadeMusic" loop preload="auto">
+    <div id="background-fixed"></div>
+    <iframe id="game-viewport" src=""></iframe>
+
+    <audio id="arcadeMusic" loop>
         <source src="muzykawtle.mp3" type="audio/mpeg">
     </audio>
 
     <div id="step1" class="screen">
         <div class="container">
-            <h1>Web3 Gaming Hub</h1>
-            <p style="color:#94a3b8; margin-bottom:2.5rem; font-size: 15px;">Wybierz swój profil w klubie</p>
-            <button id="btnConnect" style="margin-bottom: 15px;">Połącz Portfel (PRO)</button>
-            <button id="btnGuest" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#94a3b8;">Graj jako Gość (FREE)</button>
+            <h1 style="font-size: 2.5rem; font-weight: 900; margin-bottom: 1rem;">Web3 Gaming</h1>
+            <button id="btnConnect" style="margin-bottom: 10px;">Połącz MetaMask (PRO)</button>
+            <button id="btnGuest" style="background: rgba(255,255,255,0.1);">Graj jako Gość</button>
         </div>
     </div>
 
     <div id="step2" class="screen hidden">
         <div class="container">
-            <h1 id="statusHeader">Wybierz Automat</h1>
-            
-            <div id="guestWarning" class="warning-box">
-                ⚠️ Grasz za darmo. Podłącz portfel, aby odblokować stawki!
-            </div>
-
+            <h1>Wybierz Automat</h1>
             <div class="game-selection">
                 <div id="optPolyball" class="arcade-card active" onclick="selectGame('polyball')"></div>
                 <div id="optSlots" class="arcade-card" onclick="selectGame('myhotslot')"></div>
                 <div id="optNeon" class="arcade-card" onclick="selectGame('seslotneon')"></div>
             </div>
-
-            <button id="btnStartGame" class="btn-active" onclick="launchGame()">URUCHOM MASZYNĘ</button>
-            <p style="color: #666; font-size: 11px; cursor: pointer; margin-top: 15px;" onclick="location.reload()">Wróć do wyboru profilu</p>
+            <button id="btnStart" style="background: var(--accent); color: #000;" onclick="launchGame()">URUCHOM MASZYNĘ</button>
+            <p style="margin-top: 15px; font-size: 12px; opacity: 0.5;">Użyj ESC, aby wrócić</p>
         </div>
     </div>
 
 <script>
     const music = document.getElementById('arcadeMusic');
+    const viewport = document.getElementById('game-viewport');
+    const arrow = document.getElementById('global-back-arrow');
     let isDemoMode = true;
-    let selectedPath = "/polyball/index.html"; 
+    let selectedPath = "/polyball/index.html";
 
-    function handleMusic() {
-        music.volume = 0.4;
-        music.play().catch(e => {});
-        document.removeEventListener('mousedown', handleMusic);
+    // MUZYKA
+    function startMusic() {
+        music.volume = 0.3;
+        music.play();
+        document.removeEventListener('click', startMusic);
     }
-    document.addEventListener('mousedown', handleMusic);
+    document.addEventListener('click', startMusic);
 
+    // OBSŁUGA KLAWISZA ESCAPE (GLOBALNA)
+    document.addEventListener('keydown', (e) => {
+        if (e.key === "Escape") {
+            exitToMenu();
+        }
+    });
+
+    // WYBÓR GRY
     function selectGame(game) {
-        document.querySelectorAll('.arcade-card').forEach(card => card.classList.remove('active'));
+        document.querySelectorAll('.arcade-card').forEach(c => c.classList.remove('active'));
+        const config = {
+            'polyball': { id: 'optPolyball', path: '/polyball/index.html' },
+            'myhotslot': { id: 'optSlots', path: '/myhotslot/index.html' },
+            'seslotneon': { id: 'optNeon', path: '/seslotneon/index.html' }
+        };
+        document.getElementById(config[game].id).classList.add('active');
+        selectedPath = config[game].path;
+    }
 
-        if (game === 'polyball') {
-            document.getElementById('optPolyball').classList.add('active');
-            selectedPath = "/polyball/index.html";
-        } else if (game === 'myhotslot') {
-            document.getElementById('optSlots').classList.add('active');
-            selectedPath = "/myhotslot/index.html";
-        } else if (game === 'seslotneon') {
-            document.getElementById('optNeon').classList.add('active');
-            selectedPath = "/seslotneon/index.html";
+    // URUCHOMIENIE GRY
+    function launchGame() {
+        const mode = isDemoMode ? "?mode=demo" : "?mode=pro";
+        viewport.src = "." + selectedPath + mode;
+        
+        // Animacja wejścia
+        viewport.style.display = "block";
+        arrow.style.display = "block";
+        document.getElementById('step2').classList.add('hidden');
+        
+        // Fullscreen dla mobilnych
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
         }
     }
 
-    async function connectWallet() {
-        if (typeof window.ethereum !== 'undefined') {
-            try {
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                isDemoMode = false;
-                transitionToSelection();
-            } catch (err) { alert("Anulowano połączenie."); }
-        } else { alert("Proszę zainstalować MetaMask!"); }
+    // WYJŚCIE DO MENU (RESTART STATUSU)
+    function exitToMenu() {
+        viewport.src = ""; // Zatrzymuje procesy gry w ramce
+        viewport.style.display = "none";
+        arrow.style.display = "none";
+        document.getElementById('step1').classList.remove('hidden');
+        document.getElementById('step2').classList.add('hidden');
+        
+        // Wyjście z fullscreen
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
     }
 
-    function enterAsGuest() {
+    // LOGIKA PORTFELA
+    document.getElementById('btnConnect').onclick = async () => {
+        if (window.ethereum) {
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            isDemoMode = false;
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+        } else { alert("MetaMask nie wykryty"); }
+    };
+
+    document.getElementById('btnGuest').onclick = () => {
         isDemoMode = true;
-        transitionToSelection();
-    }
-
-    function transitionToSelection() {
         document.getElementById('step1').classList.add('hidden');
         document.getElementById('step2').classList.remove('hidden');
-        if (isDemoMode) document.getElementById('guestWarning').style.display = "block";
-    }
-
-    function launchGame() {
-        const mode = isDemoMode ? "?mode=demo" : "?mode=pro";
-        location.href = "." + selectedPath + mode;
-    }
-
-    document.getElementById('btnConnect').onclick = connectWallet;
-    document.getElementById('btnGuest').onclick = enterAsGuest;
+    };
 </script>
 </body>
 </html>
