@@ -2,236 +2,879 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Pro 8-Ball Physics Engine v2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>8-Ball Ultra Billiards – Pro AI & Shot Clock</title>
     <style>
-        body { background: #121212; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; }
-        #ui { margin: 10px; text-align: center; }
-        canvas { background: #1b5e20; border: 12px solid #3e2723; border-radius: 15px; box-shadow: 0 0 40px rgba(0,0,0,0.8); cursor: crosshair; }
-        .tunnel-container { width: 800px; height: 60px; background: #000; border: 3px solid #333; margin-top: 15px; border-radius: 30px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
-        .tunnel-label { position: absolute; left: 10px; color: #555; font-size: 10px; text-transform: uppercase; }
-        .ball-in-tunnel { width: 30px; height: 30px; border-radius: 50%; margin: 0 5px; animation: slideIn 0.5s ease-out; box-shadow: inset -3px -3px 5px rgba(0,0,0,0.5); }
-        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .power-bar-bg { width: 200px; height: 10px; background: #333; border-radius: 5px; margin: 10px auto; overflow: hidden; }
-        #power-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #4caf50, #ffeb3b, #f44336); transition: width 0.1s; }
+        body { background: #0a0a0a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 10px; box-sizing: border-box; min-height: 100vh; justify-content: center; user-select: none; -webkit-user-select: none; }
+        #game-container { position: relative; width: 100%; max-width: 850px; box-shadow: 0 0 100px rgba(0,0,0,0.9); border-radius: 20px; padding: 15px; background: #222; display: flex; flex-direction: column; align-items: center; box-sizing: border-box; }
+        
+        /* Menu Startowe / Ekran Monety */
+        .overlay-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.98); border-radius: 20px; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); box-sizing: border-box; padding: 20px; }
+        .menu-title { font-size: 32px; font-weight: bold; margin-bottom: 30px; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,255,255,0.2); text-align: center; }
+        .menu-btn { width: 240px; padding: 14px; margin: 10px; background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.2); color: white; font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer; transition: all 0.3s; text-align: center; }
+        .menu-btn:hover { background: #126d25; border-color: #2ecc71; box-shadow: 0 0 15px rgba(46,204,113,0.4); }
+
+        /* Stylizacja 3D Monety */
+        #coin { width: 120px; height: 120px; position: relative; transform-style: preserve-3d; margin: 30px auto; transition: transform 2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .side { position: absolute; width: 100%; height: 100%; border-radius: 50%; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 4px solid #f1c40f; box-sizing: border-box; box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 15px rgba(241,196,15,0.4); }
+        .heads { background: radial-gradient(circle, #f39c12, #f1c40f); color: #7f8c8d; text-shadow: 1px 1px 2px white; }
+        .tails { background: radial-gradient(circle, #f39c12, #f1c40f); color: #7f8c8d; text-shadow: 1px 1px 2px white; transform: rotateY(180deg); }
+        
+        .flip-heads { transform: rotateY(1800deg); }
+        .flip-tails { transform: rotateY(1980deg); }
+
+        /* Górny panel UI */
+        .ui-panel { display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px; align-items: center; font-size: 13px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px; box-sizing: border-box; }
+        .player-box { width: 35%; display: flex; flex-direction: column; }
+        .player-box.p1 { align-items: flex-start; }
+        .player-box.p2 { align-items: flex-end; }
+        .player-name { font-weight: bold; font-size: 14px; margin-bottom: 5px; color: #aaa; transition: color 0.3s; }
+        .player-name.active { color: #2ecc71; text-shadow: 0 0 10px rgba(46,204,113,0.6); }
+        .remaining-balls { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
+        .ball-mini { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); box-shadow: inset -2px -2px 4px rgba(0,0,0,0.6); position: relative; }
+        .ball-mini-stripe { position: absolute; top: 4px; left: 0; width: 14px; height: 6px; background: white; z-index: 1; }
+        
+        .center-hud { display: flex; flex-direction: column; align-items: center; width: 30%; text-align: center; }
+        .power-meter { width: 120px; height: 8px; background: #333; border-radius: 4px; overflow: hidden; border: 1px solid #555; margin-top: 4px; }
+        #power-level { height: 100%; width: 0%; background: linear-gradient(90deg, #2ecc71, #f1c40f, #e74c3c); }
+        #game-status { font-weight: bold; font-size: 13px; color: #f1c40f; letter-spacing: 1px; }
+        
+        /* Zegar uderzenia */
+        #shot-clock { font-size: 20px; font-weight: 900; color: #2ecc71; margin-top: 2px; text-shadow: 0 0 10px rgba(46,204,113,0.3); }
+        #shot-clock.warning { color: #e74c3c; animation: pulse 0.5s infinite alternate; text-shadow: 0 0 15px rgba(231,76,60,0.6); }
+
+        canvas { background: #0a4d1a; border: 12px solid #3d2314; border-radius: 10px; cursor: crosshair; touch-action: none; width: 100%; height: auto; box-sizing: border-box; }
+        
+        .tunnel-bar { width: 100%; height: 60px; background: linear-gradient(180deg, #111, #222); border: 2px solid #444; margin-top: 15px; border-radius: 30px; display: flex; align-items: center; padding: 0 15px; box-shadow: inset 0 5px 15px rgba(0,0,0,0.8); box-sizing: border-box; overflow-x: auto; }
+        #msg-banner { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; font-weight: bold; text-shadow: 0 0 20px rgba(0,0,0,0.9); pointer-events: none; opacity: 0; transition: opacity 0.5s; text-align: center; z-index: 10; width: 90%; }
+        .ball-pocketed { width: 28px; height: 28px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; box-shadow: inset -3px -3px 7px rgba(0,0,0,0.5), 1px 1px 3px rgba(0,0,0,0.3); position: relative; overflow: hidden; }
+        .ball-pocketed-stripe { position: absolute; top: 9px; left: 0; width: 28px; height: 10px; background: white; z-index: 1; border-radius: 2px; }
+        
+        .touch-panel { display: flex; gap: 10px; margin-top: 15px; width: 100%; justify-content: center; }
+        .touch-btn { flex: 1; max-width: 200px; padding: 15px 5px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.9); border-radius: 12px; font-size: 13px; font-weight: bold; text-align: center; cursor: pointer; backdrop-filter: blur(5px); transition: background 0.1s; -webkit-tap-highlight-color: transparent; }
+        .touch-btn:active { background: rgba(255, 255, 255, 0.3); color: #fff; }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+
+        @media (max-width: 600px) {
+            .ui-panel { padding: 5px; }
+            .player-name { font-size: 11px; }
+            .touch-btn { font-size: 11px; padding: 12px 2px; }
+            canvas { border-width: 8px; }
+            .menu-title { font-size: 24px; }
+        }
     </style>
 </head>
 <body>
 
-<div id="ui">
-    <h2>8-Ball Pro Simulator</h2>
-    <div class="power-bar-bg"><div id="power-fill"></div></div>
-    <small>Przytrzymaj Lewy Przycisk: Naciągnij siłę | Puść: Strzał</small>
-</div>
-
-<canvas id="gameCanvas"></canvas>
-
-<div class="tunnel-container" id="tunnel">
-    <div class="tunnel-label">Tunel łuz</div>
+<div id="game-container">
+    <div id="menu-container" class="overlay-screen">
+        <div class="menu-title">8-BALL ULTRA BILLIARDS</div>
+        <div class="menu-btn" onclick="selectGameMode('single')">1 GRACZ (VS AI)</div>
+        <div class="menu-btn" onclick="selectGameMode('multi')">2 GRACZY</div>
     </div>
 
+    <div id="coin-container" class="overlay-screen" style="display: none;">
+        <div class="menu-title" id="coin-instruction">GRACZ 1: WYBIERZ STRONĘ</div>
+        
+        <div id="coin">
+            <div class="side heads">ORZEŁ</div>
+            <div class="side tails">RESZKA</div>
+        </div>
+
+        <div id="coin-actions">
+            <div class="menu-btn" onclick="flipCoin('heads')">ORZEŁ</div>
+            <div class="menu-btn" onclick="flipCoin('tails')">RESZKA</div>
+        </div>
+    </div>
+
+    <div class="ui-panel">
+        <div class="player-box p1">
+            <div id="p1-name" class="player-name">GRACZ 1</div>
+            <div id="p1-balls" class="remaining-balls"></div>
+        </div>
+        
+        <div class="center-hud">
+            <div id="game-status">OCZEKIWANIE</div>
+            <div id="shot-clock">15.0s</div>
+            <div class="power-meter"><div id="power-level"></div></div>
+        </div>
+
+        <div class="player-box p2">
+            <div id="p2-name" class="player-name">GRACZ 2</div>
+            <div id="p2-balls" class="remaining-balls"></div>
+        </div>
+    </div>
+    
+    <canvas id="poolCanvas"></canvas>
+    <div id="msg-banner"></div>
+
+    <div class="touch-panel">
+        <div class="touch-btn" id="btn-left">◀ OBRÓĆ</div>
+        <div class="touch-btn" id="btn-right">OBRÓĆ ▶</div>
+        <div class="touch-btn" id="btn-shoot">STRZAŁ (PRZYTRZYMAJ)</div>
+    </div>
+
+    <div class="tunnel-bar" id="pocket-tunnel"></div>
+</div>
+
 <script>
-const canvas = document.getElementById('gameCanvas');
+/** * AUDIO ENGINE */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type, vol = 1) {
+    if (audioCtx.state === 'suspended') return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'hit') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400 + Math.random() * 200, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol * 0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    } else if (type === 'pocket') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+    } else if (type === 'fail') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+    } else if (type === 'tick') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.08);
+    }
+}
+
+const canvas = document.getElementById('poolCanvas');
 const ctx = canvas.getContext('2d');
-const tunnel = document.getElementById('tunnel');
-const powerFill = document.getElementById('power-fill');
+const powerLevel = document.getElementById('power-level');
+const banner = document.getElementById('msg-banner');
+const tunnel = document.getElementById('pocket-tunnel');
+const clockDisplay = document.getElementById('shot-clock');
 
-canvas.width = 800;
-canvas.height = 400;
+canvas.width = 850;
+canvas.height = 420;
 
-const SETTINGS = {
+const CONFIG = {
     friction: 0.988,
-    wallBounciness: 0.7,
-    ballRadius: 12,
-    maxPower: 25,
-    pocketRadius: 25
+    ballRad: 13,
+    pocketRad: 20,
+    maxPower: 30,
+    wallBounciness: 0.6,
+    turnDuration: 15
 };
 
-let balls = [];
-let pocketedBalls = [];
-let cueBall;
-let isCharging = false;
-let chargePower = 0;
-let mousePos = { x: 0, y: 0 };
+const pockets = [
+    {x:15, y:15}, {x:425, y:12}, {x:835, y:15},
+    {x:15, y:405}, {x:425, y:408}, {x:835, y:405}
+];
 
 class Ball {
-    constructor(x, y, color, num, type) {
+    constructor(x, y, color, num, isStriped = false) {
         this.x = x; this.y = y;
         this.vx = 0; this.vy = 0;
         this.color = color;
         this.num = num;
-        this.type = type; // 'white', 'solid', 'striped', 'black'
+        this.isStriped = isStriped;
         this.inPocket = false;
+        this.opacity = 1;
     }
 
     draw() {
-        if (this.inPocket) return;
+        if (this.opacity <= 0) return;
         ctx.save();
+        ctx.globalAlpha = this.opacity;
+        
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 4;
+        ctx.shadowOffsetY = 4;
+
         ctx.beginPath();
-        ctx.arc(this.x, this.y, SETTINGS.ballRadius, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, CONFIG.ballRad, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
         ctx.fill();
-        
-        // Odblask (3D effect)
-        let gradient = ctx.createRadialGradient(this.x-3, this.y-3, 1, this.x, this.y, SETTINGS.ballRadius);
-        gradient.addColorStop(0, 'rgba(255,255,255,0.4)');
-        gradient.addColorStop(1, 'rgba(0,0,0,0.1)');
-        ctx.fillStyle = gradient;
-        ctx.fill();
-        
-        if(this.num !== 0) {
+
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+
+        if (this.isStriped) {
+            ctx.beginPath();
+            ctx.rect(this.x - 13, this.y - 6, 26, 12);
             ctx.fillStyle = "white";
-            ctx.font = "bold 9px Arial";
+            ctx.fill();
+        }
+
+        if (this.num !== 0) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = "white";
+            ctx.fill();
+            ctx.fillStyle = "black";
+            ctx.font = "bold 8px Arial";
             ctx.textAlign = "center";
             ctx.fillText(this.num, this.x, this.y + 3);
         }
-        ctx.closePath();
+
+        const grad = ctx.createRadialGradient(this.x - 4, this.y - 4, 1, this.x, this.y, CONFIG.ballRad);
+        grad.addColorStop(0, "rgba(255,255,255,0.6)");
+        grad.addColorStop(0.5, "rgba(255,255,255,0)");
+        grad.addColorStop(1, "rgba(0,0,0,0.3)");
+        ctx.fillStyle = grad;
+        ctx.fill();
+
         ctx.restore();
     }
 
     update() {
-        if (this.inPocket) return;
-        
+        if (this.inPocket) {
+            if (this.opacity > 0) this.opacity -= 0.1;
+            return;
+        }
+
         this.x += this.vx;
         this.y += this.vy;
-        this.vx *= SETTINGS.friction;
-        this.vy *= SETTINGS.friction;
+        this.vx *= CONFIG.friction;
+        this.vy *= CONFIG.friction;
 
-        if (Math.hypot(this.vx, this.vy) < 0.15) { this.vx = 0; this.vy = 0; }
+        if (Math.hypot(this.vx, this.vy) < 0.1) { this.vx = 0; this.vy = 0; }
 
-        // Kolizje ze ścianami
-        if (this.x < SETTINGS.ballRadius || this.x > canvas.width - SETTINGS.ballRadius) {
-            this.vx *= -SETTINGS.wallBounciness;
-            this.x = this.x < SETTINGS.ballRadius ? SETTINGS.ballRadius : canvas.width - SETTINGS.ballRadius;
+        if (this.x < CONFIG.ballRad + 15 || this.x > canvas.width - CONFIG.ballRad - 15) {
+            this.vx *= -CONFIG.wallBounciness;
+            this.x = this.x < CONFIG.ballRad + 15 ? CONFIG.ballRad + 15 : canvas.width - CONFIG.ballRad - 15;
+            if(Math.abs(this.vx) > 1) playSound('hit', 0.3);
         }
-        if (this.y < SETTINGS.ballRadius || this.y > canvas.height - SETTINGS.ballRadius) {
-            this.vy *= -SETTINGS.wallBounciness;
-            this.y = this.y < SETTINGS.ballRadius ? SETTINGS.ballRadius : canvas.height - SETTINGS.ballRadius;
+        if (this.y < CONFIG.ballRad + 15 || this.y > canvas.height - CONFIG.ballRad - 15) {
+            this.vy *= -CONFIG.wallBounciness;
+            this.y = this.y < CONFIG.ballRad + 15 ? CONFIG.ballRad + 15 : canvas.height - CONFIG.ballRad - 15;
+            if(Math.abs(this.vy) > 1) playSound('hit', 0.3);
         }
 
-        // Detekcja łuz
-        const corners = [{x:0,y:0}, {x:400,y:0}, {x:800,y:0}, {x:0,y:400}, {x:400,y:400}, {x:800,y:400}];
-        corners.forEach(p => {
-            if (Math.hypot(this.x - p.x, this.y - p.y) < SETTINGS.pocketRadius) {
+        pockets.forEach(p => {
+            if (Math.hypot(this.x - p.x, this.y - p.y) < CONFIG.pocketRad + 5) {
                 this.pocket();
             }
         });
     }
 
     pocket() {
+        if (this.inPocket) return;
         this.inPocket = true;
+        this.vx = 0; this.vy = 0;
+        playSound('pocket');
+
         if (this.num === 0) {
-            setTimeout(() => { this.inPocket = false; this.x = 200; this.y = 200; this.vx = 0; this.vy = 0; }, 500);
+            showBanner("FAUL! Biała wpadła!", "#e74c3c");
+            playSound('fail');
+            gameState.scratchThisTurn = true;
+            setTimeout(() => {
+                this.inPocket = false; this.opacity = 1; this.x = 200; this.y = 210;
+            }, 1000);
+        } else if (this.num === 8) {
+            handleEightBallPocketed();
         } else {
-            addToTunnel(this.color);
+            gameState.pocketedThisTurn.push(this.num);
+            
+            const div = document.createElement('div');
+            div.className = 'ball-pocketed';
+            div.style.background = this.color;
+            if (this.isStriped) {
+                const stripe = document.createElement('div');
+                stripe.className = 'ball-pocketed-stripe';
+                div.appendChild(stripe);
+            }
+            tunnel.appendChild(div);
         }
     }
 }
 
-function addToTunnel(color) {
-    const ballDiv = document.createElement('div');
-    ballDiv.className = 'ball-in-tunnel';
-    ballDiv.style.backgroundColor = color;
-    tunnel.appendChild(ballDiv);
+let balls = [];
+let cueBall;
+let isMouseDown = false;
+let power = 0;
+let powerDirection = 1;
+let touchAngle = 0;
+
+let gameMode = 'multi'; 
+let isGameInitialized = false; 
+
+let gameState = {
+    currentPlayer: 1, 
+    tableOpen: true, 
+    p1Type: null, 
+    p2Type: null,
+    pocketedThisTurn: [],
+    scratchThisTurn: false,
+    aiThinking: false,
+    shotFired: false,
+    timeLeft: CONFIG.turnDuration,
+    lastSecTick: 0
+};
+
+const poolPalette = {
+    1: { color: "#f1c40f", stripe: false },
+    2: { color: "#2980b9", stripe: false },
+    3: { color: "#e74c3c", stripe: false },
+    4: { color: "#8e44ad", stripe: false },
+    5: { color: "#e67e22", stripe: false },
+    6: { color: "#27ae60", stripe: false },
+    7: { color: "#95a5a6", stripe: false },
+    8: { color: "#111111", stripe: false },
+    9: { color: "#f1c40f", stripe: true },
+    10: { color: "#2980b9", stripe: true },
+    11: { color: "#e74c3c", stripe: true },
+    12: { color: "#8e44ad", stripe: true },
+    13: { color: "#e67e22", stripe: true },
+    14: { color: "#27ae60", stripe: true },
+    15: { color: "#95a5a6", stripe: true }
+};
+
+function selectGameMode(mode) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    gameMode = mode;
+    document.getElementById('menu-container').style.display = 'none';
+    document.getElementById('coin-container').style.display = 'flex';
+    
+    if(gameMode === 'single') {
+        document.getElementById('p2-name').innerText = "AI (PRO BOT)";
+    } else {
+        document.getElementById('p2-name').innerText = "GRACZ 2";
+    }
 }
 
-function initTable() {
+function flipCoin(playerChoice) {
+    document.getElementById('coin-actions').style.display = 'none';
+    const coin = document.getElementById('coin');
+    
+    const rand = Math.floor(Math.random() * 2);
+    const result = rand === 0 ? 'heads' : 'tails';
+    
+    coin.className = ''; 
+    setTimeout(() => {
+        coin.className = result === 'heads' ? 'flip-heads' : 'flip-tails';
+    }, 10);
+
+    setTimeout(() => {
+        let startingPlayer = 1;
+        
+        if (playerChoice === result) {
+            startingPlayer = 1;
+            document.getElementById('coin-instruction').innerText = `WYGRAŁEŚ! ZACZYNA GRACZ 1`;
+        } else {
+            startingPlayer = 2;
+            const textResult = gameMode === 'single' ? "ZACZYNA AI" : "ZACZYNA GRACZ 2";
+            document.getElementById('coin-instruction').innerText = `PRZEGRAŁEŚ! ${textResult}`;
+        }
+
+        setTimeout(() => {
+            document.getElementById('coin-container').style.display = 'none';
+            initGame(startingPlayer);
+        }, 2000);
+
+    }, 2000);
+}
+
+function initGame(startingPlayer) {
     balls = [];
-    cueBall = new Ball(200, 200, '#fff', 0, 'white');
+    cueBall = new Ball(200, 210, "#fff", 0);
     balls.push(cueBall);
 
-    const colors = ['#ffeb3b', '#1e88e5', '#e53935', '#5e35b1', '#fb8c00', '#43a047', '#8d6e63', '#000'];
-    let idx = 0;
+    const triangleLayout = [
+        1,
+        9, 2,
+        3, 8, 10,
+        11, 4, 12, 5,
+        6, 13, 7, 14, 15
+    ];
+
+    let count = 0;
     for (let i = 0; i < 5; i++) {
         for (let j = 0; j <= i; j++) {
-            let color = (idx === 4) ? '#000' : colors[idx % colors.length];
-            balls.push(new Ball(550 + i * 22, 200 - (i * 12) + j * 24, color, idx + 1, 'solid'));
-            idx++;
+            let ballNum = triangleLayout[count];
+            let ballData = poolPalette[ballNum];
+            balls.push(new Ball(
+                550 + i * 24, 
+                210 - (i * 13) + j * 26, 
+                ballData.color, 
+                ballNum, 
+                ballData.stripe
+            ));
+            count++;
         }
     }
+    touchAngle = 0;
+    gameState.currentPlayer = startingPlayer;
+    gameState.tableOpen = true;
+    gameState.p1Type = null;
+    gameState.p2Type = null;
+    gameState.shotFired = false;
+    
+    isGameInitialized = true; 
+    resetShotClock();
+    updateUI();
+
+    if (gameMode === 'single' && gameState.currentPlayer === 2) {
+        gameState.aiThinking = true;
+        setTimeout(runAI, 1200);
+    }
+}
+
+function resetShotClock() {
+    gameState.timeLeft = CONFIG.turnDuration;
+    gameState.lastSecTick = Math.ceil(CONFIG.turnDuration);
+    clockDisplay.classList.remove('warning');
+    clockDisplay.innerText = gameState.timeLeft.toFixed(1) + "s";
+}
+
+function handleTimeOut() {
+    playSound('fail');
+    showBanner("KONIEC CZASU! Faul!", "#e74c3c");
+    gameState.pocketedThisTurn = [];
+    gameState.scratchThisTurn = false;
+    switchPlayer();
+    updateUI();
+}
+
+function updateUI() {
+    if (!isGameInitialized) return;
+    const p1BallsDiv = document.getElementById('p1-balls');
+    const p2BallsDiv = document.getElementById('p2-balls');
+    p1BallsDiv.innerHTML = '';
+    p2BallsDiv.innerHTML = '';
+
+    if(gameState.currentPlayer === 1) {
+        document.getElementById('p1-name').classList.add('active');
+        document.getElementById('p2-name').classList.remove('active');
+    } else {
+        document.getElementById('p2-name').classList.add('active');
+        document.getElementById('p1-name').classList.remove('active');
+    }
+
+    balls.forEach(b => {
+        if (b.num === 0 || b.num === 8 || b.inPocket) return;
+
+        const mini = document.createElement('div');
+        mini.className = 'ball-mini';
+        mini.style.backgroundColor = b.color;
+        if(b.isStriped) {
+            const str = document.createElement('div');
+            str.className = 'ball-mini-stripe';
+            mini.appendChild(str);
+        }
+
+        if (!gameState.tableOpen) {
+            if ((gameState.p1Type === 'solid' && !b.isStriped) || (gameState.p1Type === 'striped' && b.isStriped)) {
+                p1BallsDiv.appendChild(mini);
+            } else {
+                p2BallsDiv.appendChild(mini);
+            }
+        } else {
+            if(!b.isStriped) p1BallsDiv.appendChild(mini);
+            else p2BallsDiv.appendChild(mini);
+        }
+    });
 }
 
 function resolveCollisions() {
     for (let i = 0; i < balls.length; i++) {
         for (let j = i + 1; j < balls.length; j++) {
-            let b1 = balls[i], b2 = balls[j];
+            const b1 = balls[i], b2 = balls[j];
             if (b1.inPocket || b2.inPocket) continue;
 
-            let dx = b2.x - b1.x;
-            let dy = b2.y - b1.y;
-            let dist = Math.hypot(dx, dy);
+            const dx = b2.x - b1.x;
+            const dy = b2.y - b1.y;
+            const dist = Math.hypot(dx, dy);
 
-            if (dist < SETTINGS.ballRadius * 2) {
-                let angle = Math.atan2(dy, dx);
-                let targetX = b1.x + Math.cos(angle) * SETTINGS.ballRadius * 2;
-                let targetY = b1.y + Math.sin(angle) * SETTINGS.ballRadius * 2;
-                let ax = (targetX - b2.x) * 0.5;
-                let ay = (targetY - b2.y) * 0.5;
-                b1.vx -= ax; b1.vy -= ay;
-                b2.vx += ax; b2.vy += ay;
+            if (dist < CONFIG.ballRad * 2) {
+                const angle = Math.atan2(dy, dx);
+                const sin = Math.sin(angle), cos = Math.cos(angle);
+
+                const speed = Math.hypot(b1.vx - b2.vx, b1.vy - b2.vy);
+                if (speed > 1) playSound('hit', Math.min(speed / 10, 1));
+
+                const v1 = { x: b1.vx * cos + b1.vy * sin, y: b1.vy * cos - b1.vx * sin };
+                const v2 = { x: b2.vx * cos + b2.vy * sin, y: b2.vy * cos - b2.vx * sin };
+
+                const tempVx = v1.x;
+                v1.x = v2.x;
+                v2.x = tempVx;
+
+                b1.vx = v1.x * cos - v1.y * sin;
+                b1.vy = v1.y * cos + v1.x * sin;
+                b2.vx = v2.x * cos - v2.y * sin;
+                b2.vy = v2.y * cos + v2.x * sin;
+
+                const overlap = CONFIG.ballRad * 2 - dist;
+                b1.x -= (overlap / 2) * cos; b1.y -= (overlap / 2) * sin;
+                b2.x += (overlap / 2) * cos; b2.y += (overlap / 2) * sin;
             }
         }
     }
 }
 
-// Obsługa sterowania
-canvas.onmousedown = () => { if (Math.hypot(cueBall.vx, cueBall.vy) === 0) isCharging = true; };
-window.onmouseup = () => {
-    if (isCharging) {
-        const angle = Math.atan2(mousePos.y - cueBall.y, mousePos.x - cueBall.x);
-        cueBall.vx = -Math.cos(angle) * chargePower;
-        cueBall.vy = -Math.sin(angle) * chargePower;
-        isCharging = false;
-        chargePower = 0;
-    }
-};
-canvas.onmousemove = (e) => {
-    const rect = canvas.getBoundingClientRect();
-    mousePos.x = e.clientX - rect.left;
-    mousePos.y = e.clientY - rect.top;
-};
+function showBanner(text, color) {
+    banner.innerText = text;
+    banner.style.color = color;
+    banner.style.opacity = 1;
+    setTimeout(() => banner.style.opacity = 0, 2400);
+}
 
-function drawGuide() {
-    if (Math.hypot(cueBall.vx, cueBall.vy) > 0) return;
-    
-    const angle = Math.atan2(mousePos.y - cueBall.y, mousePos.x - cueBall.x);
-    
-    // Kierunek strzału
-    ctx.beginPath();
-    ctx.setLineDash([5, 10]);
-    ctx.moveTo(cueBall.x, cueBall.y);
-    ctx.lineTo(cueBall.x - Math.cos(angle) * 100, cueBall.y - Math.sin(angle) * 100);
-    ctx.strokeStyle = "rgba(255,255,255,0.5)";
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    if (isCharging) {
-        chargePower = Math.min(chargePower + 0.5, SETTINGS.maxPower);
-        powerFill.style.width = (chargePower / SETTINGS.maxPower * 100) + "%";
-    } else {
-        powerFill.style.width = "0%";
+function executeShot() {
+    if (isMouseDown && isGameInitialized) {
+        cueBall.vx = -Math.cos(touchAngle) * power;
+        cueBall.vy = -Math.sin(touchAngle) * power;
+        isMouseDown = false;
+        power = 0;
+        powerDirection = 1;
+        powerLevel.style.width = "0%";
+        
+        gameState.pocketedThisTurn = [];
+        gameState.scratchThisTurn = false;
+        gameState.shotFired = true; 
     }
 }
 
-function gameLoop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Stół i łuz
-    ctx.fillStyle = '#1a3e1c';
-    ctx.fillRect(0,0,800,400);
-    ctx.fillStyle = '#000';
-    [{x:0,y:0}, {x:400,y:0}, {x:800,y:0}, {x:0,y:400}, {x:400,y:400}, {x:800,y:400}].forEach(p => {
-        ctx.beginPath(); ctx.arc(p.x, p.y, SETTINGS.pocketRadius, 0, Math.PI*2); ctx.fill();
+function processTurnEnd() {
+    gameState.shotFired = false;
+
+    if (gameState.scratchThisTurn) {
+        switchPlayer();
+        updateUI();
+        return;
+    }
+
+    if (gameState.pocketedThisTurn.length > 0) {
+        if (gameState.tableOpen) {
+            const firstBallNum = gameState.pocketedThisTurn[0];
+            const firstBall = poolPalette[firstBallNum];
+            
+            if (firstBall.stripe) {
+                if (gameState.currentPlayer === 1) {
+                    gameState.p1Type = 'striped'; gameState.p2Type = 'solid';
+                } else {
+                    gameState.p1Type = 'solid'; gameState.p2Type = 'striped';
+                }
+                showBanner(`GRACZ ${gameState.currentPlayer} WBIJA POŁÓWKI!`, "#f1c40f");
+            } else {
+                if (gameState.currentPlayer === 1) {
+                    gameState.p1Type = 'solid'; gameState.p2Type = 'striped';
+                } else {
+                    gameState.p1Type = 'striped'; gameState.p2Type = 'solid';
+                }
+                showBanner(`GRACZ ${gameState.currentPlayer} WBIJA CAŁE!`, "#e74c3c");
+            }
+            gameState.tableOpen = false;
+        } else {
+            const currentType = (gameState.currentPlayer === 1) ? gameState.p1Type : gameState.p2Type;
+            const hitCorrect = gameState.pocketedThisTurn.some(num => {
+                return (currentType === 'striped' && poolPalette[num].stripe) || (currentType === 'solid' && !poolPalette[num].stripe);
+            });
+
+            if (!hitCorrect) switchPlayer();
+        }
+    } else {
+        switchPlayer();
+    }
+
+    resetShotClock();
+    updateUI();
+}
+
+function switchPlayer() {
+    gameState.currentPlayer = (gameState.currentPlayer === 1) ? 2 : 1;
+    resetShotClock();
+    if (gameMode === 'single' && gameState.currentPlayer === 2) {
+        gameState.aiThinking = true;
+        setTimeout(runAI, 1200); 
+    }
+}
+
+function handleEightBallPocketed() {
+    if (gameState.tableOpen) {
+        showBanner("PRZEGRANA! Ósemka na czystym stole!", "#c0392b");
+        setTimeout(() => location.reload(), 3000);
+        return;
+    }
+
+    const currentType = (gameState.currentPlayer === 1) ? gameState.p1Type : gameState.p2Type;
+    const remainingMyBalls = balls.filter(b => {
+        if(b.num === 0 || b.num === 8 || b.inPocket) return false;
+        return (currentType === 'striped' && b.isStriped) || (currentType === 'solid' && !b.isStriped);
+    }).length;
+
+    if (remainingMyBalls > 0) {
+        showBanner(`PRZEGRANA! Gracz ${gameState.currentPlayer} wbił 8 za wcześnie!`, "#c0392b");
+    } else {
+        showBanner(`WYGRANA! Gracz ${gameState.currentPlayer} zwycięża!`, "#2ecc71");
+    }
+    setTimeout(() => location.reload(), 3000);
+}
+
+// --- OPTYMALNA SZTUCZNA INTELIGENCJA (PRO AI) ---
+function runAI() {
+    if (!isGameInitialized || gameState.currentPlayer !== 2 || cueBall.inPocket) return;
+
+    const myType = gameState.p2Type;
+    let targetBalls = balls.filter(b => {
+        if (b.num === 0 || b.num === 8 || b.inPocket) return false;
+        if (gameState.tableOpen) return true; 
+        return (myType === 'striped' && b.isStriped) || (myType === 'solid' && !b.isStriped);
     });
 
-    resolveCollisions();
-    balls.forEach(b => { b.update(); b.draw(); });
-    drawGuide();
-    
-    requestAnimationFrame(gameLoop);
+    if (targetBalls.length === 0) {
+        const eightBall = balls.find(b => b.num === 8 && !b.inPocket);
+        if (eightBall) targetBalls.push(eightBall);
+    }
+
+    let bestShot = null;
+    let maxScore = -Infinity;
+
+    targetBalls.forEach(ball => {
+        pockets.forEach(pocket => {
+            const dxPocket = pocket.x - ball.x;
+            const dyPocket = pocket.y - ball.y;
+            const anglePocket = Math.atan2(dyPocket, dxPocket);
+
+            const contactX = ball.x - Math.cos(anglePocket) * (CONFIG.ballRad * 2);
+            const contactY = ball.y - Math.sin(anglePocket) * (CONFIG.ballRad * 2);
+
+            const dxCue = contactX - cueBall.x;
+            const dyCue = contactY - cueBall.y;
+            const distCue = Math.hypot(dxCue, dyCue);
+            const angleCue = Math.atan2(dyCue, dxCue);
+
+            let obstacleFound = false;
+            for (let k = 0; k < balls.length; k++) {
+                let ob = balls[k];
+                if(ob.num === 0 || ob.num === ball.num || ob.inPocket) continue;
+                const crossProduct = Math.abs((ob.y - cueBall.y) * dxCue - (ob.x - cueBall.x) * dyCue) / distCue;
+                if(crossProduct < CONFIG.ballRad * 2) {
+                    const dotProduct = ((ob.x - cueBall.x) * dxCue + (ob.y - cueBall.y) * dyCue) / (distCue * distCue);
+                    if(dotProduct > 0 && dotProduct < 1) {
+                        obstacleFound = true;
+                        break;
+                    }
+                }
+            }
+
+            let score = -distCue; 
+            if (!obstacleFound) score += 600; 
+            if (ball.num === 8) score -= 50;
+
+            if (score > maxScore) {
+                maxScore = score;
+                bestShot = { angle: angleCue, dist: distCue };
+            }
+        });
+    });
+
+    if (bestShot) {
+        touchAngle = bestShot.angle + Math.PI; 
+        isMouseDown = true;
+        power = Math.min(Math.max(bestShot.dist / 14 + 11, 13), CONFIG.maxPower);
+        executeShot();
+    } else {
+        touchAngle = Math.random() * Math.PI * 2;
+        isMouseDown = true;
+        power = 16;
+        executeShot();
+    }
+    gameState.aiThinking = false;
 }
 
-initTable();
-gameLoop();
+function getCanvasTouchPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
+    };
+}
+
+function handlePointerDown(e) {
+    if (!isGameInitialized || (gameState.currentPlayer === 2 && gameMode === 'single')) return;
+    if (balls.some(b => Math.hypot(b.vx, b.vy) > 0)) return;
+
+    const pos = getCanvasTouchPos(e);
+    touchAngle = Math.atan2(pos.y - cueBall.y, pos.x - cueBall.x);
+    isMouseDown = true;
+}
+
+// Zmodyfikowana funkcja - aktualizuje celownik bez wymogu kliknięcia (samo najechanie)
+function handlePointerMove(e) {
+    if (!isGameInitialized || (gameState.currentPlayer === 2 && gameMode === 'single')) return;
+    if (balls.some(b => Math.hypot(b.vx, b.vy) > 0)) return;
+    
+    const pos = getCanvasTouchPos(e);
+    touchAngle = Math.atan2(pos.y - cueBall.y, pos.x - cueBall.x);
+}
+
+canvas.addEventListener('mousedown', handlePointerDown);
+canvas.addEventListener('mousemove', handlePointerMove);
+window.addEventListener('mouseup', () => { 
+    if (isMouseDown && (gameMode === 'multi' || gameState.currentPlayer === 1)) {
+        executeShot();
+    }
+});
+
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handlePointerDown(e); });
+canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handlePointerMove(e); });
+window.addEventListener('touchend', (e) => { 
+    e.preventDefault(); 
+    if (isMouseDown && (gameMode === 'multi' || gameState.currentPlayer === 1)) {
+        executeShot();
+    }
+});
+
+// --- PRZYCISKI PANELU DOTYKOWEGO ---
+let touchTurnInterval = null;
+function startTurning(dir) {
+    if (!isGameInitialized || (gameState.currentPlayer === 2 && gameMode === 'single')) return;
+    if (balls.some(b => Math.hypot(b.vx, b.vy) > 0)) return;
+    touchTurnInterval = setInterval(() => { touchAngle += dir * 0.035; }, 16);
+}
+function stopTurning() { clearInterval(touchTurnInterval); }
+
+document.getElementById('btn-left').addEventListener('mousedown', () => startTurning(-1));
+document.getElementById('btn-left').addEventListener('mouseup', stopTurning);
+document.getElementById('btn-left').addEventListener('touchstart', (e) => { e.preventDefault(); startTurning(-1); });
+document.getElementById('btn-left').addEventListener('touchend', stopTurning);
+
+document.getElementById('btn-right').addEventListener('mousedown', () => startTurning(1));
+document.getElementById('btn-right').addEventListener('mouseup', stopTurning);
+document.getElementById('btn-right').addEventListener('touchstart', (e) => { e.preventDefault(); startTurning(1); });
+document.getElementById('btn-right').addEventListener('touchend', stopTurning);
+
+const btnShoot = document.getElementById('btn-shoot');
+btnShoot.addEventListener('mousedown', () => { 
+    if (!isGameInitialized || (gameState.currentPlayer === 2 && gameMode === 'single')) return;
+    if (!balls.some(b => Math.hypot(b.vx, b.vy) > 0)) { isMouseDown = true; power = 0; }
+});
+btnShoot.addEventListener('mouseup', () => { if(gameMode === 'multi' || gameState.currentPlayer === 1) executeShot(); });
+btnShoot.addEventListener('touchstart', (e) => { 
+    e.preventDefault(); 
+    if (!isGameInitialized || (gameState.currentPlayer === 2 && gameMode === 'single')) return;
+    if (!balls.some(b => Math.hypot(b.vx, b.vy) > 0)) { isMouseDown = true; power = 0; }
+});
+btnShoot.addEventListener('touchend', (e) => { e.preventDefault(); if(gameMode === 'multi' || gameState.currentPlayer === 1) executeShot(); });
+
+// --- GŁÓWNA FUNKCJA RYSOWANIA (UZUPEŁNIONA I ZAMKNIĘTA) ---
+function drawTable() {
+    // Ramy stołu (drewniane obrzeże)
+    ctx.fillStyle = "#3d2314";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Zielone sukno z gradientem radiowym (cień na krawędziach)
+    const tableGrad = ctx.createRadialGradient(425, 210, 50, 425, 210, 500);
+    tableGrad.addColorStop(0, "#126d25");
+    tableGrad.addColorStop(1, "#083a14");
+    ctx.fillStyle = tableGrad;
+    ctx.fillRect(15, 15, canvas.width - 30, canvas.height - 30);
+
+    // Rysowanie łuz (czarne otwory)
+    ctx.fillStyle = "#111";
+    pockets.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, CONFIG.pocketRad, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    });
+
+    // Aktualizacja i rysowanie bil
+    let ballsMoving = false;
+    balls.forEach(b => {
+        b.update();
+        b.draw();
+        if (Math.hypot(b.vx, b.vy) > 0) ballsMoving = true;
+    });
+
+    // Rozstrzyganie kolizji między bilami
+    resolveCollisions();
+
+    // Logika strzału i celownika (gdy bile stoją w miejscu)
+    if (!ballsMoving && isGameInitialized && !gameState.aiThinking) {
+        if (gameState.shotFired) {
+            processTurnEnd();
+        }
+
+        // --- STAŁA LINIA CELOWNIKA (NON-STOP) ---
+        // Rysowana zawsze, gdy uderza człowiek
+        if (!cueBall.inPocket && (gameMode === 'multi' || gameState.currentPlayer === 1)) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; // Grubsza, bardziej widoczna
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 8]);
+            ctx.moveTo(cueBall.x, cueBall.y);
+            // Linia wyciągnięta przed bilę
+            ctx.lineTo(cueBall.x - Math.cos(touchAngle) * 850, cueBall.y - Math.sin(touchAngle) * 850);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+        }
+
+        // Aktywne ładowanie siły strzału
+        if (isMouseDown) {
+            power = Math.min(power + 0.3, CONFIG.maxPower);
+            powerLevel.style.width = (power / CONFIG.maxPower * 100) + "%";
+        } else {
+            powerLevel.style.width = "0%";
+        }
+    }
+}
+
+// --- GŁÓWNA PĘTLA GRY (SHOT CLOCK TIMING) ---
+let lastTime = performance.now();
+function loop(now) {
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
+
+    drawTable();
+
+    // Licznik czasu (Shot Clock)
+    if (isGameInitialized && !gameState.shotFired && !(gameMode === 'single' && gameState.currentPlayer === 2)) {
+        const ballsMoving = balls.some(b => Math.hypot(b.vx, b.vy) > 0);
+        if (!ballsMoving) {
+            gameState.timeLeft -= dt;
+            if (gameState.timeLeft <= 0) {
+                handleTimeOut();
+            } else {
+                clockDisplay.innerText = gameState.timeLeft.toFixed(1) + "s";
+                
+                // Ostrzeżenie dźwiękowe i wizualne poniżej 5 sekund
+                if (gameState.timeLeft <= 5) {
+                    clockDisplay.classList.add('warning');
+                    if (Math.ceil(gameState.timeLeft) !== gameState.lastSecTick) {
+                        gameState.lastSecTick = Math.ceil(gameState.timeLeft);
+                        playSound('tick');
+                    }
+                }
+            }
+        }
+    }
+
+    requestAnimationFrame(loop);
+}
+
+// Uruchomienie pętli renderowania
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
