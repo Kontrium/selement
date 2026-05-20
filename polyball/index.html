@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport"
 content="width=device-width,
 initial-scale=1.0,
-maximum-scale=1.0,
-user-scalable=no">
+viewport-fit=cover,
+maximum-scale=5.0,
+minimum-scale=0.5,
+user-scalable=yes">
 
 <title>8 BALL ULTRA MOBILE PRO</title>
 
@@ -25,10 +26,10 @@ html,body{
 width:100%;
 height:100%;
 overflow:hidden;
-touch-action:none;
 background:#111;
 font-family:Arial,sans-serif;
 color:white;
+touch-action:none;
 }
 
 /* ========================= */
@@ -37,172 +38,291 @@ body{
 display:flex;
 justify-content:center;
 align-items:center;
+overflow:hidden;
+}
+
+/* ========================= */
+
+#zoomWrapper{
+
+width:100%;
+height:100%;
+
+display:flex;
+justify-content:center;
+align-items:center;
+
+transform-origin:center center;
+
+transition:transform .05s linear;
+
 }
 
 /* ========================= */
 
 #container{
-width:min(1100px,96vw);
+
+width:min(1100px,100vw);
+height:100dvh;
+
+display:flex;
+flex-direction:column;
+justify-content:center;
+
 }
 
 /* ========================= */
 
 canvas{
+
 width:100%;
+height:auto;
+
+max-height:72dvh;
+
 background:#111;
+
 border-radius:24px;
+
 box-shadow:0 0 50px rgba(0,0,0,.85);
+
 display:block;
+
 touch-action:none;
+
 }
 
 /* ========================= */
 
 #topbar{
+
 display:flex;
+
 justify-content:space-between;
 align-items:center;
+
 padding:12px;
+
 margin-bottom:10px;
+
 background:rgba(20,20,20,.78);
+
 border-radius:18px;
+
 gap:10px;
+
 }
 
 .player{
+
 background:rgba(35,35,35,.65);
+
 padding:12px;
+
 border-radius:16px;
-min-width:250px;
+
+min-width:220px;
+
 transition:.2s;
+
 }
 
 .active{
+
 background:rgba(46,139,87,.75);
+
 box-shadow:0 0 18px rgba(46,139,87,.5);
+
 }
 
 .playerName{
+
 font-size:20px;
 font-weight:bold;
+
 }
 
 /* ========================= */
 
 #status{
+
 font-size:24px;
 font-weight:bold;
 color:#ffd54a;
 text-align:center;
+
 }
 
 #angleDisplay{
+
 font-size:20px;
 color:#8fffd1;
 text-align:center;
 margin-top:5px;
+
 }
 
 /* ========================= */
 
 #controls{
+
 position:fixed;
+
 left:0;
 right:0;
-bottom:15px;
+
+bottom:max(12px,env(safe-area-inset-bottom));
+
 display:flex;
+
 justify-content:center;
 align-items:center;
-gap:20px;
-z-index:10;
+
+gap:18px;
+
+z-index:999;
+
 pointer-events:none;
+
 }
 
+/* ========================= */
+
 .ctrlBtn{
+
 pointer-events:auto;
-width:95px;
-height:95px;
+
+width:90px;
+height:90px;
+
 border-radius:50%;
+
 display:flex;
+
 justify-content:center;
 align-items:center;
-font-size:42px;
+
+font-size:40px;
 font-weight:bold;
-background:rgba(255,255,255,.05);
+
+background:rgba(255,255,255,.06);
+
 border:1px solid rgba(255,255,255,.08);
+
 color:white;
+
+backdrop-filter:blur(6px);
+
 transition:.15s;
+
 }
 
 .ctrlBtn:active{
+
 transform:scale(.94);
-background:rgba(255,255,255,.14);
+
+background:rgba(255,255,255,.15);
+
 }
 
 #shootBtn{
+
 width:120px;
 height:120px;
+
 font-size:24px;
+
 background:rgba(255,60,60,.14);
+
 }
 
 /* ========================= */
 
 #powerWrap{
+
 position:fixed;
+
 left:50%;
+
 transform:translateX(-50%);
-bottom:155px;
+
+bottom:145px;
+
 width:min(420px,80vw);
+
 height:22px;
+
 background:rgba(255,255,255,.05);
+
 border-radius:20px;
+
 overflow:hidden;
+
 border:1px solid rgba(255,255,255,.08);
+
+z-index:999;
+
 }
 
 #powerBar{
+
 width:0%;
 height:100%;
+
 background:linear-gradient(
 90deg,
 #00ff88,
 #ffee00,
 #ff3333
 );
+
 }
 
 /* ========================= */
 
 #menu{
+
 position:fixed;
 inset:0;
+
 background:rgba(0,0,0,.92);
+
 display:flex;
+
 flex-direction:column;
+
 justify-content:center;
 align-items:center;
+
 gap:20px;
-z-index:100;
+
+z-index:1000;
+
 }
 
 .title{
+
 font-size:54px;
 font-weight:900;
 text-align:center;
+
 }
 
 .btn{
+
 padding:18px 40px;
+
 background:#2e8b57;
+
 border-radius:16px;
+
 font-size:22px;
 font-weight:bold;
+
 cursor:pointer;
+
 }
 
-/* ========================= */
-/* MOBILE BUTTON */
 /* ========================= */
 
 #mobileRotateBtn{
@@ -235,8 +355,6 @@ z-index:99999;
 }
 
 /* ========================= */
-/* ROTATE OVERLAY */
-/* ========================= */
 
 #rotateOverlay{
 
@@ -257,8 +375,11 @@ z-index:999999;
 #rotateBox{
 
 display:flex;
+
 flex-direction:column;
+
 align-items:center;
+
 gap:24px;
 
 }
@@ -304,28 +425,32 @@ transform:rotate(0deg);
 @media(max-width:900px){
 
 body{
+
 padding:0;
 margin:0;
+
 overflow:hidden;
+
 }
 
 #container{
 
 width:100vw;
-height:100vh;
+height:100dvh;
 
-display:flex;
-flex-direction:column;
-justify-content:center;
+padding-top:env(safe-area-inset-top);
+
+padding-bottom:env(safe-area-inset-bottom);
 
 }
 
 canvas{
 
 width:100vw !important;
+
 height:auto !important;
 
-max-height:72vh;
+max-height:68dvh;
 
 border-radius:0;
 
@@ -334,20 +459,24 @@ border-radius:0;
 #topbar{
 
 margin:0;
+
 border-radius:0;
+
+padding-top:calc(12px + env(safe-area-inset-top));
 
 }
 
 #controls{
 
-bottom:8px;
 transform:scale(.82);
+
+bottom:max(6px,env(safe-area-inset-bottom));
 
 }
 
 #powerWrap{
 
-bottom:128px;
+bottom:120px;
 
 }
 
@@ -357,15 +486,36 @@ display:flex;
 
 }
 
+.player{
+
+min-width:auto;
+flex:1;
+
 }
+
+.playerName{
+
+font-size:16px;
+
+}
+
+#status{
+
+font-size:18px;
+
+}
+
+}
+
+/* ========================= */
 
 </style>
 </head>
 
 <body>
 
-<!-- ========================= -->
-<!-- MOBILE -->
+<div id="zoomWrapper">
+
 <!-- ========================= -->
 
 <div id="mobileRotateBtn">
@@ -414,7 +564,7 @@ OBRÓĆ TELEFON POZIOMO
 
 <div id="p1" class="player active">
 
-<div class="playerName" id="p1Name">
+<div class="playerName">
 GRACZ 1
 </div>
 
@@ -434,7 +584,7 @@ ROZGRYWKA
 
 <div id="p2" class="player">
 
-<div class="playerName" id="p2Name">
+<div class="playerName">
 GRACZ 2
 </div>
 
@@ -472,6 +622,8 @@ SHOOT
 
 </div>
 
+</div>
+
 <script>
 
 /* ========================= */
@@ -483,7 +635,82 @@ const ctx=
 canvas.getContext('2d');
 
 /* ========================= */
-/* GRAFIKA STOŁU */
+
+const zoomWrapper=
+document.getElementById('zoomWrapper');
+
+let currentScale=1;
+let startDistance=0;
+let startScale=1;
+
+/* ========================= */
+/* PINCH ZOOM */
+/* ========================= */
+
+function getDistance(t1,t2){
+
+const dx=t2.clientX-t1.clientX;
+const dy=t2.clientY-t1.clientY;
+
+return Math.hypot(dx,dy);
+
+}
+
+document.addEventListener(
+'touchstart',
+e=>{
+
+if(e.touches.length===2){
+
+startDistance=
+getDistance(
+e.touches[0],
+e.touches[1]
+);
+
+startScale=currentScale;
+
+}
+
+},
+{passive:false}
+);
+
+document.addEventListener(
+'touchmove',
+e=>{
+
+if(e.touches.length===2){
+
+e.preventDefault();
+
+const newDistance=
+getDistance(
+e.touches[0],
+e.touches[1]
+);
+
+currentScale=
+Math.min(
+2.5,
+Math.max(
+0.55,
+startScale*
+(newDistance/startDistance)
+)
+);
+
+zoomWrapper.style.transform=
+`scale(${currentScale})`;
+
+}
+
+},
+{passive:false}
+);
+
+/* ========================= */
+/* TABLE IMAGE */
 /* ========================= */
 
 const tableImg=new Image();
@@ -501,7 +728,6 @@ document.getElementById('powerBar');
 const CONFIG={
 
 ballRadius:18,
-
 pocketRadius:44,
 
 friction:0.991,
@@ -570,8 +796,6 @@ let balls=[];
 
 let cueBall;
 
-let currentPlayer=1;
-
 let rotateLeft=false;
 let rotateRight=false;
 
@@ -619,12 +843,8 @@ if(this.pocketed)return;
 this.x+=this.vx;
 this.y+=this.vy;
 
-/* FRICTION */
-
 this.vx*=CONFIG.friction;
 this.vy*=CONFIG.friction;
-
-/* MIN VELOCITY */
 
 if(Math.abs(this.vx)<CONFIG.minVelocity)
 this.vx=0;
@@ -632,251 +852,72 @@ this.vx=0;
 if(Math.abs(this.vy)<CONFIG.minVelocity)
 this.vy=0;
 
-/* WALLS */
-
 handleWallPhysics(this);
-
-/* POCKETS */
 
 handlePocketPhysics(this);
 
-/* RESET OFF TABLE */
-
-if(
-this.x<-300||
-this.x>1300||
-this.y<-300||
-this.y>900||
-isNaN(this.x)||
-isNaN(this.y)
-){
-
-resetBallPosition(this);
-
 }
-
-}
-
-/* ========================= */
 
 render(){
 
 if(this.pocketed)return;
 
-ctx.save();
-
-ctx.translate(this.x,this.y);
-
-ctx.shadowColor='rgba(0,0,0,.45)';
-ctx.shadowBlur=14;
-ctx.shadowOffsetY=5;
-
-const r=this.radius*.82;
-
-const grad=
-ctx.createRadialGradient(
--r*.4,
--r*.4,
-r*.1,
-0,
-0,
-r
-);
-
-grad.addColorStop(0,'#fff');
-grad.addColorStop(.15,'#fff');
-grad.addColorStop(.3,this.color);
-grad.addColorStop(.8,this.color);
-grad.addColorStop(1,'#000');
-
 ctx.beginPath();
 
 ctx.arc(
-0,
-0,
-r,
+this.x,
+this.y,
+this.radius,
 0,
 Math.PI*2
 );
 
-ctx.fillStyle=grad;
+ctx.fillStyle=this.color;
 
 ctx.fill();
 
-/* STRIPES */
-
-if(this.number>=9){
-
-ctx.save();
-
-ctx.beginPath();
-
-ctx.arc(
-0,
-0,
-r,
-0,
-Math.PI*2
-);
-
-ctx.clip();
-
-ctx.fillStyle='white';
-
-ctx.fillRect(
--r,
--r*.42,
-r*2,
-r*.84
-);
-
-ctx.restore();
-
-}
-
-/* NUMBER */
-
-if(this.number!==0){
-
-ctx.beginPath();
-
-ctx.arc(
-0,
-0,
-r*.34,
-0,
-Math.PI*2
-);
-
-ctx.fillStyle='white';
-
-ctx.fill();
-
-ctx.fillStyle='black';
-
-ctx.font='bold '+(r*.52)+'px Arial';
-
-ctx.textAlign='center';
-ctx.textBaseline='middle';
-
-ctx.fillText(
-this.number,
-0,
-1
-);
-
-}
-
-ctx.restore();
-
 }
 
 }
 
-/* ========================= */
-/* RESET BALL */
-/* ========================= */
-
-function resetBallPosition(ball){
-
-ball.x=ball.startX;
-ball.y=ball.startY;
-
-ball.vx=0;
-ball.vy=0;
-
-}
-
-/* ========================= */
-/* WALLS */
 /* ========================= */
 
 function handleWallPhysics(ball){
 
-const nearCorner=
-(
-(ball.x<120&&ball.y<120)||
-(ball.x>880&&ball.y<120)||
-(ball.x<120&&ball.y>400)||
-(ball.x>880&&ball.y>400)
-);
-
-const nearMiddle=
-(
-(Math.abs(ball.x-500)<90&&ball.y<95)||
-(Math.abs(ball.x-500)<90&&ball.y>425)
-);
-
-/* LEFT */
-
-if(
-ball.x<TABLE.left+ball.radius &&
-!nearCorner
-){
+if(ball.x<TABLE.left+ball.radius){
 
 ball.x=TABLE.left+ball.radius;
 
-ball.vx=
-Math.abs(ball.vx)*0.94;
-
-ball.vy*=0.988;
+ball.vx=Math.abs(ball.vx)*0.94;
 
 }
 
-/* RIGHT */
-
-if(
-ball.x>TABLE.right-ball.radius &&
-!nearCorner
-){
+if(ball.x>TABLE.right-ball.radius){
 
 ball.x=TABLE.right-ball.radius;
 
-ball.vx=
--Math.abs(ball.vx)*0.94;
-
-ball.vy*=0.988;
+ball.vx=-Math.abs(ball.vx)*0.94;
 
 }
 
-/* TOP */
-
-if(
-ball.y<TABLE.top+ball.radius &&
-!nearCorner &&
-!nearMiddle
-){
+if(ball.y<TABLE.top+ball.radius){
 
 ball.y=TABLE.top+ball.radius;
 
-ball.vy=
-Math.abs(ball.vy)*0.94;
-
-ball.vx*=0.988;
+ball.vy=Math.abs(ball.vy)*0.94;
 
 }
 
-/* BOTTOM */
-
-if(
-ball.y>TABLE.bottom-ball.radius &&
-!nearCorner &&
-!nearMiddle
-){
+if(ball.y>TABLE.bottom-ball.radius){
 
 ball.y=TABLE.bottom-ball.radius;
 
-ball.vy=
--Math.abs(ball.vy)*0.94;
-
-ball.vx*=0.988;
+ball.vy=-Math.abs(ball.vy)*0.94;
 
 }
 
 }
 
-/* ========================= */
-/* POCKETS */
 /* ========================= */
 
 function handlePocketPhysics(ball){
@@ -892,32 +933,9 @@ pocket.y-ball.y;
 const dist=
 Math.hypot(dx,dy);
 
-/* SUCTION */
-
-if(dist<58){
-
-ball.vx+=dx*0.0009;
-ball.vy+=dy*0.0009;
-
-}
-
-/* SLOW */
-
-if(dist<CONFIG.pocketRadius){
-
-ball.vx*=0.90;
-ball.vy*=0.90;
-
-}
-
-/* SCORE */
-
 if(dist<22){
 
 ball.pocketed=true;
-
-ball.vx=0;
-ball.vy=0;
 
 if(ball.number===0){
 
@@ -925,7 +943,8 @@ setTimeout(()=>{
 
 ball.pocketed=false;
 
-resetBallPosition(ball);
+ball.x=240;
+ball.y=260;
 
 },1200);
 
@@ -938,98 +957,50 @@ resetBallPosition(ball);
 }
 
 /* ========================= */
-/* COLLISIONS */
-/* ========================= */
 
-function improvedCollision(a,b){
+function createBalls(){
 
-const dx=b.x-a.x;
-const dy=b.y-a.y;
+balls=[];
 
-const dist=
-Math.hypot(dx,dy);
+cueBall=
+new Ball(
+240,
+260,
+0
+);
 
-if(dist===0)return;
+balls.push(cueBall);
 
-const minDist=
-a.radius+b.radius;
+const order=[
 
-if(dist<minDist){
+1,9,2,10,8,
+3,11,4,12,
+5,13,6,
+14,7,
+15
 
-const nx=dx/dist;
-const ny=dy/dist;
+];
 
-const overlap=
-(minDist-dist);
+let index=0;
 
-/* SEPARATE */
+for(let row=0;row<5;row++){
 
-a.x-=nx*(overlap*.5);
-a.y-=ny*(overlap*.5);
+for(let col=0;col<=row;col++){
 
-b.x+=nx*(overlap*.5);
-b.y+=ny*(overlap*.5);
+balls.push(
 
-/* RELATIVE */
+new Ball(
 
-const rvx=b.vx-a.vx;
-const rvy=b.vy-a.vy;
+710+row*33,
+260-row*18+col*36,
 
-const velAlongNormal=
-rvx*nx+rvy*ny;
+order[index]
 
-if(velAlongNormal>0)return;
+)
 
-/* IMPULSE */
+);
 
-const restitution=0.93;
-
-let impulse=
--(1+restitution)*
-velAlongNormal;
-
-impulse/=2;
-
-const ix=impulse*nx;
-const iy=impulse*ny;
-
-/* APPLY */
-
-a.vx-=ix;
-a.vy-=iy;
-
-b.vx+=ix;
-b.vy+=iy;
-
-/* DAMP */
-
-a.vx*=0.992;
-a.vy*=0.992;
-
-b.vx*=0.992;
-b.vy*=0.992;
-
-}
-
-}
-
-/* ========================= */
-
-function resolveCollisions(){
-
-for(let i=0;i<balls.length;i++){
-
-const a=balls[i];
-
-if(a.pocketed)continue;
-
-for(let j=i+1;j<balls.length;j++){
-
-const b=balls[j];
-
-if(b.pocketed)continue;
-
-improvedCollision(a,b);
+index++;
 
 }
 
@@ -1042,15 +1013,6 @@ improvedCollision(a,b);
 function drawTable(){
 
 ctx.clearRect(
-0,
-0,
-canvas.width,
-canvas.height
-);
-
-ctx.fillStyle='#111';
-
-ctx.fillRect(
 0,
 0,
 canvas.width,
@@ -1083,8 +1045,6 @@ ball.render();
 
 }
 
-resolveCollisions();
-
 }
 
 /* ========================= */
@@ -1107,16 +1067,8 @@ if(ballsMoving())return;
 
 const len=240;
 
-const x2=
-cueBall.x+
-Math.cos(aimAngle)*len;
-
-const y2=
-cueBall.y+
-Math.sin(aimAngle)*len;
-
 ctx.strokeStyle=
-'rgba(255,255,255,.32)';
+'rgba(255,255,255,.35)';
 
 ctx.lineWidth=5;
 
@@ -1129,7 +1081,15 @@ cueBall.x,
 cueBall.y
 );
 
-ctx.lineTo(x2,y2);
+ctx.lineTo(
+
+cueBall.x+
+Math.cos(aimAngle)*len,
+
+cueBall.y+
+Math.sin(aimAngle)*len
+
+);
 
 ctx.stroke();
 
@@ -1147,17 +1107,11 @@ if(rotateLeft){
 
 aimDegrees-=rotateSpeed;
 
-if(aimDegrees<0)
-aimDegrees=359;
-
 }
 
 if(rotateRight){
 
 aimDegrees+=rotateSpeed;
-
-if(aimDegrees>=360)
-aimDegrees=0;
 
 }
 
@@ -1168,8 +1122,6 @@ document.getElementById(
 'angleDisplay'
 ).textContent=
 Math.round(aimDegrees)+'°';
-
-/* POWER */
 
 if(charging){
 
@@ -1334,8 +1286,6 @@ powerDirection=1;
 }
 );
 
-/* ========================= */
-
 shootBtn.addEventListener(
 'touchend',
 e=>{
@@ -1345,23 +1295,6 @@ e.preventDefault();
 charging=false;
 
 shoot();
-
-}
-);
-
-/* ========================= */
-
-shootBtn.addEventListener(
-'mousedown',
-()=>{
-
-if(ballsMoving())return;
-
-charging=true;
-
-shotPower=0;
-
-powerDirection=1;
 
 }
 );
@@ -1385,156 +1318,43 @@ shoot();
 
 /* ========================= */
 
-document.getElementById(
-'singleBtn'
-).onclick=()=>{
+function checkLandscape(){
 
-document.getElementById(
-'menu'
-).style.display='none';
+const mobile=
+window.innerWidth<900;
 
-};
-
-/* ========================= */
-
-document.getElementById(
-'multiBtn'
-).onclick=()=>{
-
-document.getElementById(
-'menu'
-).style.display='none';
-
-};
-
-/* ========================= */
-/* MOBILE */
-/* ========================= */
-
-const rotateOverlay=
-document.getElementById(
-'rotateOverlay'
-);
-
-const mobileRotateBtn=
-document.getElementById(
-'mobileRotateBtn'
-);
-
-mobileRotateBtn.onclick=()=>{
-
-checkLandscape(true);
-
-};
-
-function isMobile(){
-
-return window.innerWidth<900;
-
-}
-
-function isLandscape(){
-
-return window.innerWidth>
+const landscape=
+window.innerWidth>
 window.innerHeight;
 
-}
-
-function checkLandscape(force=false){
-
-if(!isMobile()){
-
-rotateOverlay.style.display='none';
-
-return;
-
-}
-
-if(
-!isLandscape()||
-force
-){
-
-rotateOverlay.style.display='flex';
-
-}else{
-
-rotateOverlay.style.display='none';
-
-}
+document.getElementById(
+'rotateOverlay'
+).style.display=
+(
+mobile&&!landscape
+)
+?'flex':'none';
 
 }
 
 window.addEventListener(
 'resize',
-()=>checkLandscape()
+checkLandscape
 );
 
 window.addEventListener(
 'orientationchange',
-()=>checkLandscape()
+()=>{
+
+setTimeout(
+checkLandscape,
+300
 );
 
-setTimeout(()=>{
+}
+);
+
 checkLandscape();
-},400);
-
-/* ========================= */
-/* CREATE BALLS */
-/* ========================= */
-
-function createBalls(){
-
-balls=[];
-
-cueBall=
-new Ball(
-240,
-260,
-0
-);
-
-balls.push(cueBall);
-
-const order=[
-
-1,9,2,10,8,
-3,11,4,12,
-5,13,6,
-14,7,
-15
-
-];
-
-let index=0;
-
-for(let row=0;row<5;row++){
-
-for(let col=0;col<=row;col++){
-
-const x=
-710+row*33;
-
-const y=
-260-row*18+col*36;
-
-balls.push(
-
-new Ball(
-x,
-y,
-order[index]
-)
-
-);
-
-index++;
-
-}
-
-}
-
-}
 
 /* ========================= */
 
