@@ -635,6 +635,114 @@ const ctx=
 canvas.getContext('2d');
 
 /* ========================= */
+/* MOBILE PINCH ZOOM */
+/* ========================= */
+
+const container =
+document.getElementById('container');
+
+let currentScale = 1;
+
+let pinchStartDistance = 0;
+
+let pinchStartScale = 1;
+
+function getPinchDistance(touches){
+
+const dx =
+touches[0].clientX -
+touches[1].clientX;
+
+const dy =
+touches[0].clientY -
+touches[1].clientY;
+
+return Math.hypot(dx,dy);
+
+}
+
+document.addEventListener(
+
+'touchstart',
+
+e=>{
+
+if(e.touches.length===2){
+
+pinchStartDistance =
+getPinchDistance(e.touches);
+
+pinchStartScale =
+currentScale;
+
+}
+
+},
+
+{passive:false}
+
+);
+
+document.addEventListener(
+
+'touchmove',
+
+e=>{
+
+if(e.touches.length===2){
+
+e.preventDefault();
+
+const currentDistance =
+getPinchDistance(e.touches);
+
+currentScale =
+
+pinchStartScale *
+
+(currentDistance/pinchStartDistance);
+
+if(currentScale<0.55)
+currentScale=0.55;
+
+if(currentScale>2.5)
+currentScale=2.5;
+
+container.style.transform =
+`scale(${currentScale})`;
+
+container.style.transformOrigin =
+'center center';
+
+}
+
+},
+
+{passive:false}
+
+);
+
+document.addEventListener(
+
+'touchend',
+
+e=>{
+
+if(e.touches.length<2){
+
+pinchStartDistance=0;
+
+}
+
+}
+
+);
+
+/* ========================= */
+
+/* DALEJ IDZIE RESZTA TWOJEGO ORYGINALNEGO KODU */
+
+/* ========================= */
 
 const zoomWrapper=
 document.getElementById('zoomWrapper');
