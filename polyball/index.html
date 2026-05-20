@@ -1,9 +1,15 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>8 Ball Ultra Mobile Final</title>
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1.0,
+maximum-scale=1.0,
+user-scalable=no">
+
+<title>8 BALL ULTRA MOBILE PRO</title>
 
 <style>
 
@@ -15,29 +21,42 @@ box-sizing:border-box;
 user-select:none;
 }
 
-body{
+html,body{
+width:100%;
+height:100%;
+overflow:hidden;
+touch-action:none;
 background:#111;
 font-family:Arial,sans-serif;
-overflow:hidden;
+color:white;
+}
+
+/* ========================= */
+
+body{
 display:flex;
 justify-content:center;
 align-items:center;
-min-height:100vh;
-color:white;
 }
+
+/* ========================= */
 
 #container{
 width:min(1100px,96vw);
 }
 
+/* ========================= */
+
 canvas{
 width:100%;
-background:#156b31;
-border:16px solid #5d3419;
+background:#111;
 border-radius:24px;
-box-shadow:0 0 50px rgba(0,0,0,.8);
+box-shadow:0 0 50px rgba(0,0,0,.85);
+display:block;
 touch-action:none;
 }
+
+/* ========================= */
 
 #topbar{
 display:flex;
@@ -45,22 +64,22 @@ justify-content:space-between;
 align-items:center;
 padding:12px;
 margin-bottom:10px;
-background:#1b1b1b;
+background:rgba(20,20,20,.78);
 border-radius:18px;
 gap:10px;
 }
 
 .player{
-background:#222;
+background:rgba(35,35,35,.65);
 padding:12px;
 border-radius:16px;
-min-width:240px;
-transition:.25s;
+min-width:250px;
+transition:.2s;
 }
 
 .active{
-background:#2e8b57;
-box-shadow:0 0 20px rgba(46,139,87,.5);
+background:rgba(46,139,87,.75);
+box-shadow:0 0 18px rgba(46,139,87,.5);
 }
 
 .playerName{
@@ -68,37 +87,23 @@ font-size:20px;
 font-weight:bold;
 }
 
-.playerBalls{
-display:flex;
-flex-wrap:wrap;
-gap:4px;
-margin-top:8px;
-}
-
-.playerBall{
-width:15px;
-height:15px;
-border-radius:50%;
-border:1px solid white;
-box-shadow:0 0 8px rgba(255,255,255,.35);
-}
-
-#centerUI{
-text-align:center;
-}
+/* ========================= */
 
 #status{
 font-size:24px;
 font-weight:bold;
 color:#ffd54a;
+text-align:center;
 }
 
 #angleDisplay{
-font-size:22px;
-margin-top:6px;
+font-size:20px;
 color:#8fffd1;
-font-weight:bold;
+text-align:center;
+margin-top:5px;
 }
+
+/* ========================= */
 
 #controls{
 position:fixed;
@@ -110,9 +115,11 @@ justify-content:center;
 align-items:center;
 gap:20px;
 z-index:10;
+pointer-events:none;
 }
 
 .ctrlBtn{
+pointer-events:auto;
 width:95px;
 height:95px;
 border-radius:50%;
@@ -121,28 +128,25 @@ justify-content:center;
 align-items:center;
 font-size:42px;
 font-weight:bold;
-background:rgba(25,25,25,.45);
-backdrop-filter:blur(8px);
-border:2px solid rgba(255,255,255,.15);
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);
 color:white;
-box-shadow:
-0 0 25px rgba(0,0,0,.45),
-inset 0 0 20px rgba(255,255,255,.04);
 transition:.15s;
 }
 
 .ctrlBtn:active{
-transform:scale(.95);
-background:rgba(255,255,255,.18);
+transform:scale(.94);
+background:rgba(255,255,255,.14);
 }
 
 #shootBtn{
 width:120px;
 height:120px;
 font-size:24px;
-background:rgba(255,60,60,.42);
-border:2px solid rgba(255,120,120,.45);
+background:rgba(255,60,60,.14);
 }
+
+/* ========================= */
 
 #powerWrap{
 position:fixed;
@@ -150,18 +154,25 @@ left:50%;
 transform:translateX(-50%);
 bottom:155px;
 width:min(420px,80vw);
-height:24px;
-background:rgba(0,0,0,.35);
+height:22px;
+background:rgba(255,255,255,.05);
 border-radius:20px;
 overflow:hidden;
-border:1px solid rgba(255,255,255,.15);
+border:1px solid rgba(255,255,255,.08);
 }
 
 #powerBar{
 width:0%;
 height:100%;
-background:linear-gradient(90deg,#00ff88,#ffee00,#ff3333);
+background:linear-gradient(
+90deg,
+#00ff88,
+#ffee00,
+#ff3333
+);
 }
+
+/* ========================= */
 
 #menu{
 position:fixed;
@@ -176,8 +187,9 @@ z-index:100;
 }
 
 .title{
-font-size:52px;
+font-size:54px;
 font-weight:900;
+text-align:center;
 }
 
 .btn{
@@ -189,10 +201,194 @@ font-weight:bold;
 cursor:pointer;
 }
 
+/* ========================= */
+/* MOBILE BUTTON */
+/* ========================= */
+
+#mobileRotateBtn{
+
+position:fixed;
+
+top:12px;
+left:12px;
+
+width:58px;
+height:58px;
+
+display:none;
+
+justify-content:center;
+align-items:center;
+
+font-size:32px;
+
+border-radius:16px;
+
+background:rgba(0,0,0,.68);
+
+backdrop-filter:blur(8px);
+
+border:1px solid rgba(255,255,255,.14);
+
+z-index:99999;
+
+}
+
+/* ========================= */
+/* ROTATE OVERLAY */
+/* ========================= */
+
+#rotateOverlay{
+
+position:fixed;
+inset:0;
+
+display:none;
+
+justify-content:center;
+align-items:center;
+
+background:rgba(0,0,0,.95);
+
+z-index:999999;
+
+}
+
+#rotateBox{
+
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:24px;
+
+}
+
+#rotateIcon{
+
+font-size:92px;
+
+animation:rotateAnim 1.8s infinite;
+
+}
+
+#rotateText{
+
+font-size:30px;
+font-weight:bold;
+text-align:center;
+
+padding:0 25px;
+
+}
+
+@keyframes rotateAnim{
+
+0%{
+transform:rotate(0deg);
+}
+
+50%{
+transform:rotate(90deg);
+}
+
+100%{
+transform:rotate(0deg);
+}
+
+}
+
+/* ========================= */
+/* MOBILE */
+/* ========================= */
+
+@media(max-width:900px){
+
+body{
+padding:0;
+margin:0;
+overflow:hidden;
+}
+
+#container{
+
+width:100vw;
+height:100vh;
+
+display:flex;
+flex-direction:column;
+justify-content:center;
+
+}
+
+canvas{
+
+width:100vw !important;
+height:auto !important;
+
+max-height:72vh;
+
+border-radius:0;
+
+}
+
+#topbar{
+
+margin:0;
+border-radius:0;
+
+}
+
+#controls{
+
+bottom:8px;
+transform:scale(.82);
+
+}
+
+#powerWrap{
+
+bottom:128px;
+
+}
+
+#mobileRotateBtn{
+
+display:flex;
+
+}
+
+}
+
 </style>
 </head>
 
 <body>
+
+<!-- ========================= -->
+<!-- MOBILE -->
+<!-- ========================= -->
+
+<div id="mobileRotateBtn">
+📱
+</div>
+
+<div id="rotateOverlay">
+
+<div id="rotateBox">
+
+<div id="rotateIcon">
+📲
+</div>
+
+<div id="rotateText">
+OBRÓĆ TELEFON POZIOMO
+</div>
+
+</div>
+
+</div>
+
+<!-- ========================= -->
 
 <div id="menu">
 
@@ -210,21 +406,21 @@ cursor:pointer;
 
 </div>
 
+<!-- ========================= -->
+
 <div id="container">
 
 <div id="topbar">
 
 <div id="p1" class="player active">
 
-<div class="playerName">
+<div class="playerName" id="p1Name">
 GRACZ 1
 </div>
 
-<div class="playerBalls" id="player1Balls"></div>
-
 </div>
 
-<div id="centerUI">
+<div>
 
 <div id="status">
 ROZGRYWKA
@@ -238,23 +434,27 @@ ROZGRYWKA
 
 <div id="p2" class="player">
 
-<div class="playerName">
+<div class="playerName" id="p2Name">
 GRACZ 2
 </div>
 
-<div class="playerBalls" id="player2Balls"></div>
-
 </div>
 
 </div>
 
-<canvas id="game" width="1000" height="520"></canvas>
+<canvas id="game"
+width="1000"
+height="520"></canvas>
 
 </div>
+
+<!-- ========================= -->
 
 <div id="powerWrap">
 <div id="powerBar"></div>
 </div>
+
+<!-- ========================= -->
 
 <div id="controls">
 
@@ -274,24 +474,77 @@ SHOOT
 
 <script>
 
-const canvas=document.getElementById('game');
-const ctx=canvas.getContext('2d');
+/* ========================= */
 
-const powerBar=document.getElementById('powerBar');
+const canvas=
+document.getElementById('game');
 
-const p1=document.getElementById('p1');
-const p2=document.getElementById('p2');
+const ctx=
+canvas.getContext('2d');
+
+/* ========================= */
+/* GRAFIKA STOŁU */
+/* ========================= */
+
+const tableImg=new Image();
+
+tableImg.src=
+'./grafika/stółbilardowy.jpeg';
+
+/* ========================= */
+
+const powerBar=
+document.getElementById('powerBar');
+
+/* ========================= */
 
 const CONFIG={
-ballRadius:13,
-pocketRadius:42,
-friction:0.992,
-wallLoss:0.96,
-minVelocity:0.02,
-maxPower:28
+
+ballRadius:18,
+
+pocketRadius:44,
+
+friction:0.991,
+
+wallLoss:0.94,
+
+minVelocity:0.018,
+
+maxPower:36,
+
+elasticity:0.93
+
 };
 
+/* ========================= */
+
+const TABLE={
+
+left:74,
+right:926,
+top:70,
+bottom:450
+
+};
+
+/* ========================= */
+
+const pockets=[
+
+{x:52,y:50},
+{x:500,y:42},
+{x:948,y:50},
+
+{x:52,y:470},
+{x:500,y:478},
+{x:948,y:470}
+
+];
+
+/* ========================= */
+
 const colors={
+
 1:'#f1c40f',
 2:'#2980b9',
 3:'#e74c3c',
@@ -299,7 +552,8 @@ const colors={
 5:'#e67e22',
 6:'#27ae60',
 7:'#7f8c8d',
-8:'#111',
+8:'#111111',
+
 9:'#f1c40f',
 10:'#2980b9',
 11:'#e74c3c',
@@ -307,46 +561,28 @@ const colors={
 13:'#e67e22',
 14:'#27ae60',
 15:'#7f8c8d'
+
 };
 
-const pockets=[
-{x:24,y:24},
-{x:500,y:20},
-{x:976,y:24},
-{x:24,y:496},
-{x:500,y:500},
-{x:976,y:496}
-];
+/* ========================= */
 
 let balls=[];
+
 let cueBall;
 
 let currentPlayer=1;
 
-let playerGroups={
-1:null,
-2:null
-};
-
-let remainingBalls={
-solid:[1,2,3,4,5,6,7],
-stripe:[9,10,11,12,13,14,15]
-};
+let rotateLeft=false;
+let rotateRight=false;
 
 let aimDegrees=0;
 let aimAngle=0;
-
-let rotateLeft=false;
-let rotateRight=false;
 
 let charging=false;
 let shotPower=0;
 let powerDirection=1;
 
-let foul=false;
-let turnContinues=false;
-
-let shotInProgress=false;
+/* ========================= */
 
 class Ball{
 
@@ -355,6 +591,9 @@ constructor(x,y,number){
 this.x=x;
 this.y=y;
 
+this.startX=x;
+this.startY=y;
+
 this.vx=0;
 this.vy=0;
 
@@ -362,14 +601,16 @@ this.number=number;
 
 this.radius=CONFIG.ballRadius;
 
-this.color=number===0?'white':colors[number];
-
-this.striped=number>=9;
+this.color=
+number===0
+?'white'
+:colors[number];
 
 this.pocketed=false;
 
-this.processed=false;
 }
+
+/* ========================= */
 
 update(){
 
@@ -378,72 +619,45 @@ if(this.pocketed)return;
 this.x+=this.vx;
 this.y+=this.vy;
 
+/* FRICTION */
+
 this.vx*=CONFIG.friction;
 this.vy*=CONFIG.friction;
 
-if(Math.abs(this.vx)<CONFIG.minVelocity)this.vx=0;
-if(Math.abs(this.vy)<CONFIG.minVelocity)this.vy=0;
+/* MIN VELOCITY */
 
-if(this.x<this.radius+18){
-
-this.x=this.radius+18;
-this.vx=Math.abs(this.vx)*CONFIG.wallLoss;
-}
-
-if(this.x>canvas.width-this.radius-18){
-
-this.x=canvas.width-this.radius-18;
-this.vx=-Math.abs(this.vx)*CONFIG.wallLoss;
-}
-
-if(this.y<this.radius+18){
-
-this.y=this.radius+18;
-this.vy=Math.abs(this.vy)*CONFIG.wallLoss;
-}
-
-if(this.y>canvas.height-this.radius-18){
-
-this.y=canvas.height-this.radius-18;
-this.vy=-Math.abs(this.vy)*CONFIG.wallLoss;
-}
-
-for(const pocket of pockets){
-
-const dx=this.x-pocket.x;
-const dy=this.y-pocket.y;
-
-const dist=Math.hypot(dx,dy);
-
-if(dist<CONFIG.pocketRadius-3){
-
-this.pocketed=true;
-
+if(Math.abs(this.vx)<CONFIG.minVelocity)
 this.vx=0;
+
+if(Math.abs(this.vy)<CONFIG.minVelocity)
 this.vy=0;
 
-if(!this.processed){
+/* WALLS */
 
-this.processed=true;
+handleWallPhysics(this);
 
-handlePocket(this.number);
+/* POCKETS */
+
+handlePocketPhysics(this);
+
+/* RESET OFF TABLE */
+
+if(
+this.x<-300||
+this.x>1300||
+this.y<-300||
+this.y>900||
+isNaN(this.x)||
+isNaN(this.y)
+){
+
+resetBallPosition(this);
+
 }
 
-if(this.number===0){
-
-setTimeout(()=>{
-
-this.pocketed=false;
-this.processed=false;
-
-this.x=240;
-this.y=260;
-
-},1200);
 }
-}
-}
-}
+
+/* ========================= */
 
 render(){
 
@@ -453,373 +667,477 @@ ctx.save();
 
 ctx.translate(this.x,this.y);
 
-const grad=ctx.createRadialGradient(-4,-4,2,0,0,this.radius);
+ctx.shadowColor='rgba(0,0,0,.45)';
+ctx.shadowBlur=14;
+ctx.shadowOffsetY=5;
+
+const r=this.radius*.82;
+
+const grad=
+ctx.createRadialGradient(
+-r*.4,
+-r*.4,
+r*.1,
+0,
+0,
+r
+);
 
 grad.addColorStop(0,'#fff');
-grad.addColorStop(.18,this.color);
-grad.addColorStop(1,'#111');
+grad.addColorStop(.15,'#fff');
+grad.addColorStop(.3,this.color);
+grad.addColorStop(.8,this.color);
+grad.addColorStop(1,'#000');
 
 ctx.beginPath();
 
-ctx.arc(0,0,this.radius,0,Math.PI*2);
+ctx.arc(
+0,
+0,
+r,
+0,
+Math.PI*2
+);
 
 ctx.fillStyle=grad;
+
 ctx.fill();
 
-if(this.striped && this.number!==0){
+/* STRIPES */
+
+if(this.number>=9){
+
+ctx.save();
+
+ctx.beginPath();
+
+ctx.arc(
+0,
+0,
+r,
+0,
+Math.PI*2
+);
+
+ctx.clip();
 
 ctx.fillStyle='white';
-ctx.fillRect(-13,-5,26,10);
+
+ctx.fillRect(
+-r,
+-r*.42,
+r*2,
+r*.84
+);
+
+ctx.restore();
+
 }
+
+/* NUMBER */
 
 if(this.number!==0){
 
 ctx.beginPath();
 
-ctx.arc(0,0,6,0,Math.PI*2);
-
-ctx.fillStyle='white';
-ctx.fill();
-
-ctx.fillStyle='black';
-ctx.font='bold 8px Arial';
-ctx.textAlign='center';
-
-ctx.fillText(this.number,0,3);
-}
-
-ctx.restore();
-}
-}
-
-function createBalls(){
-
-balls=[];
-
-cueBall=new Ball(240,260,0);
-
-balls.push(cueBall);
-
-const order=[
-1,9,2,10,8,
-3,11,4,12,
-5,13,6,
-14,7,
-15
-];
-
-let index=0;
-
-for(let row=0;row<5;row++){
-
-for(let col=0;col<=row;col++){
-
-const x=700+row*24;
-const y=260-row*13+col*26;
-
-balls.push(new Ball(x,y,order[index]));
-
-index++;
-}
-}
-}
-
-function handlePocket(number){
-
-if(number===0){
-
-foul=true;
-
-setStatus('FAUL - BIAŁA');
-
-return;
-}
-
-if(number===8){
-
-setStatus('CZARNA WBITA');
-
-return;
-}
-
-if(!playerGroups[1]){
-
-if(number<=7){
-
-playerGroups[currentPlayer]='solid';
-playerGroups[currentPlayer===1?2:1]='stripe';
-
-}else{
-
-playerGroups[currentPlayer]='stripe';
-playerGroups[currentPlayer===1?2:1]='solid';
-}
-
-updateGroupLabels();
-}
-
-const currentGroup=playerGroups[currentPlayer];
-
-let correct=false;
-
-if(currentGroup==='solid' && number<=7){
-correct=true;
-}
-
-if(currentGroup==='stripe' && number>=9){
-correct=true;
-}
-
-if(correct){
-
-turnContinues=true;
-
-setStatus('DOBRE WBICIE');
-
-}else{
-
-foul=true;
-
-setStatus('FAUL');
-}
-
-if(number<=7){
-
-remainingBalls.solid=
-remainingBalls.solid.filter(n=>n!==number);
-}
-
-if(number>=9){
-
-remainingBalls.stripe=
-remainingBalls.stripe.filter(n=>n!==number);
-}
-
-updatePlayerBallUI();
-}
-
-function updateGroupLabels(){
-
-document.querySelector('#p1 .playerName').textContent=
-playerGroups[1]==='solid'
-?'GRACZ 1 • PEŁNE'
-:'GRACZ 1 • POŁÓWKI';
-
-document.querySelector('#p2 .playerName').textContent=
-playerGroups[2]==='solid'
-?'GRACZ 2 • PEŁNE'
-:'GRACZ 2 • POŁÓWKI';
-}
-
-function updatePlayerBallUI(){
-
-const p1Balls=document.getElementById('player1Balls');
-const p2Balls=document.getElementById('player2Balls');
-
-p1Balls.innerHTML='';
-p2Balls.innerHTML='';
-
-if(playerGroups[1]){
-
-const arr=
-playerGroups[1]==='solid'
-?remainingBalls.solid
-:remainingBalls.stripe;
-
-arr.forEach(n=>{
-
-const d=document.createElement('div');
-
-d.className='playerBall';
-
-if(n>=9){
-
-d.style.background=
-`linear-gradient(to bottom,
-white 30%,
-${colors[n]} 30%,
-${colors[n]} 70%,
-white 70%)`;
-
-}else{
-
-d.style.background=colors[n];
-}
-
-p1Balls.appendChild(d);
-});
-}
-
-if(playerGroups[2]){
-
-const arr=
-playerGroups[2]==='solid'
-?remainingBalls.solid
-:remainingBalls.stripe;
-
-arr.forEach(n=>{
-
-const d=document.createElement('div');
-
-d.className='playerBall';
-
-if(n>=9){
-
-d.style.background=
-`linear-gradient(to bottom,
-white 30%,
-${colors[n]} 30%,
-${colors[n]} 70%,
-white 70%)`;
-
-}else{
-
-d.style.background=colors[n];
-}
-
-p2Balls.appendChild(d);
-});
-}
-}
-
-function setStatus(txt){
-
-document.getElementById('status').textContent=txt;
-}
-
-function drawTable(){
-
-ctx.clearRect(0,0,canvas.width,canvas.height);
-
-const cloth=
-ctx.createRadialGradient(500,260,50,500,260,700);
-
-cloth.addColorStop(0,'#1f8f44');
-cloth.addColorStop(1,'#0d3a1b');
-
-ctx.fillStyle=cloth;
-
-ctx.fillRect(0,0,canvas.width,canvas.height);
-
-for(const pocket of pockets){
-
-ctx.beginPath();
-
 ctx.arc(
-pocket.x,
-pocket.y,
-CONFIG.pocketRadius,
+0,
+0,
+r*.34,
 0,
 Math.PI*2
 );
 
-ctx.fillStyle='#000';
+ctx.fillStyle='white';
 
 ctx.fill();
+
+ctx.fillStyle='black';
+
+ctx.font='bold '+(r*.52)+'px Arial';
+
+ctx.textAlign='center';
+ctx.textBaseline='middle';
+
+ctx.fillText(
+this.number,
+0,
+1
+);
+
 }
+
+ctx.restore();
+
 }
+
+}
+
+/* ========================= */
+/* RESET BALL */
+/* ========================= */
+
+function resetBallPosition(ball){
+
+ball.x=ball.startX;
+ball.y=ball.startY;
+
+ball.vx=0;
+ball.vy=0;
+
+}
+
+/* ========================= */
+/* WALLS */
+/* ========================= */
+
+function handleWallPhysics(ball){
+
+const nearCorner=
+(
+(ball.x<120&&ball.y<120)||
+(ball.x>880&&ball.y<120)||
+(ball.x<120&&ball.y>400)||
+(ball.x>880&&ball.y>400)
+);
+
+const nearMiddle=
+(
+(Math.abs(ball.x-500)<90&&ball.y<95)||
+(Math.abs(ball.x-500)<90&&ball.y>425)
+);
+
+/* LEFT */
+
+if(
+ball.x<TABLE.left+ball.radius &&
+!nearCorner
+){
+
+ball.x=TABLE.left+ball.radius;
+
+ball.vx=
+Math.abs(ball.vx)*0.94;
+
+ball.vy*=0.988;
+
+}
+
+/* RIGHT */
+
+if(
+ball.x>TABLE.right-ball.radius &&
+!nearCorner
+){
+
+ball.x=TABLE.right-ball.radius;
+
+ball.vx=
+-Math.abs(ball.vx)*0.94;
+
+ball.vy*=0.988;
+
+}
+
+/* TOP */
+
+if(
+ball.y<TABLE.top+ball.radius &&
+!nearCorner &&
+!nearMiddle
+){
+
+ball.y=TABLE.top+ball.radius;
+
+ball.vy=
+Math.abs(ball.vy)*0.94;
+
+ball.vx*=0.988;
+
+}
+
+/* BOTTOM */
+
+if(
+ball.y>TABLE.bottom-ball.radius &&
+!nearCorner &&
+!nearMiddle
+){
+
+ball.y=TABLE.bottom-ball.radius;
+
+ball.vy=
+-Math.abs(ball.vy)*0.94;
+
+ball.vx*=0.988;
+
+}
+
+}
+
+/* ========================= */
+/* POCKETS */
+/* ========================= */
+
+function handlePocketPhysics(ball){
+
+for(const pocket of pockets){
+
+const dx=
+pocket.x-ball.x;
+
+const dy=
+pocket.y-ball.y;
+
+const dist=
+Math.hypot(dx,dy);
+
+/* SUCTION */
+
+if(dist<58){
+
+ball.vx+=dx*0.0009;
+ball.vy+=dy*0.0009;
+
+}
+
+/* SLOW */
+
+if(dist<CONFIG.pocketRadius){
+
+ball.vx*=0.90;
+ball.vy*=0.90;
+
+}
+
+/* SCORE */
+
+if(dist<22){
+
+ball.pocketed=true;
+
+ball.vx=0;
+ball.vy=0;
+
+if(ball.number===0){
+
+setTimeout(()=>{
+
+ball.pocketed=false;
+
+resetBallPosition(ball);
+
+},1200);
+
+}
+
+}
+
+}
+
+}
+
+/* ========================= */
+/* COLLISIONS */
+/* ========================= */
+
+function improvedCollision(a,b){
+
+const dx=b.x-a.x;
+const dy=b.y-a.y;
+
+const dist=
+Math.hypot(dx,dy);
+
+if(dist===0)return;
+
+const minDist=
+a.radius+b.radius;
+
+if(dist<minDist){
+
+const nx=dx/dist;
+const ny=dy/dist;
+
+const overlap=
+(minDist-dist);
+
+/* SEPARATE */
+
+a.x-=nx*(overlap*.5);
+a.y-=ny*(overlap*.5);
+
+b.x+=nx*(overlap*.5);
+b.y+=ny*(overlap*.5);
+
+/* RELATIVE */
+
+const rvx=b.vx-a.vx;
+const rvy=b.vy-a.vy;
+
+const velAlongNormal=
+rvx*nx+rvy*ny;
+
+if(velAlongNormal>0)return;
+
+/* IMPULSE */
+
+const restitution=0.93;
+
+let impulse=
+-(1+restitution)*
+velAlongNormal;
+
+impulse/=2;
+
+const ix=impulse*nx;
+const iy=impulse*ny;
+
+/* APPLY */
+
+a.vx-=ix;
+a.vy-=iy;
+
+b.vx+=ix;
+b.vy+=iy;
+
+/* DAMP */
+
+a.vx*=0.992;
+a.vy*=0.992;
+
+b.vx*=0.992;
+b.vy*=0.992;
+
+}
+
+}
+
+/* ========================= */
 
 function resolveCollisions(){
 
 for(let i=0;i<balls.length;i++){
 
+const a=balls[i];
+
+if(a.pocketed)continue;
+
 for(let j=i+1;j<balls.length;j++){
 
-const a=balls[i];
 const b=balls[j];
 
-if(a.pocketed||b.pocketed)continue;
+if(b.pocketed)continue;
 
-const dx=b.x-a.x;
-const dy=b.y-a.y;
+improvedCollision(a,b);
 
-const dist=Math.hypot(dx,dy);
-
-const minDist=a.radius+b.radius;
-
-if(dist<minDist && dist>0){
-
-const nx=dx/dist;
-const ny=dy/dist;
-
-const overlap=minDist-dist;
-
-a.x-=nx*overlap/2;
-a.y-=ny*overlap/2;
-
-b.x+=nx*overlap/2;
-b.y+=ny*overlap/2;
-
-const tx=-ny;
-const ty=nx;
-
-const dpTan1=a.vx*tx+a.vy*ty;
-const dpTan2=b.vx*tx+b.vy*ty;
-
-const dpNorm1=a.vx*nx+a.vy*ny;
-const dpNorm2=b.vx*nx+b.vy*ny;
-
-a.vx=tx*dpTan1+nx*dpNorm2;
-a.vy=ty*dpTan1+ny*dpNorm2;
-
-b.vx=tx*dpTan2+nx*dpNorm1;
-b.vy=ty*dpTan2+ny*dpNorm1;
 }
+
 }
+
 }
+
+/* ========================= */
+
+function drawTable(){
+
+ctx.clearRect(
+0,
+0,
+canvas.width,
+canvas.height
+);
+
+ctx.fillStyle='#111';
+
+ctx.fillRect(
+0,
+0,
+canvas.width,
+canvas.height
+);
+
+if(tableImg.complete){
+
+ctx.drawImage(
+tableImg,
+0,
+0,
+canvas.width,
+canvas.height
+);
+
 }
+
+}
+
+/* ========================= */
 
 function renderBalls(){
 
 for(const ball of balls){
 
 ball.update();
+
 ball.render();
+
 }
 
 resolveCollisions();
+
 }
+
+/* ========================= */
 
 function ballsMoving(){
 
 return balls.some(
-b=>Math.abs(b.vx)>0 || Math.abs(b.vy)>0
+b=>
+Math.abs(b.vx)>0||
+Math.abs(b.vy)>0
 );
+
 }
+
+/* ========================= */
 
 function updateAim(){
 
 if(ballsMoving())return;
 
-const len=170;
+const len=240;
 
 const x2=
-cueBall.x+Math.cos(aimAngle)*len;
+cueBall.x+
+Math.cos(aimAngle)*len;
 
 const y2=
-cueBall.y+Math.sin(aimAngle)*len;
+cueBall.y+
+Math.sin(aimAngle)*len;
 
-ctx.strokeStyle='rgba(255,255,255,.38)';
-ctx.lineWidth=4;
+ctx.strokeStyle=
+'rgba(255,255,255,.32)';
 
-ctx.setLineDash([10,10]);
+ctx.lineWidth=5;
+
+ctx.setLineDash([14,12]);
 
 ctx.beginPath();
 
-ctx.moveTo(cueBall.x,cueBall.y);
+ctx.moveTo(
+cueBall.x,
+cueBall.y
+);
+
 ctx.lineTo(x2,y2);
 
 ctx.stroke();
 
 ctx.setLineDash([]);
 
-ctx.beginPath();
-
-ctx.arc(x2,y2,10,0,Math.PI*2);
-
-ctx.fillStyle='rgba(255,255,255,.28)';
-ctx.fill();
 }
+
+/* ========================= */
 
 function updateControls(){
 
@@ -829,30 +1147,44 @@ if(rotateLeft){
 
 aimDegrees-=rotateSpeed;
 
-if(aimDegrees<0)aimDegrees=359;
+if(aimDegrees<0)
+aimDegrees=359;
+
 }
 
 if(rotateRight){
 
 aimDegrees+=rotateSpeed;
 
-if(aimDegrees>=360)aimDegrees=0;
+if(aimDegrees>=360)
+aimDegrees=0;
+
 }
 
-aimAngle=aimDegrees*Math.PI/180;
+aimAngle=
+aimDegrees*Math.PI/180;
 
-document.getElementById('angleDisplay').textContent=
+document.getElementById(
+'angleDisplay'
+).textContent=
 Math.round(aimDegrees)+'°';
+
+/* POWER */
 
 if(charging){
 
-shotPower+=0.5*powerDirection;
+shotPower+=
+0.58*powerDirection;
 
-if(shotPower>=CONFIG.maxPower){
+if(
+shotPower>=CONFIG.maxPower
+){
 
-shotPower=CONFIG.maxPower;
+shotPower=
+CONFIG.maxPower;
 
 powerDirection=-1;
+
 }
 
 if(shotPower<=0){
@@ -860,64 +1192,45 @@ if(shotPower<=0){
 shotPower=0;
 
 powerDirection=1;
+
 }
 
 powerBar.style.width=
-(shotPower/CONFIG.maxPower*100)+'%';
+(
+shotPower/
+CONFIG.maxPower
+*100
+)+'%';
+
 }
+
 }
+
+/* ========================= */
 
 function shoot(){
 
 if(ballsMoving())return;
 
-cueBall.vx=Math.cos(aimAngle)*shotPower;
-cueBall.vy=Math.sin(aimAngle)*shotPower;
-
-shotInProgress=true;
-}
-
-function switchPlayer(){
-
-currentPlayer=currentPlayer===1?2:1;
-
-p1.classList.toggle('active',currentPlayer===1);
-p2.classList.toggle('active',currentPlayer===2);
-
-setStatus(
-'RUCH GRACZA '+currentPlayer
-);
-}
-
-function endTurnLogic(){
-
-if(foul){
-
-switchPlayer();
-
-foul=false;
-turnContinues=false;
-
-return;
-}
-
-if(turnContinues){
-
-setStatus(
-'GRACZ '+currentPlayer+
-' KONTYNUUJE'
+const power=
+Math.max(
+2,
+shotPower*.72
 );
 
-turnContinues=false;
+cueBall.vx=
+Math.cos(aimAngle)*power;
 
-return;
+cueBall.vy=
+Math.sin(aimAngle)*power;
+
+shotPower=0;
+
+powerBar.style.width='0%';
+
 }
 
-switchPlayer();
-
-foul=false;
-turnContinues=false;
-}
+/* ========================= */
 
 function gameLoop(){
 
@@ -929,59 +1242,103 @@ renderBalls();
 
 updateAim();
 
-if(shotInProgress && !ballsMoving()){
+requestAnimationFrame(
+gameLoop
+);
 
-shotInProgress=false;
-
-endTurnLogic();
 }
 
-requestAnimationFrame(gameLoop);
-}
+/* ========================= */
 
 function holdButton(btn,start,end){
 
-btn.addEventListener('touchstart',e=>{
+btn.addEventListener(
+'touchstart',
+e=>{
 e.preventDefault();
 start();
-});
+}
+);
 
-btn.addEventListener('touchend',e=>{
+btn.addEventListener(
+'touchend',
+e=>{
 e.preventDefault();
 end();
-});
+}
+);
 
-btn.addEventListener('mousedown',start);
+btn.addEventListener(
+'mousedown',
+start
+);
 
-window.addEventListener('mouseup',end);
+window.addEventListener(
+'mouseup',
+end
+);
+
 }
 
+/* ========================= */
+
 holdButton(
-document.getElementById('leftBtn'),
+
+document.getElementById(
+'leftBtn'
+),
+
 ()=>rotateLeft=true,
+
 ()=>rotateLeft=false
+
 );
+
+/* ========================= */
 
 holdButton(
-document.getElementById('rightBtn'),
+
+document.getElementById(
+'rightBtn'
+),
+
 ()=>rotateRight=true,
+
 ()=>rotateRight=false
+
 );
 
-const shootBtn=document.getElementById('shootBtn');
+/* ========================= */
 
-shootBtn.addEventListener('touchstart',e=>{
+const shootBtn=
+document.getElementById(
+'shootBtn'
+);
+
+/* ========================= */
+
+shootBtn.addEventListener(
+'touchstart',
+e=>{
 
 e.preventDefault();
 
 if(ballsMoving())return;
 
 charging=true;
-shotPower=0;
-powerDirection=1;
-});
 
-shootBtn.addEventListener('touchend',e=>{
+shotPower=0;
+
+powerDirection=1;
+
+}
+);
+
+/* ========================= */
+
+shootBtn.addEventListener(
+'touchend',
+e=>{
 
 e.preventDefault();
 
@@ -989,19 +1346,31 @@ charging=false;
 
 shoot();
 
-powerBar.style.width='0%';
-});
+}
+);
 
-shootBtn.addEventListener('mousedown',()=>{
+/* ========================= */
+
+shootBtn.addEventListener(
+'mousedown',
+()=>{
 
 if(ballsMoving())return;
 
 charging=true;
-shotPower=0;
-powerDirection=1;
-});
 
-window.addEventListener('mouseup',()=>{
+shotPower=0;
+
+powerDirection=1;
+
+}
+);
+
+/* ========================= */
+
+window.addEventListener(
+'mouseup',
+()=>{
 
 if(charging){
 
@@ -1009,23 +1378,173 @@ charging=false;
 
 shoot();
 
-powerBar.style.width='0%';
 }
-});
 
-document.getElementById('singleBtn').onclick=()=>{
+}
+);
 
-document.getElementById('menu').style.display='none';
+/* ========================= */
+
+document.getElementById(
+'singleBtn'
+).onclick=()=>{
+
+document.getElementById(
+'menu'
+).style.display='none';
+
 };
 
-document.getElementById('multiBtn').onclick=()=>{
+/* ========================= */
 
-document.getElementById('menu').style.display='none';
+document.getElementById(
+'multiBtn'
+).onclick=()=>{
+
+document.getElementById(
+'menu'
+).style.display='none';
+
 };
+
+/* ========================= */
+/* MOBILE */
+/* ========================= */
+
+const rotateOverlay=
+document.getElementById(
+'rotateOverlay'
+);
+
+const mobileRotateBtn=
+document.getElementById(
+'mobileRotateBtn'
+);
+
+mobileRotateBtn.onclick=()=>{
+
+checkLandscape(true);
+
+};
+
+function isMobile(){
+
+return window.innerWidth<900;
+
+}
+
+function isLandscape(){
+
+return window.innerWidth>
+window.innerHeight;
+
+}
+
+function checkLandscape(force=false){
+
+if(!isMobile()){
+
+rotateOverlay.style.display='none';
+
+return;
+
+}
+
+if(
+!isLandscape()||
+force
+){
+
+rotateOverlay.style.display='flex';
+
+}else{
+
+rotateOverlay.style.display='none';
+
+}
+
+}
+
+window.addEventListener(
+'resize',
+()=>checkLandscape()
+);
+
+window.addEventListener(
+'orientationchange',
+()=>checkLandscape()
+);
+
+setTimeout(()=>{
+checkLandscape();
+},400);
+
+/* ========================= */
+/* CREATE BALLS */
+/* ========================= */
+
+function createBalls(){
+
+balls=[];
+
+cueBall=
+new Ball(
+240,
+260,
+0
+);
+
+balls.push(cueBall);
+
+const order=[
+
+1,9,2,10,8,
+3,11,4,12,
+5,13,6,
+14,7,
+15
+
+];
+
+let index=0;
+
+for(let row=0;row<5;row++){
+
+for(let col=0;col<=row;col++){
+
+const x=
+710+row*33;
+
+const y=
+260-row*18+col*36;
+
+balls.push(
+
+new Ball(
+x,
+y,
+order[index]
+)
+
+);
+
+index++;
+
+}
+
+}
+
+}
+
+/* ========================= */
 
 createBalls();
 
-requestAnimationFrame(gameLoop);
+requestAnimationFrame(
+gameLoop
+);
+
+/* ========================= */
 
 </script>
 
