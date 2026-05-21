@@ -2,235 +2,568 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Royal Gold 5 - Final Masterpiece</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Realtime Chat Room</title>
     <style>
-        :root { --neon-pink: #ff00ff; --neon-blue: #00ffff; --gold: #ffd700; --bg: #050505; }
-        body { background: var(--bg); color: white; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Arial Black', sans-serif; overflow: hidden; }
-        #game-container { position: relative; padding: 20px; border-radius: 20px; background: #111; border: 2px solid var(--neon-blue); box-shadow: 0 0 30px rgba(0, 255, 255, 0.3); display: flex; flex-direction: column; align-items: center; gap: 15px; }
-        .main-layout { display: flex; gap: 20px; align-items: flex-start; }
-        .paytable { background: rgba(0,0,0,0.9); border: 1px solid var(--neon-pink); padding: 12px; border-radius: 10px; font-size: 11px; min-width: 180px; box-shadow: 0 0 15px var(--neon-pink); }
-        canvas { border-radius: 10px; background: #000; box-shadow: inset 0 0 30px #000; }
-        .ui-panel { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .stat-box { background: #000; padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #333; border-bottom: 3px solid var(--neon-blue); }
-        .val { font-size: 20px; color: var(--gold); font-weight: bold; }
-        .btn-spin { width: 100%; height: 75px; background: linear-gradient(45deg, #ff00ff, #00ffff); border: none; border-radius: 40px; color: white; font-size: 30px; font-weight: 900; cursor: pointer; box-shadow: 0 0 25px rgba(255, 0, 255, 0.6); transition: 0.1s; }
-        .btn-spin:active { transform: scale(0.96); }
-        .btn-spin:disabled { opacity: 0.3; cursor: not-allowed; }
-        #win-msg { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); z-index: 100; pointer-events: none; transition: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-align: center; }
-        #win-msg.active { transform: translate(-50%, -50%) scale(1.6); }
-        .neon-glow { text-shadow: 0 0 10px #fff, 0 0 20px var(--gold), 0 0 40px var(--gold); }
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: #151d30;
+            --accent-color: #00ffcc;
+            --text-color: #f3f4f6;
+            --text-muted: #6b7280;
+            --border-color: #24324f;
+            --error-color: #ff4a4a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Ekran Logowania / Rejestracji */
+        .auth-container {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .auth-container h2 {
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: var(--accent-color);
+            font-size: 1.6rem;
+            letter-spacing: 1px;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.3s;
+            margin-top: 0.5rem;
+        }
+
+        .auth-btn:hover {
+            opacity: 0.9;
+        }
+
+        .auth-toggle {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .auth-toggle span {
+            color: var(--accent-color);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .error-msg {
+            color: var(--error-color);
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        /* Główny Panel Czatu */
+        .chat-interface {
+            display: none;
+            width: 95vw;
+            max-width: 1100px;
+            height: 85vh;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .chat-header {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 1px solid var(--error-color);
+            color: var(--error-color);
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .chat-body {
+            display: flex;
+            height: calc(100% - 60px);
+            position: relative;
+        }
+
+        .messages-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            background: var(--border-color);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            max-width: 75%;
+            align-self: flex-start;
+        }
+
+        .message.own {
+            background: rgba(0, 255, 204, 0.1);
+            border: 1px solid var(--accent-color);
+            align-self: flex-end;
+        }
+
+        .message.system {
+            background: transparent;
+            color: var(--accent-color);
+            font-size: 0.85rem;
+            align-self: center;
+            text-align: center;
+            border: none;
+            padding: 0.2rem;
+        }
+
+        .message .meta {
+            font-size: 0.75rem;
+            color: var(--accent-color);
+            margin-bottom: 0.25rem;
+            font-weight: bold;
+        }
+
+        .message .text {
+            font-size: 0.95rem;
+            word-break: break-word;
+        }
+
+        .chat-input-area {
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            padding: 0.75rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+        }
+
+        .chat-input-area input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .send-btn {
+            padding: 0 1.5rem;
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Panel użytkowników online */
+        .users-window {
+            width: 280px;
+            border-left: 1px solid var(--border-color);
+            background: rgba(21, 29, 48, 0.85);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .users-window-header {
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.15);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: bold;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .online-count {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .users-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.5rem;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.02);
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-color);
+        }
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <div class="main-layout">
-        <div class="paytable">
-            <h3 style="margin:0 0 10px 0; color:var(--neon-pink); text-align:center; letter-spacing:1px;">PAYTABLE</h3>
-            <div id="pay-info" style="line-height: 1.6; color: #ccc;">
-                7️⃣: x3:100 | x4:500 | x5:2000<br>
-                🔔: x3:50 | x4:200 | x5:800<br>
-                🍉: x3:20 | x4:100 | x5:400<br>
-                🍒: <span style="color:var(--gold)">x2:2</span> | x3:5 | x4:15 | x5:50
+    <div class="auth-container" id="authBox">
+        <h2 id="authTitle">Utwórz Konto</h2>
+        <form id="authForm">
+            <div class="form-group" id="emailGroup">
+                <label for="emailInput">Adres E-mail</label>
+                <input type="email" id="emailInput" required placeholder="np. twoj@email.com">
+            </div>
+            <div class="form-group">
+                <label for="userInput">Nazwa użytkownika (Nick)</label>
+                <input type="text" id="userInput" required placeholder="np. Satoshi99">
+            </div>
+            <div class="form-group">
+                <label for="passInput">Hasło</label>
+                <input type="password" id="passInput" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="auth-btn" id="authSubmitBtn">Zarejestruj się</button>
+            <div class="error-msg" id="authError">Błąd autoryzacji.</div>
+        </form>
+        <div class="auth-toggle">
+            <span id="toggleAuthText">Masz już konto? Zaloguj się</span>
+        </div>
+    </div>
+
+    <div class="chat-interface" id="chatInterface">
+        <div class="chat-header">
+            <h1># Global Realtime DevRoom</h1>
+            <div class="user-profile">
+                <span id="currentUserDisplay" style="font-weight: bold;"></span>
+                <button class="logout-btn" id="logoutBtn">Wyloguj</button>
             </div>
         </div>
-        <div style="position: relative;">
-            <canvas id="slotCanvas"></canvas>
-            <div id="win-msg">
-                <div class="neon-glow" style="font-size: 50px; color: gold;">BIG WIN!</div>
-                <div id="win-amt-display" style="font-size: 40px; color: white; font-weight: 900;">0.00</div>
+        
+        <div class="chat-body">
+            <div class="messages-area">
+                <div class="messages-container" id="messagesContainer"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="messageInput" placeholder="Napisz wiadomość...">
+                    <button class="send-btn" id="sendBtn">Wyślij</button>
+                </div>
+            </div>
+
+            <div class="users-window" id="usersWindow">
+                <div class="users-window-header">
+                    <span>Użytkownicy Online</span>
+                    <span class="online-count" id="onlineCount">0</span>
+                </div>
+                <div class="users-list" id="usersList"></div>
             </div>
         </div>
     </div>
-    <div class="ui-panel">
-        <div class="stat-box"><div style="font-size:10px; color:#888;">BALANCE</div><div id="balance-ui" class="val">100.00</div></div>
-        <div class="stat-box"><div style="font-size:10px; color:#888;">STAKE</div><div class="val"><span onclick="changeStake(-1)" style="cursor:pointer; padding:0 10px;">-</span><span id="stake-ui">1.00</span><span onclick="changeStake(1)" style="cursor:pointer; padding:0 10px;">+</span></div></div>
-        <div class="stat-box"><div style="font-size:10px; color:#888;">LAST WIN</div><div id="last-win-ui" class="val">0.00</div></div>
-    </div>
-    <button id="spin-btn" class="btn-spin" onclick="handleSpin()">SPIN</button>
-</div>
 
-<script>
-/** 
- * FINAL PRODUCTION BUILD - ROYAL GOLD 5
- */
-const canvas = document.getElementById('slotCanvas');
-const ctx = canvas.getContext('2d');
-const SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '🍉', '🔔', '7️⃣'];
-const PAY_DATA = {
-    '7️⃣': [0, 100, 500, 2000], '🔔': [0, 50, 200, 800],
-    '🍉': [0, 20, 100, 400], '🍇': [0, 15, 60, 200],
-    '🍊': [0, 10, 40, 150], '🍋': [0, 5, 20, 100],
-    '🍒': [2, 5, 15, 50]
-};
-const WIN_LINES = [
-    [1, 1, 1, 1, 1], [0, 0, 0, 0, 0], [2, 2, 2, 2, 2],
-    [0, 1, 2, 1, 0], [2, 1, 0, 1, 2]
-];
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, push, onChildAdded, onValue, remove, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-canvas.width = 450; canvas.height = 300;
-const REELS = 5; const ROWS = 3;
-const SYM_W = canvas.width / REELS; const SYM_H = canvas.height / ROWS;
+        // ==========================================
+        // TUTAJ WKLEJ SWOJE DANE Z KROKU 1:
+        // ==========================================
+        const firebaseConfig = {
+  apiKey: "AIzaSyBx1DftUTvzQIkgJqwIMDWo-snk7YwlE4Q",
+  authDomain: "selementchat.firebaseapp.com",
+  databaseURL: "https://selementchat-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "selementchat",
+  storageBucket: "selementchat.firebasestorage.app",
+  messagingSenderId: "277474489738",
+  appId: "1:277474489738:web:74a74d9b63890d21e78473"
+};0
 
-// AUDIO SYSTEM
-let audioCtx = null;
-function initAudio() {
-    if (audioCtx) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
+        // Inicjalizacja bazy
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-function playTone(freq, type, dur, vol) {
-    if (!audioCtx) return;
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    g.gain.setValueAtTime(vol, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
-    osc.connect(g); g.connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + dur);
-}
+        let isLoginMode = false;
+        let currentUser = null;
+        let myOnlineRef = null;
 
-let state = {
-    balance: 100.00, stake: 1.00, isSpinning: false, winningLines: [],
-    reels: Array.from({length: REELS}, () => ({
-        y: 0, speed: 0, targetY: 0, isStopping: false,
-        symbols: Array.from({length: 120}, () => SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)])
-    }))
-};
+        // Elementy DOM
+        const authForm = document.getElementById('authForm');
+        const toggleAuthText = document.getElementById('toggleAuthText');
+        const authTitle = document.getElementById('authTitle');
+        const emailGroup = document.getElementById('emailGroup');
+        const emailInput = document.getElementById('emailInput');
+        const authSubmitBtn = document.getElementById('authSubmitBtn');
+        const authError = document.getElementById('authError');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
 
-function draw() {
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Ambient Neon Glow
-    let pulse = Math.sin(Date.now()/500)*0.1 + 0.15;
-    ctx.strokeStyle = `rgba(255, 0, 255, ${pulse})`;
-    ctx.lineWidth = 4; ctx.strokeRect(0, 0, canvas.width, canvas.height);
-
-    state.reels.forEach((r, i) => {
-        ctx.save(); ctx.translate(i * SYM_W, 0);
-        if(r.speed > 10) ctx.filter = `blur(${Math.min(r.speed/6, 8)}px)`;
-        
-        let offset = r.y % SYM_H;
-        let startIdx = Math.floor(r.y / SYM_H);
-        
-        for(let j = -1; j <= ROWS; j++) {
-            let sym = r.symbols[(startIdx + j + r.symbols.length) % r.symbols.length];
-            ctx.font = "55px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-            ctx.fillStyle = "white"; 
-            ctx.fillText(sym, SYM_W/2, j * SYM_H + offset + SYM_H/2);
-        }
-        ctx.restore();
-
-        if(r.speed > 0) {
-            r.y += r.speed;
-            if(r.isStopping && Math.abs(r.targetY - r.y) < r.speed) {
-                r.y = r.targetY; r.speed = 0; r.isStopping = false;
-                playTone(200 + i*50, 'sine', 0.2, 0.05);
-                if(i === REELS-1) finishSpin();
+        // Przełączanie trybu logowanie/rejestracja
+        toggleAuthText.addEventListener('click', () => {
+            isLoginMode = !isLoginMode;
+            authError.style.display = 'none';
+            if (isLoginMode) {
+                authTitle.innerText = "Logowanie";
+                emailGroup.style.display = "none";
+                emailInput.removeAttribute('required');
+                authSubmitBtn.innerText = "Zaloguj się";
+                toggleAuthText.innerHTML = "Nie masz konta? <span>Zarejestruj się</span>";
+            } else {
+                authTitle.innerText = "Utwórz Konto";
+                emailGroup.style.display = "block";
+                emailInput.setAttribute('required', 'required');
+                authSubmitBtn.innerText = "Zarejestruj się";
+                toggleAuthText.innerHTML = "Masz już konto? <span>Zaloguj się</span>";
             }
-        }
-    });
-
-    if(!state.isSpinning && state.winningLines.length > 0) {
-        state.winningLines.forEach(lIdx => {
-            ctx.beginPath(); ctx.lineWidth = 6;
-            ctx.strokeStyle = `rgba(255, 215, 0, ${0.6 + Math.sin(Date.now()/100)*0.4})`;
-            WIN_LINES[lIdx].forEach((row, col) => {
-                let x = col * SYM_W + SYM_W/2; let y = row * SYM_H + SYM_H/2;
-                if(col === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            });
-            ctx.stroke();
         });
-    }
-    requestAnimationFrame(draw);
-}
 
-function handleSpin() {
-    initAudio();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    startSpin();
-}
+        // Obsługa Rejestracji / Logowania
+        authForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('userInput').value.trim();
+            const password = document.getElementById('passInput').value;
+            const email = document.getElementById('emailInput').value.trim();
 
-function startSpin() {
-    if(state.isSpinning || state.balance < state.stake) return;
-    state.isSpinning = true; state.balance -= state.stake; state.winningLines = [];
-    updateUI();
-    document.getElementById('win-msg').classList.remove('active');
-    document.getElementById('spin-btn').disabled = true;
-    playTone(100, 'sawtooth', 0.5, 0.1);
+            if (!isLoginMode) {
+                // Sprawdzamy czy użytkownik istnieje w bazie Firebase
+                onValue(ref(db, 'users/' + username), (snapshot) => {
+                    if (snapshot.exists()) {
+                        showError("Ta nazwa użytkownika jest zajęta.");
+                    } else {
+                        // Rejestracja - zapis do globalnej bazy danych Firebase
+                        set(ref(db, 'users/' + username), { email, password })
+                        .then(() => {
+                            currentUser = username;
+                            enterChat();
+                        });
+                    }
+                }, { onlyOnce: true });
+            } else {
+                // Logowanie ze sprawdzeniem w Firebase
+                onValue(ref(db, 'users/' + username), (snapshot) => {
+                    if (snapshot.exists() && snapshot.val().password === password) {
+                        currentUser = username;
+                        enterChat();
+                    } else {
+                        showError("Nieprawidłowy login lub hasło.");
+                    }
+                }, { onlyOnce: true });
+            }
+        });
 
-    state.reels.forEach((r, i) => {
-        r.speed = 35 + i*3; r.isStopping = false;
-        setTimeout(() => {
-            r.targetY = Math.ceil(r.y / SYM_H) * SYM_H + (SYM_H * 60);
-            r.isStopping = true;
-        }, 1000 + i*350);
-    });
-}
-
-function finishSpin() {
-    state.isSpinning = false;
-    document.getElementById('spin-btn').disabled = false;
-    
-    const grid = state.reels.map(r => {
-        let topIdx = Math.round(r.y / SYM_H);
-        return [
-            r.symbols[(topIdx + 0) % r.symbols.length],
-            r.symbols[(topIdx + 1) % r.symbols.length],
-            r.symbols[(topIdx + 2) % r.symbols.length]
-        ];
-    });
-    checkWins(grid);
-}
-
-function checkWins(grid) {
-    let totalWin = 0; let linesFound = [];
-    WIN_LINES.forEach((line, lIdx) => {
-        let sym = grid[0][line[0]]; let match = 1;
-        for(let i=1; i<5; i++) {
-            if(grid[i][line[i]] === sym) match++;
-            else break;
+        function showError(text) {
+            authError.innerText = text;
+            authError.style.display = 'block';
         }
-        let min = (sym === '🍒') ? 2 : 3;
-        if(match >= min) {
-            let win = PAY_DATA[sym][match-2] * state.stake;
-            totalWin += win; linesFound.push(lIdx);
+
+        function enterChat() {
+            document.getElementById('authBox').style.display = 'none';
+            document.getElementById('chatInterface').style.display = 'flex';
+            document.getElementById('currentUserDisplay').innerText = `@${currentUser}`;
+            authForm.reset();
+
+            // 1. Oznaczamy siebie jako ONLINE w Firebase
+            myOnlineRef = ref(db, 'online/' + currentUser);
+            set(myOnlineRef, true);
+
+            // Gdy użytkownik zamknie kartę/przeglądarkę, automatycznie usuń go z online (funkcja Firebase)
+            // Na darmowych hostingach statycznych działa to po pełnym rozłączeniu sesji websocket
+            window.addEventListener('beforeunload', () => remove(myOnlineRef));
+
+            // 2. Słuchaj nowych wiadomości w czasie rzeczywistym
+            listenForMessages();
+
+            // 3. Słuchaj zmian na liście użytkowników online
+            listenForOnlineUsers();
         }
-    });
-    if(totalWin > 0) {
-        state.winningLines = linesFound;
-        showWin(totalWin);
-    }
-}
 
-function showWin(amt) {
-    const msg = document.getElementById('win-msg');
-    document.getElementById('win-amt-display').innerText = amt.toFixed(2) + " PLN";
-    msg.classList.add('active');
-    playTone(600, 'sine', 1.0, 0.1);
-    state.balance += amt;
-    document.getElementById('last-win-ui').innerText = amt.toFixed(2);
-    updateUI();
-    setTimeout(() => msg.classList.remove('active'), 3500);
-}
+        // Wysyłanie wiadomości do Firebase
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
 
-function changeStake(dir) {
-    if(state.isSpinning) return;
-    const s = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50];
-    let i = s.indexOf(state.stake);
-    state.stake = s[Math.max(0, Math.min(s.length-1, i+dir))];
-    updateUI();
-    playTone(400, 'sine', 0.1, 0.05);
-}
+            const messagesRef = ref(db, 'messages');
+            push(messagesRef, {
+                user: currentUser,
+                text: text,
+                timestamp: Date.now()
+            });
+            messageInput.value = '';
+        }
 
-function updateUI() {
-    document.getElementById('balance-ui').innerText = state.balance.toFixed(2);
-    document.getElementById('stake-ui').innerText = state.stake.toFixed(2);
-}
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
-draw(); updateUI();
-</script>
+        // Słuchanie wiadomości (uruchamia się automatycznie u każdego podłączonego użytkownika!)
+        function listenForMessages() {
+            const messagesRef = ref(db, 'messages');
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = ''; // czyszczenie
+
+            onChildAdded(messagesRef, (snapshot) => {
+                const data = snapshot.val();
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                if (data.user === currentUser) messageDiv.classList.add('own');
+
+                messageDiv.innerHTML = `
+                    <div class="meta">${data.user}</div>
+                    <div class="text">${escapeHTML(data.text)}</div>
+                `;
+                container.appendChild(messageDiv);
+                container.scrollTop = container.scrollHeight;
+            });
+        }
+
+        // Słuchanie listy użytkowników online
+        function listenForOnlineUsers() {
+            const onlineRef = ref(db, 'online');
+            const usersListContainer = document.getElementById('usersList');
+            const onlineCount = document.getElementById('onlineCount');
+
+            onValue(onlineRef, (snapshot) => {
+                usersListContainer.innerHTML = '';
+                if (!snapshot.exists()) {
+                    onlineCount.innerText = "0";
+                    return;
+                }
+
+                const users = Object.keys(snapshot.val());
+                onlineCount.innerText = users.length;
+
+                users.forEach(user => {
+                    const userItem = document.createElement('div');
+                    userItem.className = 'user-item';
+                    userItem.innerHTML = `
+                        <div class="status-dot"></div>
+                        <span>${user} ${user === currentUser ? '(Ty)' : ''}</span>
+                    `;
+                    usersListContainer.appendChild(userItem);
+                });
+            });
+        }
+
+        // Wylogowanie
+        logoutBtn.addEventListener('click', () => {
+            if (myOnlineRef) remove(myOnlineRef);
+            // Wyłączamy nasłuchiwanie bazy danych przed wyjściem
+            off(ref(db, 'messages'));
+            off(ref(db, 'online'));
+            
+            currentUser = null;
+            document.getElementById('chatInterface').style.display = 'none';
+            document.getElementById('authBox').style.display = 'block';
+        });
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+    </script>
 </body>
 </html>
+
