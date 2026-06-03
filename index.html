@@ -51,7 +51,7 @@
 
         .container { 
             background: var(--card); padding: 2rem; border-radius: 2rem; 
-            text-align: center; width: 90%; max-width: 600px; 
+            text-align: center; width: 90%; max-width: 650px; 
             border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(20px);
         }
 
@@ -59,7 +59,7 @@
         
         @media (max-width: 600px) {
             .game-selection { flex-direction: column; }
-            .arcade-card { height: 130px !important; }
+            .arcade-card { height: 140px !important; }
         }
 
         .arcade-card {
@@ -67,12 +67,20 @@
             background-size: cover; background-position: center;
             cursor: pointer; opacity: 0.4; transition: 0.3s;
             border: 2px solid transparent;
+            background-repeat: no-repeat;
         }
         .arcade-card.active { opacity: 1; transform: scale(1.05); }
 
         #optPolyball { background-image: url('polyball_plakietka.png'); }
         #optSlots { background-image: url('myhotslot_plakietka.png'); }
-        #optNeon { background-image: url('seslotneon_plakietka.png'); }
+        
+        /* Dopasowanie kwadratowej grafiki seslotneon do pionowego kafelka, by nazwa na dole była widoczna */
+        #optNeon { 
+            background-image: url('seslotneon_plakietka.png'); 
+            background-size: contain;
+            background-position: center bottom;
+            background-color: #0b0713; /* Ciemne tło maskujące marginesy grafiki */
+        }
 
         #optPolyball.active { border-color: var(--primary); box-shadow: 0 0 20px var(--primary); }
         #optSlots.active { border-color: #facc15; box-shadow: 0 0 20px #facc15; }
