@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CryptoPixiRPG z Czat Room</title>
+    <title>CryptoPixiRPG z Czat Room & Profilami</title>
     <style>
         :root {
             --bg-color: #0b0f19;
@@ -13,6 +13,7 @@
             --text-muted: #6b7280;
             --border-color: #24324f;
             --error-color: #ff4a4a;
+            --profile-bg: rgba(15, 23, 42, 0.95);
         }
 
         * {
@@ -174,6 +175,14 @@
             gap: 10px;
         }
 
+        .my-stats-trigger {
+            color: var(--accent-color);
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-right: 10px;
+        }
+
         .logout-btn {
             background: transparent;
             border: 1px solid var(--error-color);
@@ -285,7 +294,7 @@
         }
 
         .users-window {
-            width: 240px;
+            width: 260px;
             border-left: 1px solid var(--border-color);
             background: rgba(21, 29, 48, 0.85);
             display: flex;
@@ -324,11 +333,40 @@
         .user-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 0.5rem;
+            justify-content: space-between;
+            padding: 0.6rem;
             border-radius: 6px;
             background: rgba(255, 255, 255, 0.02);
             font-size: 0.9rem;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .user-item:hover {
+            background: rgba(0, 255, 204, 0.05);
+            border-color: rgba(0, 255, 204, 0.2);
+        }
+
+        .user-info-side {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-profile-link {
+            font-size: 0.75rem;
+            color: var(--accent-color);
+            cursor: pointer;
+            text-decoration: none;
+            border: 1px solid rgba(0, 255, 204, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .view-profile-link:hover {
+            background: var(--accent-color);
+            color: var(--bg-color);
         }
 
         .status-dot {
@@ -339,12 +377,79 @@
             box-shadow: 0 0 8px var(--accent-color);
         }
 
+        /* --- OKNO DIALOGOWE PROFILU UŻYTKOWNIKA --- */
+        .profile-modal {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 180;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .profile-card {
+            background: var(--panel-bg);
+            border: 2px solid var(--accent-color);
+            box-shadow: 0 0 25px rgba(0, 255, 204, 0.3);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .profile-card h3 {
+            color: var(--accent-color);
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            letter-spacing: 1px;
+        }
+
+        .profile-stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.6rem 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+            font-size: 1rem;
+        }
+
+        .profile-stat-label {
+            color: var(--text-muted);
+        }
+
+        .profile-stat-value {
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .profile-close-btn {
+            margin-top: 1.2rem;
+            width: 100%;
+            padding: 0.6rem;
+            background: var(--border-color);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .profile-close-btn:hover {
+            background: #fff;
+            color: var(--bg-color);
+        }
+
         /* --- STYLIZACJA MENU STARTOWEGO GRY --- */
         #start-menu {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle, #2c3e50 0%, #0f171e 100%);
-            display: none; /* Pokazywane dopiero po autoryzacji */
+            display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
@@ -473,7 +578,6 @@
         }
         .stat-btn:hover { background: #e0a816; color: #000; border-color: #fff; }
         
-        /* Informacja pomocnicza o czacie */
         #chat-hint {
             position: absolute;
             top: 10px;
@@ -516,13 +620,14 @@
         </div>
     </div>
 
-    <!-- NAKŁADKA CZATU (UKRYTA / WYWOŁYWANA PRZYCISKIEM `) -->
+    <!-- NAKŁADKA CZATU (WYWOŁYWANA PRZYCISKIEM ` LUB TYLDA) -->
     <div class="chat-overlay" id="chatOverlay">
         <div class="chat-interface" id="chatInterface">
             <div class="chat-header">
                 <h1># Global Realtime DevRoom</h1>
                 <div class="user-profile">
-                    <span id="currentUserDisplay" style="font-weight: bold;"></span>
+                    <span id="myProfileTrigger" class="my-stats-trigger">Mój Profil</span>
+                    <span id="currentUserDisplay" style="font-weight: bold; color: var(--accent-color);"></span>
                     <button class="logout-btn" id="logoutBtn">Wyloguj</button>
                 </div>
             </div>
@@ -544,6 +649,30 @@
                     <div class="users-list" id="usersList"></div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL PODGLĄDU PROFILU I STATYSTYK -->
+    <div class="profile-modal" id="profileModal">
+        <div class="profile-card">
+            <h3 id="profileUsername">---KONTRIUM---</h3>
+            <div class="profile-stat-row">
+                <span class="profile-stat-label">Klasa Bohatera:</span>
+                <span class="profile-stat-value" id="profileClassVal">-</span>
+            </div>
+            <div class="profile-stat-row">
+                <span class="profile-stat-label">Poziom (Level):</span>
+                <span class="profile-stat-value" id="profileLevelVal">1</span>
+            </div>
+            <div class="profile-stat-row">
+                <span class="profile-stat-label">Pokonani wrogowie:</span>
+                <span class="profile-stat-value" id="profileScoreVal">0</span>
+            </div>
+            <div class="profile-stat-row">
+                <span class="profile-stat-label">Status połączenia:</span>
+                <span class="profile-stat-value" style="color: var(--accent-color);">ONLINE</span>
+            </div>
+            <button class="profile-close-btn" id="closeProfileBtn">Zamknij Podgląd</button>
         </div>
     </div>
 
@@ -616,9 +745,8 @@
 
     <canvas id="gameCanvas"></canvas>
 
-    <!-- GLOBALNY SKRYPT KONTROLNY DLA INTEGRACJI INTERFEJSÓW -->
+    <!-- GLOBALNY SKRYPT KONTROLNY INTERFEJSÓW -->
     <script>
-        // Zmienne globalne sterujące widocznością okien
         let userIsAuthenticated = false;
         let chatIsOpen = false;
 
@@ -632,19 +760,17 @@
             if (chatIsOpen) {
                 overlay.style.display = 'flex';
                 msgInput.focus();
-                // Zatrzymujemy ruch gracza przy otwarciu czatu
                 if (typeof keys !== 'undefined') {
                     keys.w = keys.a = keys.s = keys.d = false;
                 }
             } else {
                 overlay.style.display = 'none';
                 msgInput.blur();
+                document.getElementById('profileModal').style.display = 'none';
             }
         }
 
-        // Nasłuchiwanie klawisza tyldy ` na poziomie okna
         window.addEventListener('keydown', (e) => {
-            // Jeśli użytkownik aktualnie pisze wiadomość na czacie, ignoruj przełączanie tyldą
             if (document.activeElement === document.getElementById('messageInput')) {
                 if (e.key === 'Escape') {
                     toggleChatOverlay();
@@ -659,10 +785,10 @@
         });
     </script>
 
-    <!-- LOGIKA CZATU (FIREBASE) -->
+    <!-- LOGIKA CZATU I SYNCHRONIZACJI STATYSTYK GRY (FIREBASE) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, push, onChildAdded, onValue, remove, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, push, onChildAdded, onValue, remove, off, update as dbUpdate } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBx1DftUTvzQIkgJqwIMDWo-snk7YwlE4Q",
@@ -681,6 +807,7 @@
         let currentUser = null;
         let myOnlineRef = null;
 
+        // Elementy DOM
         const authForm = document.getElementById('authForm');
         const toggleAuthText = document.getElementById('toggleAuthText');
         const authTitle = document.getElementById('authTitle');
@@ -691,6 +818,53 @@
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
         const logoutBtn = document.getElementById('logoutBtn');
+        
+        // Elementy Modala Profilu
+        const profileModal = document.getElementById('profileModal');
+        const profileUsername = document.getElementById('profileUsername');
+        const profileClassVal = document.getElementById('profileClassVal');
+        const profileLevelVal = document.getElementById('profileLevelVal');
+        const profileScoreVal = document.getElementById('profileScoreVal');
+        const closeProfileBtn = document.getElementById('closeProfileBtn');
+        const myProfileTrigger = document.getElementById('myProfileTrigger');
+
+        // Funkcja wysyłająca statystyki gracza do bazy danych na bieżąco
+        window.syncMyStatsToDatabase = function() {
+            if (!currentUser || !userIsAuthenticated) return;
+            const statsRef = ref(db, 'stats/' + currentUser);
+            set(statsRef, {
+                charClass: (typeof player !== 'undefined' && player.charClass) ? player.charClass.toUpperCase() : 'NIEWYBRANA',
+                level: (typeof player !== 'undefined') ? player.level : 1,
+                score: (typeof score !== 'undefined') ? score : 0,
+                lastUpdate: Date.now()
+            });
+        };
+
+        // Funkcja otwierająca podgląd profilu dowolnego gracza online
+        window.openUserProfile = function(targetUser) {
+            profileUsername.innerText = `--- ${targetUser} ---`;
+            profileClassVal.innerText = "Wczytywanie...";
+            profileLevelVal.innerText = "-";
+            profileScoreVal.innerText = "-";
+            profileModal.style.display = "flex";
+
+            // Pobieranie statystyk w czasie rzeczywistym (onValue)
+            onValue(ref(db, 'stats/' + targetUser), (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    profileClassVal.innerText = data.charClass || "MAG";
+                    profileLevelVal.innerText = data.level || "1";
+                    profileScoreVal.innerText = data.score || "0";
+                } else {
+                    profileClassVal.innerText = "BRAK DANYCH";
+                    profileLevelVal.innerText = "1";
+                    profileScoreVal.innerText = "0";
+                }
+            }, { onlyOnce: true });
+        };
+
+        closeProfileBtn.addEventListener('click', () => { profileModal.style.display = "none"; });
+        myProfileTrigger.addEventListener('click', () => { if(currentUser) window.openUserProfile(currentUser); });
 
         toggleAuthText.addEventListener('click', () => {
             isLoginMode = !isLoginMode;
@@ -746,10 +920,8 @@
         }
 
         function enterGameAndChat() {
-            // Ukrywamy panel autoryzacji
             document.getElementById('authBox').style.display = 'none';
             
-            // Ustawiamy flagę autoryzacji globalnie i włączamy menu gry oraz wskazówkę
             userIsAuthenticated = true;
             document.getElementById('start-menu').style.display = 'flex';
             document.getElementById('chat-hint').style.display = 'block';
@@ -759,8 +931,11 @@
 
             myOnlineRef = ref(db, 'online/' + currentUser);
             set(myOnlineRef, true);
+            window.syncMyStatsToDatabase();
 
-            window.addEventListener('beforeunload', () => remove(myOnlineRef));
+            window.addEventListener('beforeunload', () => {
+                if (myOnlineRef) remove(myOnlineRef);
+            });
 
             listenForMessages();
             listenForOnlineUsers();
@@ -794,7 +969,7 @@
                 if (data.user === currentUser) messageDiv.classList.add('own');
 
                 messageDiv.innerHTML = `
-                    <div class="meta">${data.user}</div>
+                    <div class="meta" style="cursor:pointer;" onclick="window.openUserProfile('${data.user}')">${data.user}</div>
                     <div class="text">${escapeHTML(data.text)}</div>
                 `;
                 container.appendChild(messageDiv);
@@ -820,9 +995,13 @@
                 users.forEach(user => {
                     const userItem = document.createElement('div');
                     userItem.className = 'user-item';
+                    
                     userItem.innerHTML = `
-                        <div class="status-dot"></div>
-                        <span>${user} ${user === currentUser ? '(Ty)' : ''}</span>
+                        <div class="user-info-side">
+                            <div class="status-dot"></div>
+                            <span>${user} ${user === currentUser ? '(Ty)' : ''}</span>
+                        </div>
+                        <div class="view-profile-link" onclick="window.openUserProfile('${user}')">Zobacz profil</div>
                     `;
                     usersListContainer.appendChild(userItem);
                 });
@@ -838,14 +1017,13 @@
             userIsAuthenticated = false;
             chatIsOpen = false;
             
-            // Powrót do ekranu logowania i zatrzymanie elementów gry
             document.getElementById('chatOverlay').style.display = 'none';
             document.getElementById('start-menu').style.display = 'none';
             document.getElementById('ui').style.display = 'none';
             document.getElementById('chat-hint').style.display = 'none';
+            document.getElementById('profileModal').style.display = 'none';
             document.getElementById('authBox').style.display = 'block';
             
-            // Reset gry
             if (typeof gameIsRunning !== 'undefined') {
                 gameIsRunning = false;
                 enemies.length = 0; bullets.length = 0; enemyBullets.length = 0; animals.length = 0; loots.length = 0; visualEffects.length = 0;
@@ -969,7 +1147,7 @@
             }
         }
 
-        // --- TABLICE OBIEKTÓW ---
+        // --- TABLICE OBIEKTÓW GRY ---
         const bullets = [];
         const enemyBullets = [];
         const enemies = [];
@@ -988,10 +1166,10 @@
             });
         }
 
-        // --- WEJŚCIE (INPUT GRY) ---
+        // --- WEJŚCIE GRACZA (INPUT) ---
         const keys = { w: false, a: false, s: false, d: false };
         window.addEventListener('keydown', (e) => { 
-            if (chatIsOpen) return; // blokada ruchu gdy otwarty jest czat
+            if (chatIsOpen) return; 
             if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = true; 
         });
         window.addEventListener('keyup', (e) => { 
@@ -1004,7 +1182,7 @@
 
         window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; isMousing = true; });
         window.addEventListener('mousedown', (e) => { 
-            if (chatIsOpen) return; // blokada ataku myszą przy czacie
+            if (chatIsOpen) return; 
             if (e.button === 0) {
                 isMouseDown = true;
                 if(gameIsRunning && player.charClass !== 'lucznik') playerAttack(); 
@@ -1017,8 +1195,7 @@
 
         window.addEventListener('pointerdown', (e) => {
             if(!gameIsRunning || chatIsOpen) return;
-            // Ignoruj interakcję dotykową gry na elementach UI czatu
-            if(e.target.closest('#chatInterface') || e.target.closest('#authBox')) return;
+            if(e.target.closest('#chatInterface') || e.target.closest('#authBox') || e.target.closest('#profileModal')) return;
 
             if (e.clientX < canvas.width / 2 && !joystick.active) {
                 joystick.active = true; joystick.pointerId = e.pointerId;
@@ -1042,7 +1219,7 @@
             if (touchAim.active && e.pointerId === touchAim.pointerId) { touchAim.active = false; isMouseDown = false; }
         });
 
-        // --- GRACZ I KLASY ---
+        // --- STATYSTYKI GRACZA I KLASY BOHATERÓW ---
         const player = {
             worldX: 0, worldY: 0, radius: 18,
             vx: 0, vy: 0, acceleration: 0.8, friction: 0.85, maxSpeed: 6,
@@ -1077,6 +1254,7 @@
             uiEl.style.display = 'block';
             gameIsRunning = true;
             updatePointsUI();
+            if(typeof window.syncMyStatsToDatabase === 'function') window.syncMyStatsToDatabase();
         }
 
         function updatePointsUI() {
@@ -1098,6 +1276,7 @@
             else if (stat === 'damage') { player.bulletDamage += 15; }
             player.skillPoints--;
             updatePointsUI();
+            if(typeof window.syncMyStatsToDatabase === 'function') window.syncMyStatsToDatabase();
         }
 
         function addXp(amount) {
@@ -1106,6 +1285,7 @@
                 player.xp -= player.xpNeeded;
                 player.level++; player.skillPoints += 3;
                 player.xpNeeded = Math.floor(player.xpNeeded * 1.6);
+                if(typeof window.syncMyStatsToDatabase === 'function') window.syncMyStatsToDatabase();
             }
             updatePointsUI();
         }
@@ -1158,6 +1338,7 @@
                                 enemies.splice(i, 1);
                                 score++;
                                 scoreValEl.textContent = score;
+                                if(typeof window.syncMyStatsToDatabase === 'function') window.syncMyStatsToDatabase();
                                 addXp(e.xpReward);
                             }
                         }
@@ -1179,7 +1360,7 @@
             }
         }
 
-        // --- SPAWNER MOBÓW I ZWIERZĄT ---
+        // --- PRZECIWNICY I SPAWNERY ---
         function spawnEnemy() {
             if (!gameIsRunning || enemies.length >= 20 || chatIsOpen) return;
             let angle = Math.random() * Math.PI * 2;
@@ -1243,9 +1424,9 @@
         }
         setInterval(spawnAnimal, 2000);
 
-        // --- AKTUALIZACJA LOGIKI GRY (UPDATE) ---
+        // --- GŁÓWNA AKTUALIZACJA SILNIKA (UPDATE) ---
         function update() {
-            if (!gameIsRunning || chatIsOpen) return; // Zatrzymuje świat, gdy czat jest otwarty
+            if (!gameIsRunning || chatIsOpen) return; 
 
             updateWeatherAndTime();
 
@@ -1446,6 +1627,7 @@
                             gameIsRunning = false; startMenuEl.style.display = 'flex'; uiEl.style.display = 'none';
                             player.hp = 100; player.maxHp = 100; player.level = 1; player.xp = 0; player.xpNeeded = 100; player.bulletDamage = 35; player.skillPoints = 0; player.maxSpeed = 6; player.acceleration = 0.8;
                             score = 0; scoreValEl.textContent = score; enemies.length = 0; bullets.length = 0; enemyBullets.length = 0; animals.length = 0; loots.length = 0; visualEffects.length = 0; bossUiEl.style.display = 'none'; updatePointsUI();
+                            if(typeof window.syncMyStatsToDatabase === 'function') window.syncMyStatsToDatabase();
                         }
                     }
                 }
@@ -1458,7 +1640,9 @@
                         if (e.state !== 'aggressive') e.state = 'aggressive';
                         if (e.hp <= 0) {
                             if (e.type === 'boss') bossUiEl.style.display = 'none';
-                            enemies.splice(i, 1); score++; scoreValEl.textContent = score; addXp(e.xpReward); break;
+                            enemies.splice(i, 1); score++; scoreValEl.textContent = score; 
+                            if(typeof window.syncMyStatsToDatabase === 'function') window.syncMyStatsToDatabase();
+                            addXp(e.xpReward); break;
                         }
                     }
                 }
@@ -1467,7 +1651,7 @@
             if (camShakeTime > 0) camShakeTime--;
         }
 
-        // --- RYSOWANIE (DRAW GRY) ---
+        // --- RYSOWANIE GRAFIKI (DRAW) ---
         function draw() {
             let currentShakeX = 0, currentShakeY = 0;
             if (camShakeTime > 0) { currentShakeX = (Math.random() - 0.5) * camShakeIntensity; currentShakeY = (Math.random() - 0.5) * camShakeIntensity; }
