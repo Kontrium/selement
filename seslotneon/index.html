@@ -596,7 +596,6 @@
 </head>
 <body>
 
-    <!-- PANEL REJESTRACJI / LOGOWANIA -->
     <div class="auth-container" id="authBox">
         <h2 id="authTitle">Utwórz Konto</h2>
         <form id="authForm">
@@ -620,7 +619,6 @@
         </div>
     </div>
 
-    <!-- NAKŁADKA CZATU (WYWOŁYWANA PRZYCISKIEM ` LUB TYLDA) -->
     <div class="chat-overlay" id="chatOverlay">
         <div class="chat-interface" id="chatInterface">
             <div class="chat-header">
@@ -652,7 +650,6 @@
         </div>
     </div>
 
-    <!-- MODAL PODGLĄDU PROFILU I STATYSTYK -->
     <div class="profile-modal" id="profileModal">
         <div class="profile-card">
             <h3 id="profileUsername">---KONTRIUM---</h3>
@@ -676,10 +673,9 @@
         </div>
     </div>
 
-    <!-- MENU WYBORU KLASY GRY -->
     <div id="start-menu">
         <h1>Wybierz swoją Klasę Bohatera</h1>
-        <p>Dopasuj swój styl walki i wkrocz do niebezpiecznego świata</p>
+        <p>Dopasuj swój stil walki i wkrocz do niebezpiecznego świata</p>
         <div class="class-container">
             <div class="class-card mag" onclick="selectClass('mag')">
                 <h2>MAG</h2>
@@ -711,7 +707,6 @@
         </div>
     </div>
 
-    <!-- HUD GRY -->
     <div id="ui">
         <div class="stat-line"><span class="highlight">Poziom: <span id="lvl-val">1</span></span></div>
         <div class="stat-line">Zdrowie: <span id="hp-text">100/100</span>
@@ -745,7 +740,6 @@
 
     <canvas id="gameCanvas"></canvas>
 
-    <!-- GLOBALNY SKRYPT KONTROLNY INTERFEJSÓW -->
     <script>
         let userIsAuthenticated = false;
         let chatIsOpen = false;
@@ -785,7 +779,6 @@
         });
     </script>
 
-    <!-- LOGIKA CZATU I SYNCHRONIZACJI STATYSTYK GRY (FIREBASE) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, push, onChildAdded, onValue, remove, off, update as dbUpdate } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -807,7 +800,6 @@
         let currentUser = null;
         let myOnlineRef = null;
 
-        // Elementy DOM
         const authForm = document.getElementById('authForm');
         const toggleAuthText = document.getElementById('toggleAuthText');
         const authTitle = document.getElementById('authTitle');
@@ -819,7 +811,6 @@
         const sendBtn = document.getElementById('sendBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         
-        // Elementy Modala Profilu
         const profileModal = document.getElementById('profileModal');
         const profileUsername = document.getElementById('profileUsername');
         const profileClassVal = document.getElementById('profileClassVal');
@@ -828,7 +819,6 @@
         const closeProfileBtn = document.getElementById('closeProfileBtn');
         const myProfileTrigger = document.getElementById('myProfileTrigger');
 
-        // Funkcja wysyłająca statystyki gracza do bazy danych na bieżąco
         window.syncMyStatsToDatabase = function() {
             if (!currentUser || !userIsAuthenticated) return;
             const statsRef = ref(db, 'stats/' + currentUser);
@@ -840,7 +830,6 @@
             });
         };
 
-        // Funkcja otwierająca podgląd profilu dowolnego gracza online
         window.openUserProfile = function(targetUser) {
             profileUsername.innerText = `--- ${targetUser} ---`;
             profileClassVal.innerText = "Wczytywanie...";
@@ -848,7 +837,6 @@
             profileScoreVal.innerText = "-";
             profileModal.style.display = "flex";
 
-            // Pobieranie statystyk w czasie rzeczywistym (onValue)
             onValue(ref(db, 'stats/' + targetUser), (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
@@ -1040,7 +1028,6 @@
         }
     </script>
 
-    <!-- LOGIKA SILNIKA GRY RPG -->
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -1272,7 +1259,8 @@
             if (player.skillPoints <= 0) return;
             if (stat === 'hp') { player.maxHp += 25; player.hp += 25; }
             else if (stat === 'mana') { player.maxMana += 25; player.manaRegen += 0.08; player.mana += 25; }
-            else if (stat === 'speed') { player.maxSpeed += 0.8; player.acceleration += 0.12; }
+            // POPRAWKA 2: Zmniejszono skok prędkości i przyspieszenia po dodaniu punktu poziomu
+            else if (stat === 'speed') { player.maxSpeed += 0.25; player.acceleration += 0.04; }
             else if (stat === 'damage') { player.bulletDamage += 15; }
             player.skillPoints--;
             updatePointsUI();
@@ -1291,6 +1279,20 @@
         }
 
         function triggerCameraShake(time, intensity) { camShakeTime = time; camShakeIntensity = intensity; }
+
+        // Funkcja ułatwiająca mechanikę stadną (Herd Mind AI) - prowokuje potwory w promieniu
+        function alertNearbyEnemies(sourceEnemy, range = 300) {
+            enemies.forEach(e => {
+                if (e.state !== 'aggressive') {
+                    let dx = e.worldX - sourceEnemy.worldX;
+                    let dy = e.worldY - sourceEnemy.worldY;
+                    if (Math.sqrt(dx*dx + dy*dy) < range) {
+                        e.state = 'aggressive';
+                        e.alertProgress = 100;
+                    }
+                }
+            });
+        }
 
         function playerAttack() {
             if (player.attackCooldown > 0 || chatIsOpen) return;
@@ -1330,7 +1332,12 @@
                         let edx = e.worldX - ax, edy = e.worldY - ay;
                         if (Math.sqrt(edx*edx + edy*edy) < e.radius + range/2) {
                             e.hp = Math.max(0, e.hp - player.bulletDamage); 
-                            if (e.state !== 'aggressive') e.state = 'aggressive';
+                            if (e.state !== 'aggressive') {
+                                e.state = 'aggressive';
+                                e.alertProgress = 100;
+                            }
+                            // POPRAWKA 4: Prowokacja stada przy uderzeniu wręcz
+                            alertNearbyEnemies(e);
                             triggerCameraShake(8, 3);
                             
                             if (e.hp <= 0) {
@@ -1362,40 +1369,52 @@
 
         // --- PRZECIWNICY I SPAWNERY ---
         function spawnEnemy() {
-            if (!gameIsRunning || enemies.length >= 20 || chatIsOpen) return;
+            if (!gameIsRunning || enemies.length >= 24 || chatIsOpen) return;
             let angle = Math.random() * Math.PI * 2;
             let distance = Math.max(canvas.width, canvas.height) / 2 + 150;
             let ex = player.worldX + Math.cos(angle) * distance;
             let ey = player.worldY + Math.sin(angle) * distance;
 
+            // POPRAWKA 3: Zwiększony poziom trudności bossa (HP i DMG)
             if (score > 0 && score % 15 === 0 && !enemies.some(e => e.type === 'boss')) {
                 enemies.push({
                     type: 'boss', name: 'SIERADZKI NISZCZYCIEL',
-                    worldX: ex, worldY: ey, radius: 36, speed: 1.8, hp: 600, maxHp: 600, xpReward: 200, damage: 1.5,
-                    state: 'calm', alertProgress: 0, shakeX: 0, shakeY: 0, visionRadius: 350, loseTargetRadius: 600,
+                    worldX: ex, worldY: ey, radius: 36, speed: 2.0, hp: 900, maxHp: 900, xpReward: 250, damage: 2.2,
+                    state: 'calm', alertProgress: 0, shakeX: 0, shakeY: 0, visionRadius: 400, loseTargetRadius: 700,
                     walkTimer: 0, targetWalkX: ex, targetWalkY: ey, isWalking: false,
-                    bossTimer: 0, bossActionState: 'none', chargeVx: 0, chargeVy: 0
+                    bossTimer: 0, bossActionState: 'none', chargeVx: 0, chargeVy: 0, aiSeed: Math.random() * 100
                 });
                 bossUiEl.style.display = 'block';
                 return;
             }
 
+            // POPRAWKA 4: Rozbudowanie rodzajów przeciwników (dodano stalker, shaman) oraz zwiększenie HP/DMG potworów (Punkt 3)
             let pool = ['classic'];
-            if (score >= 5) pool.push('runner');
-            if (score >= 15) pool.push('ranger');
-            if (score >= 30) pool.push('tank');
+            if (score >= 4) pool.push('runner');
+            if (score >= 8) pool.push('ranger', 'stalker');
+            if (score >= 12) pool.push('tank', 'shaman');
 
             let chosenType = pool[Math.floor(Math.random() * pool.length)];
-            let enemyData = { type: chosenType, worldX: ex, worldY: ey, state: 'calm', alertProgress: 0, shakeX: 0, shakeY: 0, walkTimer: Math.random() * 120, targetWalkX: ex, targetWalkY: ey, isWalking: false };
+            let enemyData = { 
+                type: chosenType, worldX: ex, worldY: ey, state: 'calm', 
+                alertProgress: 0, shakeX: 0, shakeY: 0, walkTimer: Math.random() * 120, 
+                targetWalkX: ex, targetWalkY: ey, isWalking: false,
+                aiSeed: Math.random() * 500, dynamicTimer: 0, rageMode: 1.0
+            };
 
-            if (chosenType === 'classic') Object.assign(enemyData, { radius: 16, speed: 2.3, hp: 100, maxHp: 100, xpReward: 35, color: '#aa3333', agroColor: '#ff1111', visionRadius: 240, loseTargetRadius: 400, damage: 0.4 });
-            else if (chosenType === 'runner') Object.assign(enemyData, { radius: 14, speed: 4.2, hp: 60, maxHp: 60, xpReward: 45, color: '#ccb11a', agroColor: '#ffff00', visionRadius: 180, loseTargetRadius: 350, damage: 0.3 });
-            else if (chosenType === 'ranger') Object.assign(enemyData, { radius: 16, speed: 1.9, hp: 90, maxHp: 90, xpReward: 55, color: '#8e44ad', agroColor: '#d2527f', visionRadius: 300, loseTargetRadius: 450, damage: 0.2, shootCooldown: 0 });
-            else if (chosenType === 'tank') Object.assign(enemyData, { radius: 24, speed: 1.2, hp: 280, maxHp: 280, xpReward: 90, color: '#27ae60', agroColor: '#2ecc71', visionRadius: 220, loseTargetRadius: 380, damage: 0.9 });
+            // POPRAWKA 3 & 4: Zwiększone HP i obrażenia, zróżnicowane AI i typy jednostek
+            if (chosenType === 'classic') Object.assign(enemyData, { radius: 16, speed: 2.4, hp: 130, maxHp: 130, xpReward: 35, color: '#aa3333', agroColor: '#ff1111', visionRadius: 260, loseTargetRadius: 450, damage: 0.6 });
+            else if (chosenType === 'runner') Object.assign(enemyData, { radius: 14, speed: 4.4, hp: 80, maxHp: 80, xpReward: 45, color: '#ccb11a', agroColor: '#ffff00', visionRadius: 200, loseTargetRadius: 400, damage: 0.5 });
+            else if (chosenType === 'ranger') Object.assign(enemyData, { radius: 16, speed: 2.1, hp: 110, maxHp: 110, xpReward: 55, color: '#8e44ad', agroColor: '#d2527f', visionRadius: 320, loseTargetRadius: 500, damage: 0.4, shootCooldown: 0 });
+            else if (chosenType === 'tank') Object.assign(enemyData, { radius: 24, speed: 1.4, hp: 380, maxHp: 380, xpReward: 100, color: '#27ae60', agroColor: '#2ecc71', visionRadius: 240, loseTargetRadius: 400, damage: 1.3 });
+            // Nowy przeciwnik: Stalker (Przenika przez wodę bez spowolnienia, staje się pół-niewidzialny, potrafi odskoczyć)
+            else if (chosenType === 'stalker') Object.assign(enemyData, { radius: 15, speed: 2.8, hp: 100, maxHp: 100, xpReward: 60, color: '#556270', agroColor: '#4ecdc4', visionRadius: 300, loseTargetRadius: 450, damage: 0.7, teleportCooldown: 0 });
+            // Nowy przeciwnik: Shaman (Trzyma się z tyłu, leczy i rzuca szał prędkości na pobliskie potwory)
+            else if (chosenType === 'shaman') Object.assign(enemyData, { radius: 17, speed: 2.0, hp: 150, maxHp: 150, xpReward: 75, color: '#e67e22', agroColor: '#f1c40f', visionRadius: 280, loseTargetRadius: 450, damage: 0.3, healCooldown: 0 });
 
             enemies.push(enemyData);
         }
-        setInterval(spawnEnemy, 1200);
+        setInterval(spawnEnemy, 1100);
 
         function spawnAnimal() {
             if (!gameIsRunning || animals.length >= 25 || chatIsOpen) return;
@@ -1406,7 +1425,7 @@
 
             let behaviorPool = ['scared', 'aggressive', 'flying'];
             let b = behaviorPool[Math.floor(Math.random() * behaviorPool.length)];
-            let animal = { behavior: b, worldX: ax, worldY: ay, hp: 50, maxHp: 50, vx: 0, vy: 0 };
+            let animal = { behavior: b, worldX: ax, worldY: ay, hp: 60, maxHp: 60, vx: 0, vy: 0 };
 
             if (b === 'scared') {
                 let types = ['Zając', 'Jeleń', 'Renifer'];
@@ -1414,8 +1433,9 @@
             } else if (b === 'aggressive') {
                 let types = ['Wilk', 'Hyena', 'Niedźwiedź'];
                 let t = types[Math.floor(Math.random()*types.length)];
-                if (t === 'Niedźwiedź') Object.assign(animal, { name: t, radius: 25, speed: 1.8, color: '#5d4037', hp: 150, maxHp: 150, damage: 0.8, vision: 200 });
-                else Object.assign(animal, { name: t, radius: 14, speed: 2.8, color: '#78909c', damage: 0.3, vision: 180 });
+                // POPRAWKA 3: Silniejsze dzikie zwierzęta
+                if (t === 'Niedźwiedź') Object.assign(animal, { name: t, radius: 25, speed: 2.0, color: '#5d4037', hp: 200, maxHp: 200, damage: 1.2, vision: 220 });
+                else Object.assign(animal, { name: t, radius: 14, speed: 3.0, color: '#78909c', damage: 0.5, vision: 200 });
             } else if (b === 'flying') {
                 let isNight = (gameTime < 400 || gameTime > 2000);
                 Object.assign(animal, { name: isNight ? 'Nietoperz' : 'Ptak', radius: 10, speed: 2.5, color: isNight ? '#37474f' : '#64b5f6', heightOffset: 40 });
@@ -1492,7 +1512,8 @@
                 let b = bullets[i]; b.worldX += b.vx; b.worldY += b.vy; b.life--;
                 if(b.type === 'energy_ball') b.animFrame++;
 
-                if (b.life <= 0 || getTileAt(Math.floor(b.worldX / TILE_SIZE), Math.floor(b.worldY / TILE_SIZE)) === BIOMES.WATER) { bullets.splice(i, 1); }
+                // POPRAWKA 1: Usunięto usuwanie pocisków przy kontakcie z wodą - przenikają swobodnie!
+                if (b.life <= 0) { bullets.splice(i, 1); }
             }
 
             for (let i = visualEffects.length - 1; i >= 0; i--) {
@@ -1504,7 +1525,7 @@
                 let eb = enemyBullets[i]; eb.worldX += eb.vx; eb.worldY += eb.vy; eb.life--;
                 let edx = player.worldX - eb.worldX, edy = player.worldY - eb.worldY;
                 if (Math.sqrt(edx*edx + edy*edy) < player.radius + eb.radius) { player.hp -= 12; updatePointsUI(); enemyBullets.splice(i, 1); continue; }
-                if (eb.life <= 0 || getTileAt(Math.floor(eb.worldX / TILE_SIZE), Math.floor(eb.worldY / TILE_SIZE)) === BIOMES.WATER) enemyBullets.splice(i, 1);
+                if (eb.life <= 0) enemyBullets.splice(i, 1);
             }
 
             fishes.forEach(f => {
@@ -1567,7 +1588,10 @@
                 let edx = player.worldX - e.worldX, edy = player.worldY - e.worldY;
                 let distToPlayer = Math.sqrt(edx * edx + edy * edy);
                 let eTile = getTileAt(Math.floor(e.worldX / TILE_SIZE), Math.floor(e.worldY / TILE_SIZE));
-                let currentEnemySpeed = eTile === BIOMES.WATER ? e.speed * 0.5 : e.speed;
+                
+                // Stalker nie dostaje kary za chodzenie po wodzie
+                let currentEnemySpeed = (eTile === BIOMES.WATER && e.type !== 'stalker') ? e.speed * 0.5 : e.speed;
+                currentEnemySpeed *= e.rageMode; // Uwzględnienie buffa od szamana
 
                 if (e.state === 'calm') {
                     e.shakeX = 0; e.shakeY = 0; e.walkTimer--;
@@ -1587,38 +1611,117 @@
                 } 
                 else if (e.state === 'nervous') {
                     e.shakeX = (Math.random() - 0.5) * 6; e.shakeY = (Math.random() - 0.5) * 6; e.alertProgress += 1.5;
-                    if (e.alertProgress >= 100) { e.state = 'aggressive'; e.shakeX = 0; e.shakeY = 0; }
+                    if (e.alertProgress >= 100) { 
+                        e.state = 'aggressive'; e.shakeX = 0; e.shakeY = 0; 
+                        // POPRAWKA 4: Wywołanie stada, gdy potwór sam Cię zauważy
+                        alertNearbyEnemies(e);
+                    }
                     if (distToPlayer > e.visionRadius + 30) { e.alertProgress -= 2; if (e.alertProgress <= 0) { e.alertProgress = 0; e.state = 'calm'; } }
                 } 
                 else if (e.state === 'aggressive') {
+                    e.dynamicTimer += 0.05;
+
+                    // POPRAWKA 4: Nieprzewidywalne, nieliniowe zachowanie sztucznej inteligencji (AI)
+                    // Wszystkie potwory w stanie agresywnym krążą lub falują zamiast iść prosto
+                    let waveOffset = Math.sin(e.dynamicTimer + e.aiSeed) * 1.5; 
+                    let approachAngle = Math.atan2(edy, edx);
+
                     if (e.type === 'boss') {
                         e.bossTimer++;
-                        if (e.bossActionState === 'none' && e.bossTimer > 240) { e.bossActionState = 'preparing'; e.bossTimer = 0; }
+                        if (e.bossActionState === 'none' && e.bossTimer > 200) { e.bossActionState = 'preparing'; e.bossTimer = 0; }
                         if (e.bossActionState === 'preparing') {
                             e.shakeX = (Math.random() - 0.5) * 12; e.shakeY = (Math.random() - 0.5) * 12;
-                            if (e.bossTimer > 60) {
+                            if (e.bossTimer > 50) {
                                 e.bossActionState = 'charging'; e.bossTimer = 0;
                                 let chargeAngle = Math.atan2(player.worldY - e.worldY, player.worldX - e.worldX);
-                                e.chargeVx = Math.cos(chargeAngle) * 11; e.chargeVy = Math.sin(chargeAngle) * 11;
+                                e.chargeVx = Math.cos(chargeAngle) * 13; e.chargeVy = Math.sin(chargeAngle) * 13;
                                 triggerCameraShake(25, 9);
                             }
                         } else if (e.bossActionState === 'charging') {
                             e.worldX += e.chargeVx; e.worldY += e.chargeVy;
                             if (e.bossTimer > 35) { e.bossActionState = 'none'; e.bossTimer = 0; e.shakeX = 0; e.shakeY = 0; }
-                        } else { if (distToPlayer > 5) { e.worldX += (edx / distToPlayer) * currentEnemySpeed; e.worldY += (edy / distToPlayer) * currentEnemySpeed; } }
-                    } 
-                    else if (e.type === 'ranger') {
-                        if (distToPlayer > 200) { e.worldX += (edx / distToPlayer) * currentEnemySpeed; e.worldY += (edy / distToPlayer) * currentEnemySpeed; } 
-                        else if (distToPlayer < 140) { e.worldX -= (edx / distToPlayer) * currentEnemySpeed; e.worldY -= (edy / distToPlayer) * currentEnemySpeed; }
-                        e.shootCooldown++;
-                        if (e.shootCooldown > 60) {
-                            e.shootCooldown = 0; let shootAngle = Math.atan2(player.worldY - e.worldY, player.worldX - e.worldX);
-                            enemyBullets.push({ worldX: e.worldX, worldY: e.worldY, vx: Math.cos(shootAngle) * 6.5, vy: Math.sin(shootAngle) * 6.5, radius: 4, life: 70 });
+                        } else { 
+                            if (distToPlayer > 5) { 
+                                e.worldX += Math.cos(approachAngle + waveOffset*0.2) * currentEnemySpeed; 
+                                e.worldY += Math.sin(approachAngle + waveOffset*0.2) * currentEnemySpeed; 
+                            } 
                         }
                     } 
-                    else { if (distToPlayer > 5) { e.worldX += (edx / distToPlayer) * currentEnemySpeed; e.worldY += (edy / distToPlayer) * currentEnemySpeed; } }
+                    // Unikalny ruch dla Rangera (Próbuje Cię okrążać z dystansu i strzela podwójnymi pociskami)
+                    else if (e.type === 'ranger') {
+                        let orbitAngle = approachAngle + Math.PI / 2 + (waveOffset * 0.1);
+                        if (distToPlayer > 240) { 
+                            e.worldX += Math.cos(approachAngle) * currentEnemySpeed; 
+                            e.worldY += Math.sin(approachAngle) * currentEnemySpeed; 
+                        } 
+                        else if (distToPlayer < 170) { 
+                            e.worldX -= Math.cos(approachAngle) * currentEnemySpeed; 
+                            e.worldY -= Math.sin(approachAngle) * currentEnemySpeed; 
+                        } else {
+                            e.worldX += Math.cos(orbitAngle) * (currentEnemySpeed * 0.8);
+                            e.worldY += Math.sin(orbitAngle) * (currentEnemySpeed * 0.8);
+                        }
+                        
+                        e.shootCooldown++;
+                        if (e.shootCooldown > 55) {
+                            e.shootCooldown = 0; 
+                            let shootAngle = Math.atan2(player.worldY - e.worldY, player.worldX - e.worldX);
+                            // Strzela dwoma rozsuniętymi pociskami (trudniejsze do uniknięcia)
+                            enemyBullets.push({ worldX: e.worldX, worldY: e.worldY, vx: Math.cos(shootAngle - 0.15) * 6.5, vy: Math.sin(shootAngle - 0.15) * 6.5, radius: 4, life: 75 });
+                            enemyBullets.push({ worldX: e.worldX, worldY: e.worldY, vx: Math.cos(shootAngle + 0.15) * 6.5, vy: Math.sin(shootAngle + 0.15) * 6.5, radius: 4, life: 75 });
+                        }
+                    } 
+                    // Unikalne ruchy dla Stalkera (Niewidzialność i mikroteleportacja za graczem)
+                    else if (e.type === 'stalker') {
+                        e.teleportCooldown++;
+                        // Raz na jakiś czas Stalker teleportuje się z boku gracza
+                        if (e.teleportCooldown > 140 && distToPlayer > 120) {
+                            e.teleportCooldown = 0;
+                            let telAngle = approachAngle + (Math.random() > 0.5 ? 0.7 : -0.7);
+                            e.worldX = player.worldX - Math.cos(telAngle) * 90;
+                            e.worldY = player.worldY - Math.sin(telAngle) * 90;
+                            visualEffects.push({ type: 'slash', worldX: e.worldX, worldY: e.worldY, angle: telAngle, side: 1, life: 6, maxLife: 6 });
+                        } else {
+                            e.worldX += Math.cos(approachAngle + waveOffset * 0.4) * currentEnemySpeed;
+                            e.worldY += Math.sin(approachAngle + waveOffset * 0.4) * currentEnemySpeed;
+                        }
+                    }
+                    // Unikalne zachowanie Szamana (Leczy i nakłada szał na sojuszników)
+                    else if (e.type === 'shaman') {
+                        if (distToPlayer < 220) {
+                            e.worldX -= Math.cos(approachAngle) * currentEnemySpeed;
+                            e.worldY -= Math.sin(approachAngle) * currentEnemySpeed;
+                        } else if (distToPlayer > 320) {
+                            e.worldX += Math.cos(approachAngle) * currentEnemySpeed;
+                            e.worldY += Math.sin(approachAngle) * currentEnemySpeed;
+                        } else {
+                            e.worldX += Math.cos(approachAngle + Math.PI/2) * currentEnemySpeed;
+                            e.worldY += Math.sin(approachAngle + Math.PI/2) * currentEnemySpeed;
+                        }
 
-                    if (distToPlayer > e.loseTargetRadius && e.type !== 'boss') { e.state = 'calm'; e.alertProgress = 0; }
+                        e.healCooldown++;
+                        if (e.healCooldown > 90) {
+                            e.healCooldown = 0;
+                            enemies.forEach(other => {
+                                if (other !== e && Math.abs(other.worldX - e.worldX) < 200 && Math.abs(other.worldY - e.worldY) < 200) {
+                                    other.hp = Math.min(other.maxHp, other.hp + 30);
+                                    other.rageMode = 1.4; // Buff do prędkości poruszania się
+                                }
+                            });
+                        }
+                    }
+                    // Klasyczne AI oraz Tank - dynamiczne, falujące podejście i losowy mikrodoskok
+                    else { 
+                        if (distToPlayer > 5) { 
+                            let extraDash = (e.type === 'runner' && distToPlayer < 90 && Math.floor(Date.now() / 400) % 2 === 0) ? 1.6 : 1.0;
+                            e.worldX += Math.cos(approachAngle + waveOffset * 0.3) * currentEnemySpeed * extraDash; 
+                            e.worldY += Math.sin(approachAngle + waveOffset * 0.3) * currentEnemySpeed * extraDash; 
+                        } 
+                    }
+
+                    if (distToPlayer > e.loseTargetRadius && e.type !== 'boss') { 
+                        e.state = 'calm'; e.alertProgress = 0; e.rageMode = 1.0; 
+                    }
 
                     if (distToPlayer < e.radius + player.radius) {
                         player.hp -= e.damage; updatePointsUI();
@@ -1637,7 +1740,13 @@
                     if (Math.sqrt(bdx*bdx + bdy*bdy) < e.radius + b.radius) {
                         e.hp = Math.max(0, e.hp - b.damage); 
                         bullets.splice(j, 1);
-                        if (e.state !== 'aggressive') e.state = 'aggressive';
+                        if (e.state !== 'aggressive') {
+                            e.state = 'aggressive';
+                            e.alertProgress = 100;
+                        }
+                        // POPRAWKA 4: Agresja stadna przy trafieniu pociskiem z dystansu
+                        alertNearbyEnemies(e);
+                        
                         if (e.hp <= 0) {
                             if (e.type === 'boss') bossUiEl.style.display = 'none';
                             enemies.splice(i, 1); score++; scoreValEl.textContent = score; 
@@ -1793,11 +1902,25 @@
 
             enemies.forEach(e => {
                 let scrX = Math.round(e.worldX - cameraX + e.shakeX), scrY = Math.round(e.worldY - cameraY + e.shakeY);
-                ctx.save(); ctx.beginPath(); ctx.arc(scrX, scrY, e.radius, 0, Math.PI * 2);
+                ctx.save(); 
+                
+                // POPRAWKA 4: Wizualna przezroczystość dla Stalkera w celu zasymulowania kamuflażu
+                if (e.type === 'stalker' && e.state === 'aggressive') {
+                    ctx.globalAlpha = 0.35; 
+                }
+
+                ctx.beginPath(); ctx.arc(scrX, scrY, e.radius, 0, Math.PI * 2);
                 if (e.type === 'boss') {
                     if (e.bossActionState === 'preparing' && Math.floor(Date.now() / 70) % 2 === 0) ctx.fillStyle = '#ff3300'; else ctx.fillStyle = '#2980b9';
                 } else { ctx.fillStyle = e.state === 'aggressive' ? e.agroColor : e.color; }
-                ctx.fill(); ctx.strokeStyle = '#111'; ctx.lineWidth = e.type === 'boss' ? 4 : 2; ctx.stroke(); ctx.restore();
+                ctx.fill(); ctx.strokeStyle = '#111'; ctx.lineWidth = e.type === 'boss' ? 4 : 2; ctx.stroke(); 
+                
+                // Efekt wizualny szału szamana (obwódka)
+                if (e.rageMode > 1.0) {
+                    ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(scrX, scrY, e.radius + 4, 0, Math.PI*2); ctx.stroke();
+                }
+                
+                ctx.restore();
 
                 let barW = e.radius * 2, barH = 4;
                 ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(scrX - barW/2, scrY - e.radius - 12, barW, barH);
