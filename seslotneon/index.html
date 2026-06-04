@@ -224,7 +224,7 @@
             user-select: text;
         }
 
-        .message {
+        .messages-container .message {
             background: var(--border-color);
             padding: 0.75rem 1rem;
             border-radius: 8px;
@@ -232,13 +232,13 @@
             align-self: flex-start;
         }
 
-        .message.own {
+        .messages-container .message.own {
             background: rgba(0, 255, 204, 0.1);
             border: 1px solid var(--accent-color);
             align-self: flex-end;
         }
 
-        .message.system {
+        .messages-container .message.system {
             background: transparent;
             color: var(--accent-color);
             font-size: 0.85rem;
@@ -248,14 +248,14 @@
             padding: 0.2rem;
         }
 
-        .message .meta {
+        .messages-container .message .meta {
             font-size: 0.75rem;
             color: var(--accent-color);
             margin-bottom: 0.25rem;
             font-weight: bold;
         }
 
-        .message .text {
+        .messages-container .message .text {
             font-size: 0.95rem;
             word-break: break-word;
         }
@@ -638,7 +638,7 @@
                         <button class="send-btn" id="sendBtn">Wyślij</button>
                     </div>
                 </div>
-
+                
                 <div class="users-window" id="usersWindow">
                     <div class="users-window-header">
                         <span>Użytkownicy Online</span>
@@ -675,7 +675,7 @@
 
     <div id="start-menu">
         <h1>Wybierz swoją Klasę Bohatera</h1>
-        <p>Dopasuj swój stil walki i wkrocz do niebezpiecznego świata</p>
+        <p>Dopasuj swój styl walki i wkrocz do niebezpiecznego świata</p>
         <div class="class-container">
             <div class="class-card mag" onclick="selectClass('mag')">
                 <h2>MAG</h2>
@@ -729,11 +729,10 @@
 
     <div id="level-up-panel">
         <h3>AWANS POZIOMU!</h3>
-        <p>Punkty do rozdania: <span id="skill-points" class="highlight">0</span></p>
-        <button class="stat-btn" onclick="upgradeStat('hp')">+ Zdrowie (+25)</button>
-        <button class="stat-btn" onclick="upgradeStat('mana')">+ Max Energia & Reg.</button>
-        <button class="stat-btn" onclick="upgradeStat('speed')">+ Prędkość</button>
-        <button class="stat-btn" onclick="upgradeStat('damage')">+ Siła Ataku</button>
+        <p>Rozwiń swoje statystyki, aby stać się potężniejszym:</p>
+        <button class="stat-btn" onclick="upgradeStat('hp')">+ Zdrowie (+25 Max HP)</button>
+        <button class="stat-btn" onclick="upgradeStat('mana')">+ Mana (+20 Max Mana)</button>
+        <button class="stat-btn" onclick="upgradeStat('dmg')">+ Obrażenia (+3 DMG)</button>
     </div>
 
     <div id="chat-hint">Naciśnij klawisz [ ` ] (tylda), aby otworzyć czat</div>
@@ -741,37 +740,25 @@
     <canvas id="gameCanvas"></canvas>
 
     <script>
-        let userIsAuthenticated = false;
+        let userIsAuthenticated = false; 
         let chatIsOpen = false;
 
         function toggleChatOverlay() {
             if (!userIsAuthenticated) return;
-            
             const overlay = document.getElementById('chatOverlay');
-            const msgInput = document.getElementById('messageInput');
-            
             chatIsOpen = !chatIsOpen;
             if (chatIsOpen) {
                 overlay.style.display = 'flex';
-                msgInput.focus();
-                if (typeof keys !== 'undefined') {
-                    keys.w = keys.a = keys.s = keys.d = false;
-                }
+                document.getElementById('messageInput').focus();
             } else {
                 overlay.style.display = 'none';
-                msgInput.blur();
-                document.getElementById('profileModal').style.display = 'none';
             }
         }
 
         window.addEventListener('keydown', (e) => {
-            if (document.activeElement === document.getElementById('messageInput')) {
-                if (e.key === 'Escape') {
-                    toggleChatOverlay();
-                }
-                return;
+            if (e.key === 'Escape' && chatIsOpen) {
+                toggleChatOverlay();
             }
-
             if (e.key === '`') {
                 e.preventDefault();
                 toggleChatOverlay();
@@ -781,7 +768,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, push, onChildAdded, onValue, remove, off, update as dbUpdate } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, push, onChildAdded, onChildRemoved, onChildChanged, onValue, remove, off, update as dbUpdate } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBx1DftUTvzQIkgJqwIMDWo-snk7YwlE4Q",
@@ -799,6 +786,7 @@
         let isLoginMode = false;
         let currentUser = null;
         let myOnlineRef = null;
+        let myPositionRef = null;
 
         const authForm = document.getElementById('authForm');
         const toggleAuthText = document.getElementById('toggleAuthText');
@@ -819,6 +807,22 @@
         const closeProfileBtn = document.getElementById('closeProfileBtn');
         const myProfileTrigger = document.getElementById('myProfileTrigger');
 
+        // SŁOWNIK INNYCH GRACZY ONLINE NA MAPIE
+        window.remotePlayers = {};
+        window.isRoomHost = false; 
+
+        // Dynamiczne rozszerzenie modala profilu o żądane parametry pozycji i akcji
+        const card = profileModal.querySelector('.profile-card');
+        if (!document.getElementById('profilePosRow')) {
+            const customRows = document.createElement('div');
+            customRows.innerHTML = `
+                <div class="profile-stat-row" id="profilePosRow"><span class="profile-stat-label">Pozycja na mapie:</span><span class="profile-stat-value" id="profilePosVal">-</span></div>
+                <div class="profile-stat-row" id="profileDirRow"><span class="profile-stat-label">Kierunek (Kąt):</span><span class="profile-stat-value" id="profileDirVal">-</span></div>
+                <div class="profile-stat-row" id="profileActRow"><span class="profile-stat-label">Stan akcji:</span><span class="profile-stat-value" id="profileActVal">-</span></div>
+            `;
+            card.insertBefore(customRows, closeProfileBtn);
+        }
+
         window.syncMyStatsToDatabase = function() {
             if (!currentUser || !userIsAuthenticated) return;
             const statsRef = ref(db, 'stats/' + currentUser);
@@ -830,11 +834,25 @@
             });
         };
 
+        // Globalna funkcja wysyłania pakietów pozycji gracza do Firebase
+        window.broadcastMyPosition = function(x, y, angle, hp, maxHp, isAttacking, charClass, level) {
+            if (!currentUser || !userIsAuthenticated) return;
+            if (!myPositionRef) {
+                myPositionRef = ref(db, 'online_players/' + currentUser);
+            }
+            set(myPositionRef, {
+                x, y, angle, hp, maxHp, isAttacking, charClass, level, lastSeen: Date.now()
+            });
+        };
+
         window.openUserProfile = function(targetUser) {
             profileUsername.innerText = `--- ${targetUser} ---`;
             profileClassVal.innerText = "Wczytywanie...";
             profileLevelVal.innerText = "-";
             profileScoreVal.innerText = "-";
+            document.getElementById('profilePosVal').innerText = "-";
+            document.getElementById('profileDirVal').innerText = "-";
+            document.getElementById('profileActVal').innerText = "-";
             profileModal.style.display = "flex";
 
             onValue(ref(db, 'stats/' + targetUser), (snapshot) => {
@@ -843,10 +861,19 @@
                     profileClassVal.innerText = data.charClass || "MAG";
                     profileLevelVal.innerText = data.level || "1";
                     profileScoreVal.innerText = data.score || "0";
+                }
+            }, { onlyOnce: true });
+
+            // Pobieranie danych pozycji w czasie rzeczywistym bezpośrednio do podglądu profilu
+            onValue(ref(db, 'online_players/' + targetUser), (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    document.getElementById('profilePosVal').innerText = `X: ${Math.round(data.x)}, Y: ${Math.round(data.y)}`;
+                    document.getElementById('profileDirVal').innerText = `${Math.round(data.angle * (180 / Math.PI))}°`;
+                    document.getElementById('profileActVal').innerText = data.isAttacking ? "ATAKUJE ⚔️" : "W RUCHU 🏃";
+                    document.getElementById('profileActVal').style.color = data.isAttacking ? "#ff4a4a" : "#00ffcc";
                 } else {
-                    profileClassVal.innerText = "BRAK DANYCH";
-                    profileLevelVal.innerText = "1";
-                    profileScoreVal.innerText = "0";
+                    document.getElementById('profileActVal').innerText = "NIEAKTYWNY NA MAPIE";
                 }
             }, { onlyOnce: true });
         };
@@ -886,6 +913,7 @@
                         set(ref(db, 'users/' + username), { email, password })
                         .then(() => {
                             currentUser = username;
+                            window.myNickname = username;
                             enterGameAndChat();
                         });
                     }
@@ -894,6 +922,7 @@
                 onValue(ref(db, 'users/' + username), (snapshot) => {
                     if (snapshot.exists() && snapshot.val().password === password) {
                         currentUser = username;
+                        window.myNickname = username;
                         enterGameAndChat();
                     } else {
                         showError("Nieprawidłowy login lub hasło.");
@@ -909,11 +938,9 @@
 
         function enterGameAndChat() {
             document.getElementById('authBox').style.display = 'none';
-            
             userIsAuthenticated = true;
             document.getElementById('start-menu').style.display = 'flex';
             document.getElementById('chat-hint').style.display = 'block';
-            
             document.getElementById('currentUserDisplay').innerText = `@${currentUser}`;
             authForm.reset();
 
@@ -921,24 +948,90 @@
             set(myOnlineRef, true);
             window.syncMyStatsToDatabase();
 
-            window.addEventListener('beforeunload', () => {
-                if (myOnlineRef) remove(myOnlineRef);
-            });
+            window.addEventListener('beforeunload', cleanupMultiplayer);
 
             listenForMessages();
             listenForOnlineUsers();
+            initMultiplayerListeners();
         }
+
+        function cleanupMultiplayer() {
+            if (myOnlineRef) remove(myOnlineRef);
+            if (myPositionRef) remove(myPositionRef);
+            if (window.isRoomHost) {
+                remove(ref(db, 'multiplayer_monsters'));
+                remove(ref(db, 'multiplayer_loot'));
+            }
+        }
+
+        // SYSTEM SYNCHRONIZACJI GRACZY, POTWORÓW I ŁUPU ONLINE
+        function initMultiplayerListeners() {
+            // 1. Inni gracze wchodzą / ruszają się / wychodzą
+            onChildAdded(ref(db, 'online_players'), (snap) => {
+                if(snap.key !== currentUser) window.remotePlayers[snap.key] = snap.val();
+            });
+            onChildChanged(ref(db, 'online_players'), (snap) => {
+                if(snap.key !== currentUser) window.remotePlayers[snap.key] = snap.val();
+            });
+            onChildRemoved(ref(db, 'online_players'), (snap) => {
+                delete window.remotePlayers[snap.key];
+            });
+
+            // 2. Arbitraż hosta dla potworów i lootu
+            onValue(ref(db, 'online'), (snap) => {
+                if (snap.exists()) {
+                    const activeUsers = Object.keys(snap.val()).sort();
+                    // Pierwszy alfabetycznie zalogowany użytkownik zostaje Hostem generującym potwory sieciowe
+                    window.isRoomHost = (activeUsers[0] === currentUser);
+                }
+            });
+
+            // Synchronizacja potworów i zwierząt (pobieranie zmian z bazy)
+            onValue(ref(db, 'multiplayer_monsters'), (snap) => {
+                if (!window.isRoomHost && snap.exists() && typeof window.updateEnemiesFromServer === 'function') {
+                    window.updateEnemiesFromServer(snap.val());
+                }
+            });
+
+            // Synchronizacja przedmiotów leżących na ziemi
+            onValue(ref(db, 'multiplayer_loot'), (snap) => {
+                if (!window.isRoomHost && snap.exists() && typeof window.updateLootFromServer === 'function') {
+                    window.updateLootFromServer(snap.val());
+                }
+            });
+        }
+
+        // Usunięcie potwora lub przedmiotu przez sieć przy trafieniu/podniesieniu
+        window.networkDamageMonster = function(monsterId, damage) {
+            dbUpdate(ref(db, `multiplayer_monsters/${monsterId}`), {
+                hp: window.getMonsterHpById(monsterId) - damage
+            });
+        };
+        
+        window.networkRemoveLoot = function(lootId) {
+            remove(ref(db, `multiplayer_loot/${lootId}`));
+        };
+
+        window.networkDamagePlayer = function(targetNick, damage) {
+            const pRef = ref(db, `online_players/${targetNick}`);
+            onValue(pRef, (snap) => {
+                if(snap.exists()){
+                    const currentHp = snap.val().hp;
+                    dbUpdate(pRef, { hp: Math.max(0, currentHp - damage) });
+                }
+            }, {onlyOnce: true});
+        };
+
+        window.networkSyncMonstersAndLoot = function(monstersArray, lootArray) {
+            if (!window.isRoomHost) return;
+            set(ref(db, 'multiplayer_monsters'), monstersArray);
+            set(ref(db, 'multiplayer_loot'), lootArray);
+        };
 
         function sendMessage() {
             const text = messageInput.value.trim();
             if (!text) return;
-
-            const messagesRef = ref(db, 'messages');
-            push(messagesRef, {
-                user: currentUser,
-                text: text,
-                timestamp: Date.now()
-            });
+            push(ref(db, 'messages'), { user: currentUser, text: text, timestamp: Date.now() });
             messageInput.value = '';
         }
 
@@ -946,16 +1039,13 @@
         messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
         function listenForMessages() {
-            const messagesRef = ref(db, 'messages');
             const container = document.getElementById('messagesContainer');
             container.innerHTML = '';
-
-            onChildAdded(messagesRef, (snapshot) => {
+            onChildAdded(ref(db, 'messages'), (snapshot) => {
                 const data = snapshot.val();
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message';
                 if (data.user === currentUser) messageDiv.classList.add('own');
-
                 messageDiv.innerHTML = `
                     <div class="meta" style="cursor:pointer;" onclick="window.openUserProfile('${data.user}')">${data.user}</div>
                     <div class="text">${escapeHTML(data.text)}</div>
@@ -966,24 +1056,16 @@
         }
 
         function listenForOnlineUsers() {
-            const onlineRef = ref(db, 'online');
             const usersListContainer = document.getElementById('usersList');
             const onlineCount = document.getElementById('onlineCount');
-
-            onValue(onlineRef, (snapshot) => {
+            onValue(ref(db, 'online'), (snapshot) => {
                 usersListContainer.innerHTML = '';
-                if (!snapshot.exists()) {
-                    onlineCount.innerText = "0";
-                    return;
-                }
-
+                if (!snapshot.exists()) { onlineCount.innerText = "0"; return; }
                 const users = Object.keys(snapshot.val());
                 onlineCount.innerText = users.length;
-
                 users.forEach(user => {
                     const userItem = document.createElement('div');
                     userItem.className = 'user-item';
-                    
                     userItem.innerHTML = `
                         <div class="user-info-side">
                             <div class="status-dot"></div>
@@ -997,1017 +1079,795 @@
         }
 
         logoutBtn.addEventListener('click', () => {
-            if (myOnlineRef) remove(myOnlineRef);
-            off(ref(db, 'messages'));
-            off(ref(db, 'online'));
-            
-            currentUser = null;
-            userIsAuthenticated = false;
-            chatIsOpen = false;
-            
+            cleanupMultiplayer();
+            off(ref(db, 'messages')); off(ref(db, 'online'));
+            currentUser = null; userIsAuthenticated = false; chatIsOpen = false;
             document.getElementById('chatOverlay').style.display = 'none';
             document.getElementById('start-menu').style.display = 'none';
             document.getElementById('ui').style.display = 'none';
             document.getElementById('chat-hint').style.display = 'none';
             document.getElementById('profileModal').style.display = 'none';
             document.getElementById('authBox').style.display = 'block';
-            
             if (typeof gameIsRunning !== 'undefined') {
                 gameIsRunning = false;
-                enemies.length = 0; bullets.length = 0; enemyBullets.length = 0; animals.length = 0; loots.length = 0; visualEffects.length = 0;
+                enemies.length = 0; bullets.length = 0; enemyBullets.length = 0; animals.length = 0; loots.length = 0;
                 document.getElementById('boss-ui').style.display = 'none';
-                score = 0;
-                document.getElementById('score-val').textContent = score;
+                score = 0; document.getElementById('score-val').textContent = score;
             }
         });
 
         function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, 
-                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-            );
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag) );
         }
     </script>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const scoreValEl = document.getElementById('score-val');
-        const lvlValEl = document.getElementById('lvl-val');
-        const hpTextEl = document.getElementById('hp-text');
-        const manaTextEl = document.getElementById('mana-text');
-        const hpBarEl = document.getElementById('hp-bar');
-        const manaBarEl = document.getElementById('mana-bar');
-        const xpBarEl = document.getElementById('xp-bar');
-        const levelUpPanelEl = document.getElementById('level-up-panel');
-        const skillPointsEl = document.getElementById('skill-points');
-        const bossUiEl = document.getElementById('boss-ui');
-        const bossHpBarEl = document.getElementById('boss-hp-bar');
-        const weatherValEl = document.getElementById('weather-val');
-        const startMenuEl = document.getElementById('start-menu');
-        const uiEl = document.getElementById('ui');
-
-        let screenCenterX = 0, screenCenterY = 0, score = 0;
-        let camShakeTime = 0, camShakeIntensity = 0;
-        let gameIsRunning = false;
 
         function resizeCanvas() {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            screenCenterX = canvas.width / 2; screenCenterY = canvas.height / 2;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // --- PROCEDURALNY GENERATOR ŚWIATA ---
+        // Konfiguracja Świata Gry
+        const WORLD_SIZE = 3000;
         const TILE_SIZE = 64;
-        
-        function MathNoise(x, y) {
-            let n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123;
-            return n - Math.floor(n);
-        }
-        
-        function getSmoothNoise(x, y) {
-            let total = 0;
-            total += (Math.sin(x * 0.05) + Math.cos(y * 0.05)) * 2.0;
-            total += (Math.sin(x * 0.15) * Math.cos(y * 0.12)) * 1.0;
-            total += (Math.sin(x * 0.01) + Math.sin(y * 0.01)) * 4.0; 
-            return total;
-        }
 
-        const BIOMES = {
-            WATER:      { id: 0, c1: '#1f618d', c2: '#2e86c1', name: 'Woda' }, 
-            SAND:       { id: 1, c1: '#f1c40f', c2: '#f39c12', name: 'Pustynia' },
-            GRASS:      { id: 2, c1: '#4caf50', c2: '#45a049', name: 'Łąka' },
-            FOREST:     { id: 3, c1: '#1e8449', c2: '#196f3d', name: 'Las' },
-            RAINFOREST: { id: 4, c1: '#117a65', c2: '#0e6251', name: 'Las Deszczowy' },
-            MOUNTAIN:   { id: 5, c1: '#7f8c8d', c2: '#95a5a6', name: 'Góry' }
+        // Stan Gry i Gracz
+        let gameIsRunning = false;
+        let score = 0;
+
+        const player = {
+            worldX: WORLD_SIZE / 2,
+            worldY: WORLD_SIZE / 2,
+            speed: 4,
+            radius: 18,
+            hp: 100,
+            maxHp: 100,
+            mana: 100,
+            maxMana: 100,
+            level: 1,
+            xp: 0,
+            maxXp: 100,
+            dmg: 15,
+            charClass: 'mag',
+            angle: 0,
+            isAttacking: false,
+            lastAttackTime: 0,
+            attackCooldown: 300
         };
 
-        function getTileAt(tileX, tileY) {
-            let n = getSmoothNoise(tileX, tileY);
-            let riverNoise = Math.abs(Math.sin(tileX * 0.08) + Math.cos(tileY * 0.08)); 
+        // Tablice obiektów gry
+        const enemies = [];
+        const bullets = [];
+        const enemyBullets = [];
+        const animals = [];
+        const loots = [];
+        const particles = [];
+        const floatingTexts = [];
 
-            if (n < -2.2 || riverNoise < 0.08) return BIOMES.WATER;
-            if (n < -1.2) return BIOMES.SAND;
-            if (n < 0.8) return BIOMES.GRASS;
-            if (n < 2.2) return BIOMES.FOREST;
-            if (n < 3.8) return BIOMES.RAINFOREST;
-            return BIOMES.MOUNTAIN;
-        }
-
-        // --- SYSTEM POGODY I CZASU ---
-        let gameTime = 1200; 
-        const WEATHER_TYPES = ['sunny', 'rain', 'snow', 'fog', 'thunder'];
+        // Dynamiczny System Pogody i Czasu
+        const WEATHER_TYPES = ['sunny', 'rainy', 'foggy', 'snowy'];
         let currentWeather = 'sunny';
-        let weatherTimer = 4000; 
-        let particles = [];      
-        let thunderFlash = 0;    
+        let weatherTimer = 0;
 
         function changeWeather() {
             currentWeather = WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
-            weatherTimer = 3000 + Math.random() * 3000;
-            let names = { 'sunny': 'Słonecznie', 'rain': 'Deszcz', 'snow': 'Śnieg', 'fog': 'Mgła', 'thunder': 'Burza' };
-            weatherValEl.textContent = names[currentWeather];
+            const el = document.getElementById('weather-val');
+            if(el) {
+                el.textContent = currentWeather === 'sunny' ? 'Słonecznie' : currentWeather === 'rainy' ? 'Deszczowo' : currentWeather === 'foggy' ? 'Mgliście' : 'Śnieżyca';
+                if(currentWeather === 'sunny') el.className = 'weather-info';
+                if(currentWeather === 'rainy') el.className = 'weather-info';
+                if(currentWeather === 'foggy') el.className = 'weather-info';
+                if(currentWeather === 'snowy') el.className = 'weather-info';
+            }
+            weatherTimer = Math.random() * 20000 + 15000; 
         }
 
-        function updateWeatherAndTime() {
-            gameTime = (gameTime + 0.5) % 2400; 
-            weatherTimer--;
-            if (weatherTimer <= 0) changeWeather();
+        // Klawiatura i Sterowanie
+        const keys = {};
+        window.addEventListener('keydown', e => { if(userIsAuthenticated && !chatIsOpen) keys[e.key.toLowerCase()] = true; });
+        window.addEventListener('keyup', e => { if(userIsAuthenticated && !chatIsOpen) keys[e.key.toLowerCase()] = false; });
 
-            if ((currentWeather === 'rain' || currentWeather === 'thunder') && particles.length < 150) {
-                particles.push({ x: Math.random() * canvas.width, y: -10, speed: 10 + Math.random() * 5, len: 15 + Math.random() * 10, type: 'rain' });
-            } else if (currentWeather === 'snow' && particles.length < 100) {
-                particles.push({ x: Math.random() * canvas.width, y: -10, speed: 2 + Math.random() * 2, len: 3 + Math.random() * 3, drift: (Math.random() - 0.5) * 1, type: 'snow' });
+        // Myszkę/Celowanie/Atak
+        let mouseX = 0, mouseY = 0;
+        let isMouseDown = false;
+
+        window.addEventListener('mousemove', e => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+        window.addEventListener('mousedown', e => {
+            if(userIsAuthenticated && !chatIsOpen && e.target.tagName === 'CANVAS') isMouseDown = true;
+        });
+        window.addEventListener('mouseup', e => { isMouseDown = false; });
+
+        // Joystick Mobilny
+        const joystick = {
+            startX: 0, startY: 0,
+            currentX: 0, currentY: 0,
+            active: false, maxRadius: 50
+        };
+
+        window.addEventListener('touchstart', e => {
+            if(!userIsAuthenticated || chatIsOpen) return;
+            let touch = e.touches[0];
+            if(touch.clientX < window.innerWidth / 2) {
+                joystick.active = true;
+                joystick.startX = touch.clientX;
+                joystick.startY = touch.clientY;
+                joystick.currentX = touch.clientX;
+                joystick.currentY = touch.clientY;
+            } else {
+                handleActionAt(touch.clientX, touch.clientY);
             }
+        });
 
-            if (currentWeather === 'thunder' && Math.random() < 0.003 && thunderFlash <= 0) {
-                thunderFlash = 8; 
-                triggerCameraShake(15, 6);
+        window.addEventListener('touchmove', e => {
+            if(!joystick.active) return;
+            for(let t of e.touches) {
+                if(t.clientX < window.innerWidth / 2) {
+                    joystick.currentX = t.clientX;
+                    joystick.currentY = t.clientY;
+                }
             }
-            if (thunderFlash > 0) thunderFlash--;
+        });
 
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                if (p.type === 'rain') { p.y += p.speed; p.x += 1; } 
-                else if (p.type === 'snow') { p.y += p.speed; p.x += p.drift; }
-                if (p.y > canvas.height) particles.splice(i, 1);
+        window.addEventListener('touchend', e => {
+            if(e.touches.length === 0 || Array.from(e.touches).every(t => t.clientX >= window.innerWidth/2)) {
+                joystick.active = false;
+            }
+        });
+
+        // Pomocnicze funkcje sieciowe i mapowania potworów
+        window.getMonsterHpById = function(id) {
+            let m = enemies.find(e => e.id === id);
+            return m ? m.hp : 0;
+        };
+
+        window.updateEnemiesFromServer = function(serverMonsters) {
+            if (!serverMonsters) return;
+            enemies.length = 0;
+            serverMonsters.forEach(sm => {
+                if(sm.hp > 0) enemies.push(sm);
+            });
+        };
+
+        window.updateLootFromServer = function(serverLoot) {
+            if (!serverLoot) return;
+            loots.length = 0;
+            serverLoot.forEach(sl => {
+                loots.push(sl);
+            });
+        };
+
+        // Generowanie Świata (Seed/Algorytm Proceduralny Szumu)
+        const mapGrid = [];
+        const gridDimension = Math.ceil(WORLD_SIZE / TILE_SIZE);
+        for(let x=0; x<gridDimension; x++) {
+            mapGrid[x] = [];
+            for(let y=0; y<gridDimension; y++) {
+                let val = Math.sin(x*0.1) * Math.cos(y*0.1);
+                let type = 'grass';
+                if (val < -0.4) type = 'water';
+                else if (val > 0.5) type = 'stone';
+                else if (val > 0.3) type = 'sand';
+                mapGrid[x][y] = type;
             }
         }
 
-        // --- TABLICE OBIEKTÓW GRY ---
-        const bullets = [];
-        const enemyBullets = [];
-        const enemies = [];
-        const animals = [];
-        const loots = [];
-        const fishes = [];
-        const visualEffects = []; 
+        // Wybór klasy
+        window.selectClass = function(type) {
+            player.charClass = type;
+            if(type === 'mag') {
+                player.hp = player.maxHp = 90;
+                player.mana = player.maxMana = 150;
+                player.dmg = 18;
+                player.attackCooldown = 400;
+            } else if(type === 'wojownik') {
+                player.hp = player.maxHp = 140;
+                player.mana = player.maxMana = 40;
+                player.dmg = 22;
+                player.attackCooldown = 250;
+            } else if(type === 'lucznik') {
+                player.hp = player.maxHp = 100;
+                player.mana = player.maxMana = 80;
+                player.dmg = 14;
+                player.attackCooldown = 200;
+            }
 
-        for(let i=0; i<30; i++) {
-            fishes.push({
-                worldX: (Math.random() - 0.5) * 4000,
-                worldY: (Math.random() - 0.5) * 4000,
-                angle: Math.random() * Math.PI * 2,
-                speed: 0.5 + Math.random() * 1,
-                timeOffset: Math.random() * 100
+            document.getElementById('start-menu').style.display = 'none';
+            document.getElementById('ui').style.display = 'block';
+            
+            // Inicjalizacja lokalnych jednostek, jeśli jesteśmy sami lub hostem
+            if(window.isRoomHost || Object.keys(window.remotePlayers).length === 0) {
+                spawnInitialEntities();
+            }
+
+            gameIsRunning = true;
+            if(typeof window.syncMyStatsToDatabase === 'function') window.syncMyStatsToDatabase();
+            changeWeather();
+            requestAnimationFrame(gameLoop);
+        };
+
+        function spawnInitialEntities() {
+            enemies.length = 0;
+            animals.length = 0;
+            loots.length = 0;
+            // Potwory
+            for(let i=0; i<25; i++) {
+                enemies.push({
+                    id: 'm_' + Date.now() + '_' + Math.random(),
+                    worldX: Math.random() * (WORLD_SIZE - 200) + 100,
+                    worldY: Math.random() * (WORLD_SIZE - 200) + 100,
+                    type: Math.random() > 0.8 ? 'orc' : 'slime',
+                    hp: 50, maxHp: 50, radius: 16, speed: 1.5
+                });
+            }
+            // Zwierzęta
+            for(let i=0; i<15; i++) {
+                animals.push({
+                    worldX: Math.random() * (WORLD_SIZE - 200) + 100,
+                    worldY: Math.random() * (WORLD_SIZE - 200) + 100,
+                    radius: 12, speed: 1, type: 'rabbit'
+                });
+            }
+            // Boss Szef
+            enemies.push({
+                id: 'boss_sieradz',
+                worldX: WORLD_SIZE / 2 + 300,
+                worldY: WORLD_SIZE / 2 + 300,
+                type: 'boss',
+                hp: 1000, maxHp: 1000, radius: 45, speed: 1.2
             });
         }
 
-        // --- WEJŚCIE GRACZA (INPUT) ---
-        const keys = { w: false, a: false, s: false, d: false };
-        window.addEventListener('keydown', (e) => { 
-            if (chatIsOpen) return; 
-            if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = true; 
-        });
-        window.addEventListener('keyup', (e) => { 
-            if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = false; 
-        });
-
-        const mouse = { x: screenCenterX, y: screenCenterY };
-        let isMousing = false;
-        let isMouseDown = false; 
-
-        window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; isMousing = true; });
-        window.addEventListener('mousedown', (e) => { 
-            if (chatIsOpen) return; 
-            if (e.button === 0) {
-                isMouseDown = true;
-                if(gameIsRunning && player.charClass !== 'lucznik') playerAttack(); 
+        function createParticles(x, y, color, amt=8) {
+            for(let i=0; i<amt; i++){
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    radius: Math.random() * 3 + 1,
+                    alpha: 1, color
+                });
             }
-        });
-        window.addEventListener('mouseup', (e) => { if (e.button === 0) isMouseDown = false; });
-
-        const joystick = { startX: 0, startY: 0, currentX: 0, currentY: 0, active: false, pointerId: null, maxRadius: 60 };
-        const touchAim = { x: screenCenterX, y: screenCenterY, active: false, pointerId: null };
-
-        window.addEventListener('pointerdown', (e) => {
-            if(!gameIsRunning || chatIsOpen) return;
-            if(e.target.closest('#chatInterface') || e.target.closest('#authBox') || e.target.closest('#profileModal')) return;
-
-            if (e.clientX < canvas.width / 2 && !joystick.active) {
-                joystick.active = true; joystick.pointerId = e.pointerId;
-                joystick.startX = joystick.currentX = e.clientX; joystick.startY = joystick.currentY = e.clientY;
-            } else if (e.clientX >= canvas.width / 2) {
-                touchAim.active = true; touchAim.pointerId = e.pointerId;
-                touchAim.x = e.clientX; touchAim.y = e.clientY; isMousing = false;
-                isMouseDown = true;
-                if(player.charClass !== 'lucznik') playerAttack();
-            }
-        });
-
-        window.addEventListener('pointermove', (e) => {
-            if (chatIsOpen) return;
-            if (joystick.active && e.pointerId === joystick.pointerId) { joystick.currentX = e.clientX; joystick.currentY = e.clientY; }
-            if (touchAim.active && e.pointerId === touchAim.pointerId) { touchAim.x = e.clientX; touchAim.y = e.clientY; isMousing = false; }
-        });
-
-        window.addEventListener('pointerup', (e) => {
-            if (joystick.active && e.pointerId === joystick.pointerId) joystick.active = false;
-            if (touchAim.active && e.pointerId === touchAim.pointerId) { touchAim.active = false; isMouseDown = false; }
-        });
-
-        // --- STATYSTYKI GRACZA I KLASY BOHATERÓW ---
-        const player = {
-            worldX: 0, worldY: 0, radius: 18,
-            vx: 0, vy: 0, acceleration: 0.8, friction: 0.85, maxSpeed: 6,
-            angle: 0, hp: 100, maxHp: 100,
-            mana: 100, maxMana: 100, manaRegen: 0.3,
-            level: 1, xp: 0, xpNeeded: 100,
-            bulletDamage: 35, skillPoints: 0,
-            charClass: 'mag', 
-            attackCooldown: 0,
-            swingSide: 1 
-        };
-
-        window.selectClass = function(className) {
-            player.charClass = className;
-            if (className === 'mag') {
-                player.bulletDamage = 35;
-                player.maxMana = 100;
-                player.manaRegen = 0.35;
-            } else if (className === 'wojownik') {
-                player.bulletDamage = 55; 
-                player.maxMana = 80;     
-                player.manaRegen = 0.45; 
-            } else if (className === 'lucznik') {
-                player.bulletDamage = 25; 
-                player.maxMana = 100;
-                player.manaRegen = 0.3;
-            }
-            player.mana = player.maxMana;
-            player.hp = player.maxHp;
-            
-            startMenuEl.style.display = 'none';
-            uiEl.style.display = 'block';
-            gameIsRunning = true;
-            updatePointsUI();
-            if(typeof window.syncMyStatsToDatabase === 'function') window.syncMyStatsToDatabase();
         }
 
-        function updatePointsUI() {
-            hpTextEl.textContent = `${Math.ceil(player.hp)}/${player.maxHp}`;
-            hpBarEl.style.width = `${Math.max(0, (player.hp / player.maxHp) * 100)}%`;
-            manaTextEl.textContent = `${Math.ceil(player.mana)}/${player.maxMana}`;
-            manaBarEl.style.width = `${Math.max(0, (player.mana / player.maxMana) * 100)}%`;
-            lvlValEl.textContent = player.level;
-            xpBarEl.style.width = `${Math.min(100, (player.xp / player.xpNeeded) * 100)}%`;
-            levelUpPanelEl.style.display = player.skillPoints > 0 ? 'block' : 'none';
-            if (player.skillPoints > 0) skillPointsEl.textContent = player.skillPoints;
+        function spawnFloatingText(x, y, text, color='#ff0000') {
+            floatingTexts.push({ x, y, text, color, life: 40 });
         }
 
         window.upgradeStat = function(stat) {
-            if (player.skillPoints <= 0) return;
-            if (stat === 'hp') { player.maxHp += 25; player.hp += 25; }
-            else if (stat === 'mana') { player.maxMana += 25; player.manaRegen += 0.08; player.mana += 25; }
-            // POPRAWKA 2: Zmniejszono skok prędkości i przyspieszenia po dodaniu punktu poziomu
-            else if (stat === 'speed') { player.maxSpeed += 0.25; player.acceleration += 0.04; }
-            else if (stat === 'damage') { player.bulletDamage += 15; }
-            player.skillPoints--;
-            updatePointsUI();
+            if(stat === 'hp') { player.maxHp += 25; player.hp = player.maxHp; }
+            if(stat === 'mana') { player.maxMana += 20; player.mana = player.maxMana; }
+            if(stat === 'dmg') { player.dmg += 3; }
+            document.getElementById('level-up-panel').style.display = 'none';
             if(typeof window.syncMyStatsToDatabase === 'function') window.syncMyStatsToDatabase();
-        }
+        };
 
-        function addXp(amount) {
-            player.xp += amount;
-            if (player.xp >= player.xpNeeded) {
-                player.xp -= player.xpNeeded;
-                player.level++; player.skillPoints += 3;
-                player.xpNeeded = Math.floor(player.xpNeeded * 1.6);
-                if(typeof window.syncMyStatsToDatabase === 'function') window.syncMyStatsToDatabase();
+        function checkLevelUp() {
+            if(player.xp >= player.maxXp) {
+                player.xp -= player.maxXp;
+                player.level++;
+                player.maxXp = Math.floor(player.maxXp * 1.4);
+                document.getElementById('level-up-panel').style.display = 'block';
+                spawnFloatingText(player.worldX, player.worldY - 30, "AWANS!", '#e0a816');
+                createParticles(player.worldX, player.worldY, '#e0a816', 30);
             }
-            updatePointsUI();
         }
 
-        function triggerCameraShake(time, intensity) { camShakeTime = time; camShakeIntensity = intensity; }
+        function handleActionAt(clientX, clientY) {
+            let now = Date.now();
+            if(now - player.lastAttackTime < player.attackCooldown) return;
 
-        // Funkcja ułatwiająca mechanikę stadną (Herd Mind AI) - prowokuje potwory w promieniu
-        function alertNearbyEnemies(sourceEnemy, range = 300) {
-            enemies.forEach(e => {
-                if (e.state !== 'aggressive') {
-                    let dx = e.worldX - sourceEnemy.worldX;
-                    let dy = e.worldY - sourceEnemy.worldY;
-                    if (Math.sqrt(dx*dx + dy*dy) < range) {
-                        e.state = 'aggressive';
-                        e.alertProgress = 100;
-                    }
-                }
-            });
-        }
+            let camX = player.worldX - canvas.width / 2;
+            let camY = player.worldY - canvas.height / 2;
+            let targetWorldX = clientX + camX;
+            let targetWorldY = clientY + camY;
 
-        function playerAttack() {
-            if (player.attackCooldown > 0 || chatIsOpen) return;
+            let angle = Math.atan2(targetWorldY - player.worldY, targetWorldX - player.worldX);
+            player.angle = angle;
+            player.lastAttackTime = now;
+            player.isAttacking = true;
 
-            if (player.charClass === 'mag') {
-                if (player.mana >= 15) {
+            // Klasy bojowe i ich unikalne pociski/ataki
+            if(player.charClass === 'mag') {
+                if(player.mana >= 15) {
                     player.mana -= 15;
                     bullets.push({
-                        type: 'energy_ball',
                         worldX: player.worldX, worldY: player.worldY,
-                        vx: Math.cos(player.angle) * 11, vy: Math.sin(player.angle) * 11,
-                        radius: 7, life: 65, damage: player.bulletDamage, animFrame: 0
+                        vx: Math.cos(angle) * 7, vy: Math.sin(angle) * 7,
+                        radius: 8, dmg: player.dmg, type: 'magic_orb', homing: true
                     });
-                    player.attackCooldown = 18;
-                }
-            } 
-            else if (player.charClass === 'wojownik') {
-                if (player.mana >= 12) {
-                    player.mana -= 12;
-                    player.swingSide *= -1; 
-                    
-                    let attackAngle = player.angle + (0.4 * player.swingSide);
-                    visualEffects.push({
-                        type: 'slash',
-                        worldX: player.worldX, worldY: player.worldY,
-                        angle: attackAngle,
-                        side: player.swingSide,
-                        life: 12, maxLife: 12
-                    });
-
-                    let range = 75;
-                    let ax = player.worldX + Math.cos(player.angle) * 35;
-                    let ay = player.worldY + Math.sin(player.angle) * 35;
-
-                    for (let i = enemies.length - 1; i >= 0; i--) {
-                        let e = enemies[i];
-                        let edx = e.worldX - ax, edy = e.worldY - ay;
-                        if (Math.sqrt(edx*edx + edy*edy) < e.radius + range/2) {
-                            e.hp = Math.max(0, e.hp - player.bulletDamage); 
-                            if (e.state !== 'aggressive') {
-                                e.state = 'aggressive';
-                                e.alertProgress = 100;
-                            }
-                            // POPRAWKA 4: Prowokacja stada przy uderzeniu wręcz
-                            alertNearbyEnemies(e);
-                            triggerCameraShake(8, 3);
-                            
-                            if (e.hp <= 0) {
-                                if (e.type === 'boss') bossUiEl.style.display = 'none';
-                                enemies.splice(i, 1);
-                                score++;
-                                scoreValEl.textContent = score;
-                                if(typeof window.syncMyStatsToDatabase === 'function') window.syncMyStatsToDatabase();
-                                addXp(e.xpReward);
-                            }
-                        }
-                    }
-
-                    animals.forEach(a => {
-                        let adx = a.worldX - ax, ady = a.worldY - ay;
-                        if (Math.sqrt(adx*adx + ady*ady) < a.radius + range/2) {
-                            a.hp -= player.bulletDamage;
-                            if (a.hp <= 0) {
-                                loots.push({ worldX: a.worldX, worldY: a.worldY, pulse: 0 });
-                                animals.splice(animals.indexOf(a), 1);
-                            }
-                        }
-                    });
-
-                    player.attackCooldown = 7; 
-                }
-            }
-        }
-
-        // --- PRZECIWNICY I SPAWNERY ---
-        function spawnEnemy() {
-            if (!gameIsRunning || enemies.length >= 24 || chatIsOpen) return;
-            let angle = Math.random() * Math.PI * 2;
-            let distance = Math.max(canvas.width, canvas.height) / 2 + 150;
-            let ex = player.worldX + Math.cos(angle) * distance;
-            let ey = player.worldY + Math.sin(angle) * distance;
-
-            // POPRAWKA 3: Zwiększony poziom trudności bossa (HP i DMG)
-            if (score > 0 && score % 15 === 0 && !enemies.some(e => e.type === 'boss')) {
-                enemies.push({
-                    type: 'boss', name: 'SIERADZKI NISZCZYCIEL',
-                    worldX: ex, worldY: ey, radius: 36, speed: 2.0, hp: 900, maxHp: 900, xpReward: 250, damage: 2.2,
-                    state: 'calm', alertProgress: 0, shakeX: 0, shakeY: 0, visionRadius: 400, loseTargetRadius: 700,
-                    walkTimer: 0, targetWalkX: ex, targetWalkY: ey, isWalking: false,
-                    bossTimer: 0, bossActionState: 'none', chargeVx: 0, chargeVy: 0, aiSeed: Math.random() * 100
+                } else { spawnFloatingText(player.worldX, player.worldY - 20, "Brak Many", '#33ccff'); }
+            } else if(player.charClass === 'lucznik') {
+                bullets.push({
+                    worldX: player.worldX, worldY: player.worldY,
+                    vx: Math.cos(angle) * 9, vy: Math.sin(angle) * 9,
+                    radius: 4, dmg: player.dmg, type: 'arrow', homing: false
                 });
-                bossUiEl.style.display = 'block';
-                return;
+            } else if(player.charClass === 'wojownik') {
+                // Atak obszarowy bliski (Szał cięcia)
+                ctx.save();
+                enemies.forEach(e => {
+                    let dx = e.worldX - player.worldX;
+                    let dy = e.worldY - player.worldY;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if(dist < 75) {
+                        e.hp -= player.dmg;
+                        if(typeof window.networkDamageMonster === 'function') window.networkDamageMonster(e.id, player.dmg);
+                        spawnFloatingText(e.worldX, e.worldY, `-${player.dmg}`, '#ff3333');
+                        createParticles(e.worldX, e.worldY, '#ff3333', 5);
+                        if(e.hp <= 0) handleMonsterKill(e);
+                    }
+                });
+                // PVP atak wręcz
+                Object.keys(window.remotePlayers).forEach(nick => {
+                    let rp = window.remotePlayers[nick];
+                    let dx = rp.x - player.worldX;
+                    let dy = rp.y - player.worldY;
+                    if(Math.sqrt(dx*dx + dy*dy) < 75) {
+                        if(typeof window.networkDamagePlayer === 'function') window.networkDamagePlayer(nick, player.dmg);
+                        spawnFloatingText(rp.x, rp.y, `-${player.dmg}`, '#ff4a4a');
+                    }
+                });
+                ctx.restore();
             }
-
-            // POPRAWKA 4: Rozbudowanie rodzajów przeciwników (dodano stalker, shaman) oraz zwiększenie HP/DMG potworów (Punkt 3)
-            let pool = ['classic'];
-            if (score >= 4) pool.push('runner');
-            if (score >= 8) pool.push('ranger', 'stalker');
-            if (score >= 12) pool.push('tank', 'shaman');
-
-            let chosenType = pool[Math.floor(Math.random() * pool.length)];
-            let enemyData = { 
-                type: chosenType, worldX: ex, worldY: ey, state: 'calm', 
-                alertProgress: 0, shakeX: 0, shakeY: 0, walkTimer: Math.random() * 120, 
-                targetWalkX: ex, targetWalkY: ey, isWalking: false,
-                aiSeed: Math.random() * 500, dynamicTimer: 0, rageMode: 1.0
-            };
-
-            // POPRAWKA 3 & 4: Zwiększone HP i obrażenia, zróżnicowane AI i typy jednostek
-            if (chosenType === 'classic') Object.assign(enemyData, { radius: 16, speed: 2.4, hp: 130, maxHp: 130, xpReward: 35, color: '#aa3333', agroColor: '#ff1111', visionRadius: 260, loseTargetRadius: 450, damage: 0.6 });
-            else if (chosenType === 'runner') Object.assign(enemyData, { radius: 14, speed: 4.4, hp: 80, maxHp: 80, xpReward: 45, color: '#ccb11a', agroColor: '#ffff00', visionRadius: 200, loseTargetRadius: 400, damage: 0.5 });
-            else if (chosenType === 'ranger') Object.assign(enemyData, { radius: 16, speed: 2.1, hp: 110, maxHp: 110, xpReward: 55, color: '#8e44ad', agroColor: '#d2527f', visionRadius: 320, loseTargetRadius: 500, damage: 0.4, shootCooldown: 0 });
-            else if (chosenType === 'tank') Object.assign(enemyData, { radius: 24, speed: 1.4, hp: 380, maxHp: 380, xpReward: 100, color: '#27ae60', agroColor: '#2ecc71', visionRadius: 240, loseTargetRadius: 400, damage: 1.3 });
-            // Nowy przeciwnik: Stalker (Przenika przez wodę bez spowolnienia, staje się pół-niewidzialny, potrafi odskoczyć)
-            else if (chosenType === 'stalker') Object.assign(enemyData, { radius: 15, speed: 2.8, hp: 100, maxHp: 100, xpReward: 60, color: '#556270', agroColor: '#4ecdc4', visionRadius: 300, loseTargetRadius: 450, damage: 0.7, teleportCooldown: 0 });
-            // Nowy przeciwnik: Shaman (Trzyma się z tyłu, leczy i rzuca szał prędkości na pobliskie potwory)
-            else if (chosenType === 'shaman') Object.assign(enemyData, { radius: 17, speed: 2.0, hp: 150, maxHp: 150, xpReward: 75, color: '#e67e22', agroColor: '#f1c40f', visionRadius: 280, loseTargetRadius: 450, damage: 0.3, healCooldown: 0 });
-
-            enemies.push(enemyData);
         }
-        setInterval(spawnEnemy, 1100);
 
-        function spawnAnimal() {
-            if (!gameIsRunning || animals.length >= 25 || chatIsOpen) return;
-            let angle = Math.random() * Math.PI * 2;
-            let distance = Math.max(canvas.width, canvas.height) / 2 + 200;
-            let ax = player.worldX + Math.cos(angle) * distance;
-            let ay = player.worldY + Math.sin(angle) * distance;
-
-            let behaviorPool = ['scared', 'aggressive', 'flying'];
-            let b = behaviorPool[Math.floor(Math.random() * behaviorPool.length)];
-            let animal = { behavior: b, worldX: ax, worldY: ay, hp: 60, maxHp: 60, vx: 0, vy: 0 };
-
-            if (b === 'scared') {
-                let types = ['Zając', 'Jeleń', 'Renifer'];
-                Object.assign(animal, { name: types[Math.floor(Math.random()*types.length)], radius: 12, speed: 3.5, color: '#d7ccc8' });
-            } else if (b === 'aggressive') {
-                let types = ['Wilk', 'Hyena', 'Niedźwiedź'];
-                let t = types[Math.floor(Math.random()*types.length)];
-                // POPRAWKA 3: Silniejsze dzikie zwierzęta
-                if (t === 'Niedźwiedź') Object.assign(animal, { name: t, radius: 25, speed: 2.0, color: '#5d4037', hp: 200, maxHp: 200, damage: 1.2, vision: 220 });
-                else Object.assign(animal, { name: t, radius: 14, speed: 3.0, color: '#78909c', damage: 0.5, vision: 200 });
-            } else if (b === 'flying') {
-                let isNight = (gameTime < 400 || gameTime > 2000);
-                Object.assign(animal, { name: isNight ? 'Nietoperz' : 'Ptak', radius: 10, speed: 2.5, color: isNight ? '#37474f' : '#64b5f6', heightOffset: 40 });
-            }
-            animals.push(animal);
-        }
-        setInterval(spawnAnimal, 2000);
-
-        // --- GŁÓWNA AKTUALIZACJA SILNIKA (UPDATE) ---
-        function update() {
-            if (!gameIsRunning || chatIsOpen) return; 
-
-            updateWeatherAndTime();
-
-            if (player.mana < player.maxMana) {
-                player.mana = Math.min(player.maxMana, player.mana + player.manaRegen);
-                updatePointsUI();
-            }
-
-            if (player.attackCooldown > 0) player.attackCooldown--;
-
-            if (isMouseDown && player.charClass === 'lucznik' && player.attackCooldown <= 0) {
-                if (player.mana >= 8) {
-                    player.mana -= 8;
-                    let spread = (Math.random() - 0.5) * 0.06;
-                    let finalAngle = player.angle + spread;
-
-                    bullets.push({
-                        type: 'arrow',
-                        worldX: player.worldX, worldY: player.worldY,
-                        vx: Math.cos(finalAngle) * 14, vy: Math.sin(finalAngle) * 14,
-                        radius: 3, life: 55, damage: player.bulletDamage, angle: finalAngle
-                    });
-                    
-                    player.attackCooldown = 10; 
-                    updatePointsUI();
-                }
-            }
-
-            if (isMouseDown && player.charClass === 'wojownik' && player.attackCooldown <= 0) {
-                playerAttack();
-            }
-
-            let playerTile = getTileAt(Math.floor(player.worldX / TILE_SIZE), Math.floor(player.worldY / TILE_SIZE));
-            let currentMaxSpeed = player.maxSpeed;
-            let currentAcceleration = player.acceleration;
-            if (playerTile === BIOMES.WATER) { currentMaxSpeed *= 0.5; currentAcceleration *= 0.5; }
-
-            let ax = 0, ay = 0;
-            if (joystick.active) {
-                let dx = joystick.currentX - joystick.startX, dy = joystick.currentY - joystick.startY;
-                let distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance > 0) {
-                    let angle = Math.atan2(dy, dx), intensity = Math.min(distance, joystick.maxRadius) / joystick.maxRadius;
-                    ax = Math.cos(angle) * currentAcceleration * intensity; ay = Math.sin(angle) * currentAcceleration * intensity;
-                }
-            } else {
-                if (keys.w) ay -= currentAcceleration; if (keys.s) ay += currentAcceleration;
-                if (keys.a) ax -= currentAcceleration; if (keys.d) ax += currentAcceleration;
-            }
-
-            player.vx += ax; player.vy += ay; player.vx *= player.friction; player.vy *= player.friction;
-            let speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-            if (speed > currentMaxSpeed) { player.vx = (player.vx / speed) * currentMaxSpeed; player.vy = (player.vy / speed) * currentMaxSpeed; }
-            player.worldX += player.vx; player.worldY += player.vy;
-
-            let targetScreenX = screenCenterX, targetScreenY = screenCenterY;
-            if (touchAim.active) { targetScreenX = touchAim.x; targetScreenY = touchAim.y; }
-            else if (isMousing) { targetScreenX = mouse.x; targetScreenY = mouse.y; }
-            const diffX = targetScreenX - screenCenterX, diffY = targetScreenY - screenCenterY;
-            if (Math.abs(diffX) > 1 || Math.abs(diffY) > 1) player.angle = Math.atan2(diffY, diffX);
-
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                let b = bullets[i]; b.worldX += b.vx; b.worldY += b.vy; b.life--;
-                if(b.type === 'energy_ball') b.animFrame++;
-
-                // POPRAWKA 1: Usunięto usuwanie pocisków przy kontakcie z wodą - przenikają swobodnie!
-                if (b.life <= 0) { bullets.splice(i, 1); }
-            }
-
-            for (let i = visualEffects.length - 1; i >= 0; i--) {
-                visualEffects[i].life--;
-                if(visualEffects[i].life <= 0) visualEffects.splice(i, 1);
-            }
-
-            for (let i = enemyBullets.length - 1; i >= 0; i--) {
-                let eb = enemyBullets[i]; eb.worldX += eb.vx; eb.worldY += eb.vy; eb.life--;
-                let edx = player.worldX - eb.worldX, edy = player.worldY - eb.worldY;
-                if (Math.sqrt(edx*edx + edy*edy) < player.radius + eb.radius) { player.hp -= 12; updatePointsUI(); enemyBullets.splice(i, 1); continue; }
-                if (eb.life <= 0) enemyBullets.splice(i, 1);
-            }
-
-            fishes.forEach(f => {
-                f.timeOffset += 0.02; f.angle += Math.sin(f.timeOffset) * 0.1;
-                f.worldX += Math.cos(f.angle) * f.speed; f.worldY += Math.sin(f.angle) * f.speed;
-                if(Math.abs(f.worldX - player.worldX) > 1500 || Math.abs(f.worldY - player.worldY) > 1500) {
-                    f.worldX = player.worldX + (Math.random() - 0.5) * 1500; f.worldY = player.worldY + (Math.random() - 0.5) * 1500;
-                }
+        function handleMonsterKill(m) {
+            score++;
+            let earnedXp = m.type === 'boss' ? 250 : 25;
+            player.xp += earnedXp;
+            // Upuszczanie lootu z monetami i kryształami kryptograficznymi
+            loots.push({
+                id: 'l_' + Date.now() + '_' + Math.random(),
+                worldX: m.worldX, worldY: m.worldY,
+                type: Math.random() > 0.5 ? 'token_pol' : 'gold', radius: 10
             });
-
-            for(let i = loots.length - 1; i >= 0; i--) {
-                let l = loots[i];
-                let ldx = player.worldX - l.worldX, ldy = player.worldY - l.worldY;
-                if(Math.sqrt(ldx*ldx + ldy*ldy) < player.radius + 15) {
-                    player.hp = Math.min(player.maxHp, player.hp + 20);
-                    updatePointsUI(); loots.splice(i, 1);
-                }
-            }
-
-            for (let i = animals.length - 1; i >= 0; i--) {
-                let a = animals[i];
-                let adx = player.worldX - a.worldX, ady = player.worldY - a.worldY;
-                let dist = Math.sqrt(adx*adx + ady*ady);
-
-                if (a.behavior === 'scared') {
-                    if (dist < 180) {
-                        let runAngle = Math.atan2(ady, adx) + Math.PI;
-                        a.worldX += Math.cos(runAngle) * a.speed; a.worldY += Math.sin(runAngle) * a.speed;
-                    } else { a.worldX += (Math.random() - 0.5) * 0.5; a.worldY += (Math.random() - 0.5) * 0.5; }
-                } 
-                else if (a.behavior === 'aggressive') {
-                    if (dist < a.vision) {
-                        let attackAngle = Math.atan2(ady, adx);
-                        a.worldX += Math.cos(attackAngle) * a.speed; a.worldY += Math.sin(attackAngle) * a.speed;
-                        if (dist < a.radius + player.radius) { player.hp -= a.damage; updatePointsUI(); }
-                    } else { a.worldX += (Math.random() - 0.5) * 0.3; a.worldY += (Math.random() - 0.5) * 0.3; }
-                } 
-                else if (a.behavior === 'flying') {
-                    let flyAngle = Math.sin(Date.now() * 0.001 + i) * 0.5;
-                    a.worldX += Math.cos(flyAngle) * a.speed; a.worldY += Math.sin(flyAngle) * a.speed;
-                }
-
-                for (let j = bullets.length - 1; j >= 0; j--) {
-                    let b = bullets[j]; let bdx = b.worldX - a.worldX, bdy = b.worldY - a.worldY;
-                    if (Math.sqrt(bdx*bdx + bdy*bdy) < a.radius + b.radius) {
-                        a.hp -= b.damage; bullets.splice(j, 1);
-                        if (a.hp <= 0) {
-                            loots.push({ worldX: a.worldX, worldY: a.worldY, pulse: 0 });
-                            animals.splice(i, 1); break;
-                        }
-                    }
-                }
-                if (dist > 2000) animals.splice(i, 1);
-            }
-
-            let bossAlive = false;
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                let e = enemies[i];
-                if (e.type === 'boss') { bossAlive = true; bossHpBarEl.style.width = `${(e.hp / e.maxHp) * 100}%`; }
-                let edx = player.worldX - e.worldX, edy = player.worldY - e.worldY;
-                let distToPlayer = Math.sqrt(edx * edx + edy * edy);
-                let eTile = getTileAt(Math.floor(e.worldX / TILE_SIZE), Math.floor(e.worldY / TILE_SIZE));
-                
-                // Stalker nie dostaje kary za chodzenie po wodzie
-                let currentEnemySpeed = (eTile === BIOMES.WATER && e.type !== 'stalker') ? e.speed * 0.5 : e.speed;
-                currentEnemySpeed *= e.rageMode; // Uwzględnienie buffa od szamana
-
-                if (e.state === 'calm') {
-                    e.shakeX = 0; e.shakeY = 0; e.walkTimer--;
-                    if (e.walkTimer <= 0) {
-                        e.walkTimer = 150 + Math.random() * 200;
-                        if (Math.random() < 0.6) {
-                            e.isWalking = true; let randAngle = Math.random() * Math.PI * 2, randDist = 50 + Math.random() * 100;
-                            e.targetWalkX = e.worldX + Math.cos(randAngle) * randDist; e.targetWalkY = e.worldY + Math.sin(randAngle) * randDist;
-                        } else { e.isWalking = false; }
-                    }
-                    if (e.isWalking) {
-                        let tdx = e.targetWalkX - e.worldX, tdy = e.targetWalkY - e.worldY;
-                        let tDist = Math.sqrt(tdx*tdx + tdy*tdy);
-                        if (tDist > 4) { e.worldX += (tdx / tDist) * (currentEnemySpeed * 0.4); e.worldY += (tdy / tDist) * (currentEnemySpeed * 0.4); } else { e.isWalking = false; }
-                    }
-                    if (distToPlayer < e.visionRadius) e.state = 'nervous';
-                } 
-                else if (e.state === 'nervous') {
-                    e.shakeX = (Math.random() - 0.5) * 6; e.shakeY = (Math.random() - 0.5) * 6; e.alertProgress += 1.5;
-                    if (e.alertProgress >= 100) { 
-                        e.state = 'aggressive'; e.shakeX = 0; e.shakeY = 0; 
-                        // POPRAWKA 4: Wywołanie stada, gdy potwór sam Cię zauważy
-                        alertNearbyEnemies(e);
-                    }
-                    if (distToPlayer > e.visionRadius + 30) { e.alertProgress -= 2; if (e.alertProgress <= 0) { e.alertProgress = 0; e.state = 'calm'; } }
-                } 
-                else if (e.state === 'aggressive') {
-                    e.dynamicTimer += 0.05;
-
-                    // POPRAWKA 4: Nieprzewidywalne, nieliniowe zachowanie sztucznej inteligencji (AI)
-                    // Wszystkie potwory w stanie agresywnym krążą lub falują zamiast iść prosto
-                    let waveOffset = Math.sin(e.dynamicTimer + e.aiSeed) * 1.5; 
-                    let approachAngle = Math.atan2(edy, edx);
-
-                    if (e.type === 'boss') {
-                        e.bossTimer++;
-                        if (e.bossActionState === 'none' && e.bossTimer > 200) { e.bossActionState = 'preparing'; e.bossTimer = 0; }
-                        if (e.bossActionState === 'preparing') {
-                            e.shakeX = (Math.random() - 0.5) * 12; e.shakeY = (Math.random() - 0.5) * 12;
-                            if (e.bossTimer > 50) {
-                                e.bossActionState = 'charging'; e.bossTimer = 0;
-                                let chargeAngle = Math.atan2(player.worldY - e.worldY, player.worldX - e.worldX);
-                                e.chargeVx = Math.cos(chargeAngle) * 13; e.chargeVy = Math.sin(chargeAngle) * 13;
-                                triggerCameraShake(25, 9);
-                            }
-                        } else if (e.bossActionState === 'charging') {
-                            e.worldX += e.chargeVx; e.worldY += e.chargeVy;
-                            if (e.bossTimer > 35) { e.bossActionState = 'none'; e.bossTimer = 0; e.shakeX = 0; e.shakeY = 0; }
-                        } else { 
-                            if (distToPlayer > 5) { 
-                                e.worldX += Math.cos(approachAngle + waveOffset*0.2) * currentEnemySpeed; 
-                                e.worldY += Math.sin(approachAngle + waveOffset*0.2) * currentEnemySpeed; 
-                            } 
-                        }
-                    } 
-                    // Unikalny ruch dla Rangera (Próbuje Cię okrążać z dystansu i strzela podwójnymi pociskami)
-                    else if (e.type === 'ranger') {
-                        let orbitAngle = approachAngle + Math.PI / 2 + (waveOffset * 0.1);
-                        if (distToPlayer > 240) { 
-                            e.worldX += Math.cos(approachAngle) * currentEnemySpeed; 
-                            e.worldY += Math.sin(approachAngle) * currentEnemySpeed; 
-                        } 
-                        else if (distToPlayer < 170) { 
-                            e.worldX -= Math.cos(approachAngle) * currentEnemySpeed; 
-                            e.worldY -= Math.sin(approachAngle) * currentEnemySpeed; 
-                        } else {
-                            e.worldX += Math.cos(orbitAngle) * (currentEnemySpeed * 0.8);
-                            e.worldY += Math.sin(orbitAngle) * (currentEnemySpeed * 0.8);
-                        }
-                        
-                        e.shootCooldown++;
-                        if (e.shootCooldown > 55) {
-                            e.shootCooldown = 0; 
-                            let shootAngle = Math.atan2(player.worldY - e.worldY, player.worldX - e.worldX);
-                            // Strzela dwoma rozsuniętymi pociskami (trudniejsze do uniknięcia)
-                            enemyBullets.push({ worldX: e.worldX, worldY: e.worldY, vx: Math.cos(shootAngle - 0.15) * 6.5, vy: Math.sin(shootAngle - 0.15) * 6.5, radius: 4, life: 75 });
-                            enemyBullets.push({ worldX: e.worldX, worldY: e.worldY, vx: Math.cos(shootAngle + 0.15) * 6.5, vy: Math.sin(shootAngle + 0.15) * 6.5, radius: 4, life: 75 });
-                        }
-                    } 
-                    // Unikalne ruchy dla Stalkera (Niewidzialność i mikroteleportacja za graczem)
-                    else if (e.type === 'stalker') {
-                        e.teleportCooldown++;
-                        // Raz na jakiś czas Stalker teleportuje się z boku gracza
-                        if (e.teleportCooldown > 140 && distToPlayer > 120) {
-                            e.teleportCooldown = 0;
-                            let telAngle = approachAngle + (Math.random() > 0.5 ? 0.7 : -0.7);
-                            e.worldX = player.worldX - Math.cos(telAngle) * 90;
-                            e.worldY = player.worldY - Math.sin(telAngle) * 90;
-                            visualEffects.push({ type: 'slash', worldX: e.worldX, worldY: e.worldY, angle: telAngle, side: 1, life: 6, maxLife: 6 });
-                        } else {
-                            e.worldX += Math.cos(approachAngle + waveOffset * 0.4) * currentEnemySpeed;
-                            e.worldY += Math.sin(approachAngle + waveOffset * 0.4) * currentEnemySpeed;
-                        }
-                    }
-                    // Unikalne zachowanie Szamana (Leczy i nakłada szał na sojuszników)
-                    else if (e.type === 'shaman') {
-                        if (distToPlayer < 220) {
-                            e.worldX -= Math.cos(approachAngle) * currentEnemySpeed;
-                            e.worldY -= Math.sin(approachAngle) * currentEnemySpeed;
-                        } else if (distToPlayer > 320) {
-                            e.worldX += Math.cos(approachAngle) * currentEnemySpeed;
-                            e.worldY += Math.sin(approachAngle) * currentEnemySpeed;
-                        } else {
-                            e.worldX += Math.cos(approachAngle + Math.PI/2) * currentEnemySpeed;
-                            e.worldY += Math.sin(approachAngle + Math.PI/2) * currentEnemySpeed;
-                        }
-
-                        e.healCooldown++;
-                        if (e.healCooldown > 90) {
-                            e.healCooldown = 0;
-                            enemies.forEach(other => {
-                                if (other !== e && Math.abs(other.worldX - e.worldX) < 200 && Math.abs(other.worldY - e.worldY) < 200) {
-                                    other.hp = Math.min(other.maxHp, other.hp + 30);
-                                    other.rageMode = 1.4; // Buff do prędkości poruszania się
-                                }
-                            });
-                        }
-                    }
-                    // Klasyczne AI oraz Tank - dynamiczne, falujące podejście i losowy mikrodoskok
-                    else { 
-                        if (distToPlayer > 5) { 
-                            let extraDash = (e.type === 'runner' && distToPlayer < 90 && Math.floor(Date.now() / 400) % 2 === 0) ? 1.6 : 1.0;
-                            e.worldX += Math.cos(approachAngle + waveOffset * 0.3) * currentEnemySpeed * extraDash; 
-                            e.worldY += Math.sin(approachAngle + waveOffset * 0.3) * currentEnemySpeed * extraDash; 
-                        } 
-                    }
-
-                    if (distToPlayer > e.loseTargetRadius && e.type !== 'boss') { 
-                        e.state = 'calm'; e.alertProgress = 0; e.rageMode = 1.0; 
-                    }
-
-                    if (distToPlayer < e.radius + player.radius) {
-                        player.hp -= e.damage; updatePointsUI();
-                        if (player.hp <= 0) {
-                            alert("Koniec Gry! Twój poziom: " + player.level);
-                            gameIsRunning = false; startMenuEl.style.display = 'flex'; uiEl.style.display = 'none';
-                            player.hp = 100; player.maxHp = 100; player.level = 1; player.xp = 0; player.xpNeeded = 100; player.bulletDamage = 35; player.skillPoints = 0; player.maxSpeed = 6; player.acceleration = 0.8;
-                            score = 0; scoreValEl.textContent = score; enemies.length = 0; bullets.length = 0; enemyBullets.length = 0; animals.length = 0; loots.length = 0; visualEffects.length = 0; bossUiEl.style.display = 'none'; updatePointsUI();
-                            if(typeof window.syncMyStatsToDatabase === 'function') window.syncMyStatsToDatabase();
-                        }
-                    }
-                }
-
-                for (let j = bullets.length - 1; j >= 0; j--) {
-                    let b = bullets[j]; let bdx = b.worldX - e.worldX, bdy = b.worldY - e.worldY;
-                    if (Math.sqrt(bdx*bdx + bdy*bdy) < e.radius + b.radius) {
-                        e.hp = Math.max(0, e.hp - b.damage); 
-                        bullets.splice(j, 1);
-                        if (e.state !== 'aggressive') {
-                            e.state = 'aggressive';
-                            e.alertProgress = 100;
-                        }
-                        // POPRAWKA 4: Agresja stadna przy trafieniu pociskiem z dystansu
-                        alertNearbyEnemies(e);
-                        
-                        if (e.hp <= 0) {
-                            if (e.type === 'boss') bossUiEl.style.display = 'none';
-                            enemies.splice(i, 1); score++; scoreValEl.textContent = score; 
-                            if(typeof window.syncMyStatsToDatabase === 'function') window.syncMyStatsToDatabase();
-                            addXp(e.xpReward); break;
-                        }
-                    }
-                }
-            }
-            if (!bossAlive) bossUiEl.style.display = 'none';
-            if (camShakeTime > 0) camShakeTime--;
+            checkLevelUp();
         }
 
-        // --- RYSOWANIE GRAFIKI (DRAW) ---
-        function draw() {
-            let currentShakeX = 0, currentShakeY = 0;
-            if (camShakeTime > 0) { currentShakeX = (Math.random() - 0.5) * camShakeIntensity; currentShakeY = (Math.random() - 0.5) * camShakeIntensity; }
-
-            ctx.fillStyle = '#111'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+        // --- GŁÓWNA PĘTLA GRY ---
+        function gameLoop() {
             if(!gameIsRunning) return;
 
-            const cameraX = player.worldX - screenCenterX + currentShakeX;
-            const cameraY = player.worldY - screenCenterY + currentShakeY;
+            updateState();
+            renderGame();
 
-            const startTileX = Math.floor(cameraX / TILE_SIZE);
-            const endTileX = Math.ceil((cameraX + canvas.width) / TILE_SIZE);
-            const startTileY = Math.floor(cameraY / TILE_SIZE);
-            const endTileY = Math.ceil((cameraY + canvas.height) / TILE_SIZE);
+            requestAnimationFrame(gameLoop);
+        }
 
-            for (let y = startTileY; y <= endTileY; y++) {
-                for (let x = startTileX; x <= endTileX; x++) {
-                    const tile = getTileAt(x, y);
-                    let rx = Math.round(x * TILE_SIZE - cameraX);
-                    let ry = Math.round(y * TILE_SIZE - cameraY);
-                    
-                    let grad = ctx.createRadialGradient(rx + 32, ry + 32, 5, rx + 32, ry + 32, 45);
-                    grad.addColorStop(0, tile.c1); grad.addColorStop(1, tile.c2);
-                    ctx.fillStyle = grad; ctx.fillRect(rx, ry, TILE_SIZE, TILE_SIZE);
+        function updateState() {
+            // Ruch gracza (Klawiatura / Joystick)
+            let moveX = 0, moveY = 0;
+            if (keys['w'] || keys['arrowup']) moveY = -1;
+            if (keys['s'] || keys['arrowdown']) moveY = 1;
+            if (keys['a'] || keys['arrowleft']) moveX = -1;
+            if (keys['d'] || keys['arrowright']) moveX = 1;
 
-                    let propSeed = MathNoise(x, y);
-                    if (tile === BIOMES.WATER && propSeed < 0.12) {
-                        ctx.fillStyle = '#1e8449'; ctx.beginPath(); ctx.arc(rx + 32 + propSeed*20, ry + 32 - propSeed*20, 8, 0, Math.PI * 1.7); ctx.fill();
-                    }
-                    else if ((tile === BIOMES.GRASS || tile === BIOMES.RAINFOREST) && propSeed < 0.25) {
-                        if (propSeed < 0.08) {
-                            let color = propSeed < 0.03 ? '#ff3366' : (propSeed < 0.06 ? '#33ccff' : '#ffcc00');
-                            ctx.fillStyle = color; ctx.beginPath(); ctx.arc(rx + 20 + propSeed*30, ry + 20 + propSeed*30, 4, 0, Math.PI*2); ctx.fill();
-                        } else {
-                            ctx.strokeStyle = '#1b5e20'; ctx.lineWidth = 2; ctx.beginPath();
-                            let tx = rx + 15 + propSeed*30, ty = ry + 40;
-                            ctx.moveTo(tx, ty); ctx.lineTo(tx - 3, ty - 12); ctx.moveTo(tx, ty); ctx.lineTo(tx, ty - 15); ctx.moveTo(tx, ty); ctx.lineTo(tx + 4, ty - 10); ctx.stroke();
-                        }
-                    }
-                    else if ((tile === BIOMES.FOREST || tile === BIOMES.MOUNTAIN) && propSeed < 0.18) {
-                        let ox = rx + 32, oy = ry + 32;
-                        if (propSeed < 0.09) {
-                            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(ox + 5, oy + 5, 12, 6, 0, 0, Math.PI*2); ctx.fill();
-                            ctx.fillStyle = '#5d4037'; ctx.beginPath(); ctx.arc(ox, oy, 10, 0, Math.PI*2); ctx.fill();
-                        } else {
-                            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(ox + 4, oy + 4, 14, 8, 0, 0, Math.PI*2); ctx.fill();
-                            ctx.fillStyle = '#9e9e9e'; ctx.beginPath(); ctx.arc(ox, oy, 9, 0, Math.PI*2); ctx.fill();
-                        }
-                    }
+            if (joystick.active) {
+                let dx = joystick.currentX - joystick.startX;
+                let dy = joystick.currentY - joystick.startY;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                if(dist > 0) {
+                    moveX = dx / dist;
+                    moveY = dy / dist;
                 }
             }
 
-            fishes.forEach(f => {
-                let fTile = getTileAt(Math.floor(f.worldX / TILE_SIZE), Math.floor(f.worldY / TILE_SIZE));
-                if(fTile === BIOMES.WATER) {
-                    ctx.save(); ctx.translate(Math.round(f.worldX - cameraX), Math.round(f.worldY - cameraY)); ctx.rotate(f.angle);
-                    ctx.fillStyle = '#ff7675'; ctx.beginPath(); ctx.ellipse(0, 0, 6, 3, 0, 0, Math.PI*2); ctx.fill();
-                    ctx.restore();
+            // Normalizacja prędkości wektora
+            if(moveX !== 0 || moveY !== 0) {
+                let len = Math.sqrt(moveX*moveX + moveY*moveY);
+                player.worldX += (moveX / len) * player.speed;
+                player.worldY += (moveY / len) * player.speed;
+                player.angle = Math.atan2(moveY, moveX);
+            } else {
+                if(Date.now() - player.lastAttackTime > 200) player.isAttacking = false;
+            }
+
+            // Granice świata
+            player.worldX = Math.max(player.radius, Math.min(WORLD_SIZE - player.radius, player.worldX));
+            player.worldY = Math.max(player.radius, Math.min(WORLD_SIZE - player.radius, player.worldY));
+
+            // Ciągły ogień przy kliknięciu myszą
+            if(isMouseDown) {
+                handleActionAt(mouseX, mouseY);
+            }
+
+            // Automatyczna pasywna regeneracja many
+            if(player.mana < player.maxMana) player.mana = Math.min(player.maxMana, player.mana + 0.15);
+
+            // Aktualizacja Pocisków gracza
+            for(let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i];
+                b.worldX += b.vx;
+                b.worldY += b.vy;
+
+                // Samonaprowadzanie dla Maga (Homing)
+                if(b.homing && enemies.length > 0) {
+                    let closest = null, minDist = 400;
+                    enemies.forEach(e => {
+                        let d = Math.sqrt((e.worldX-b.worldX)**2 + (e.worldY-b.worldY)**2);
+                        if(d < minDist) { minDist = d; closest = e; }
+                    });
+                    if(closest) {
+                        let angleTo = Math.atan2(closest.worldY - b.worldY, closest.worldX - b.worldX);
+                        b.vx = Math.cos(angleTo) * 6;
+                        b.vy = Math.sin(angleTo) * 6;
+                    }
+                }
+
+                // Kolizje pocisków z potworami
+                let hit = false;
+                for(let j = enemies.length - 1; j >= 0; j--) {
+                    let e = enemies[j];
+                    let dist = Math.sqrt((b.worldX - e.worldX)**2 + (b.worldY - e.worldY)**2);
+                    if(dist < b.radius + e.radius) {
+                        e.hp -= b.dmg;
+                        if(typeof window.networkDamageMonster === 'function') window.networkDamageMonster(e.id, b.dmg);
+                        spawnFloatingText(e.worldX, e.worldY, `-${b.dmg}`, '#ffcc00');
+                        createParticles(e.worldX, e.worldY, '#ffcc00', 6);
+                        hit = true;
+                        if(e.hp <= 0) {
+                            handleMonsterKill(e);
+                            enemies.splice(j, 1);
+                        }
+                        break;
+                    }
+                }
+
+                // PVP Kolizje pocisków z innymi graczami w pokoju
+                if(!hit) {
+                    Object.keys(window.remotePlayers).forEach(nick => {
+                        let rp = window.remotePlayers[nick];
+                        let dist = Math.sqrt((b.worldX - rp.x)**2 + (b.worldY - rp.y)**2);
+                        if(dist < b.radius + 18) {
+                            if(typeof window.networkDamagePlayer === 'function') window.networkDamagePlayer(nick, b.dmg);
+                            spawnFloatingText(rp.x, rp.y, `-${b.dmg}`, '#ff4a4a');
+                            createParticles(b.worldX, b.worldY, '#00ffcc', 5);
+                            hit = true;
+                        }
+                    });
+                }
+
+                if(hit || b.worldX < 0 || b.worldX > WORLD_SIZE || b.worldY < 0 || b.worldY > WORLD_SIZE) {
+                    bullets.splice(i, 1);
+                }
+            }
+
+            // Aktualizacja wrogich pocisków bossa
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                let eb = enemyBullets[i];
+                eb.worldX += eb.vx;
+                eb.worldY += eb.vy;
+                let d = Math.sqrt((eb.worldX - player.worldX)**2 + (eb.worldY - player.worldY)**2);
+                if(d < eb.radius + player.radius) {
+                    player.hp = Math.max(0, player.hp - eb.dmg);
+                    spawnFloatingText(player.worldX, player.worldY, `-${eb.dmg}`, '#ff0055');
+                    enemyBullets.splice(i, 1);
+                    continue;
+                }
+                if(eb.worldX < 0 || eb.worldX > WORLD_SIZE || eb.worldY < 0 || eb.worldY > WORLD_SIZE) {
+                    enemyBullets.splice(i, 1);
+                }
+            }
+
+            // AI i mechanika potworów (Zarządzane tylko, jeśli jesteśmy Hostem)
+            let bossLiving = false;
+            enemies.forEach(e => {
+                if(e.type === 'boss') { bossLiving = true; document.getElementById('boss-ui').style.display = 'block'; document.getElementById('boss-hp-bar').style.width = `${(e.hp/e.maxHp)*100}%`; }
+                
+                if(!window.isRoomHost && Object.keys(window.remotePlayers).length > 0) return; 
+
+                // Znajdź najbliższego gracza (Lokalny lub Zdalny)
+                let targetX = player.worldX, targetY = player.worldY;
+                let targetDist = Math.sqrt((e.worldX - player.worldX)**2 + (e.worldY - player.worldY)**2);
+
+                Object.keys(window.remotePlayers).forEach(nick => {
+                    let rp = window.remotePlayers[nick];
+                    let d = Math.sqrt((e.worldX - rp.x)**2 + (e.worldY - rp.y)**2);
+                    if(d < targetDist) { targetDist = d; targetX = rp.x; targetY = rp.y; }
+                });
+
+                if(targetDist < 350) {
+                    let angle = Math.atan2(targetY - e.worldY, targetX - e.worldX);
+                    e.worldX += Math.cos(angle) * e.speed;
+                    e.worldY += Math.sin(angle) * e.speed;
+
+                    // Unikalne mechaniki atakowania Bossów
+                    if(e.type === 'boss' && Math.random() < 0.02) {
+                        enemyBullets.push({
+                            worldX: e.worldX, worldY: e.worldY,
+                            vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5,
+                            radius: 12, dmg: 25
+                        });
+                    }
+
+                    // Atak bezpośredni na gracza lokalnego
+                    if(targetX === player.worldX && targetDist < e.radius + player.radius) {
+                        player.hp = Math.max(0, player.hp - 0.4);
+                        if(Math.random() < 0.05) spawnFloatingText(player.worldX, player.worldY, "-Obrona", '#ff3366');
+                    }
                 }
             });
+            if(!bossLiving) document.getElementById('boss-ui').style.display = 'none';
 
+            // Zbieranie przedmiotów / łupów
+            for(let i = loots.length - 1; i >= 0; i--) {
+                let l = loots[i];
+                let dist = Math.sqrt((l.worldX - player.worldX)**2 + (l.worldY - player.worldY)**2);
+                if(dist < player.radius + l.radius) {
+                    if(l.type === 'token_pol') { spawnFloatingText(player.worldX, player.worldY - 20, "+1 POL Token", '#00ffcc'); }
+                    else { spawnFloatingText(player.worldX, player.worldY - 20, "+15 Złota", '#ffcc00'); }
+                    if(typeof window.networkRemoveLoot === 'function') window.networkRemoveLoot(l.id);
+                    loots.splice(i, 1);
+                }
+            }
+
+            // Animowanie cząsteczek dymu/ognia
+            for(let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i]; p.x += p.vx; p.y += p.vy; p.alpha -= 0.02;
+                if(p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            // Animowanie tekstów obrażeń
+            for(let i = floatingTexts.length - 1; i >= 0; i--) {
+                let ft = floatingTexts[i]; ft.y -= 0.6; ft.life--;
+                if(ft.life <= 0) floatingTexts.splice(i, 1);
+            }
+
+            // Pogoda zegar i odliczanie deszczu/śniegu
+            weatherTimer -= 16.66;
+            if(weatherTimer <= 0) changeWeather();
+
+            // Renderowanie danych w HUD interfejsu
+            document.getElementById('lvl-val').textContent = player.level;
+            document.getElementById('hp-text').textContent = `${Math.ceil(player.hp)}/${player.maxHp}`;
+            document.getElementById('hp-bar').style.width = `${(player.hp/player.maxHp)*100}%`;
+            document.getElementById('mana-text').textContent = `${Math.ceil(player.mana)}/${player.maxMana}`;
+            document.getElementById('mana-bar').style.width = `${(player.mana/player.maxMana)*100}%`;
+            document.getElementById('xp-bar').style.width = `${(player.xp/player.maxXp)*100}%`;
+            document.getElementById('score-val').textContent = score;
+
+            // TRANSMISJA STANÓW SIECIOWYCH DO BAZY FIREBASE (MULTIPLAYER)
+            if(typeof window.broadcastMyPosition === 'function') {
+                window.broadcastMyPosition(player.worldX, player.worldY, player.angle, player.hp, player.maxHp, player.isAttacking, player.charClass, player.level);
+            }
+            if(window.isRoomHost && typeof window.networkSyncMonstersAndLoot === 'function') {
+                window.networkSyncMonstersAndLoot(enemies, loots);
+            }
+        }
+
+        function renderGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            let camX = player.worldX - canvas.width / 2;
+            let camY = player.worldY - canvas.height / 2;
+
+            // Rysowanie kafelków świata gry (Proceduralna Siatka)
+            let startGridX = Math.floor(Math.max(0, camX) / TILE_SIZE);
+            let endGridX = Math.floor(Math.min(WORLD_SIZE, camX + canvas.width) / TILE_SIZE);
+            let startGridY = Math.floor(Math.max(0, camY) / TILE_SIZE);
+            let endGridY = Math.floor(Math.min(WORLD_SIZE, camY + canvas.height) / TILE_SIZE);
+
+            for(let gx = startGridX; gx <= endGridX; gx++) {
+                for(let gy = startGridY; gy <= endGridY; gy++) {
+                    if(!mapGrid[gx] || !mapGrid[gx][gy]) continue;
+                    let type = mapGrid[gx][gy];
+                    if(type === 'grass') ctx.fillStyle = '#1b2616';
+                    else if(type === 'water') ctx.fillStyle = '#0f2038';
+                    else if(type === 'sand') ctx.fillStyle = '#3c3522';
+                    else ctx.fillStyle = '#22252c';
+
+                    ctx.fillRect(gx*TILE_SIZE - camX, gy*TILE_SIZE - camY, TILE_SIZE, TILE_SIZE);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.015)';
+                    ctx.strokeRect(gx*TILE_SIZE - camX, gy*TILE_SIZE - camY, TILE_SIZE, TILE_SIZE);
+                }
+            }
+
+            // Rysowanie lootu z ziemi
             loots.forEach(l => {
-                l.pulse += 0.08; let sizeMod = Math.sin(l.pulse) * 2;
-                let lx = Math.round(l.worldX - cameraX), ly = Math.round(l.worldY - cameraY);
-                ctx.fillStyle = '#d63031'; ctx.beginPath(); ctx.arc(lx, ly, 8 + sizeMod, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#ffffff'; ctx.fillRect(lx - 2, ly - 2, 4, 9);
+                ctx.beginPath();
+                ctx.arc(l.worldX - camX, l.worldY - camY, l.radius, 0, Math.PI*2);
+                ctx.fillStyle = l.type === 'token_pol' ? '#00ffcc' : '#ffcc00';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.stroke();
+                // Etykieta tekstu
+                ctx.fillStyle = '#fff'; ctx.font = '10px Arial'; ctx.textAlign = 'center';
+                ctx.fillText(l.type === 'token_pol' ? 'POL' : 'GOLD', l.worldX - camX, l.worldY - camY - 14);
+            });
+
+            // Rysowanie Potworów i Zwierząt
+            enemies.forEach(e => {
+                ctx.beginPath();
+                ctx.arc(e.worldX - camX, e.worldY - camY, e.radius, 0, Math.PI*2);
+                ctx.fillStyle = e.type === 'boss' ? '#990000' : e.type === 'orc' ? '#3d5229' : '#52294f';
+                ctx.fill();
+                ctx.strokeStyle = '#ff3333';
+                ctx.stroke();
+
+                // Paski życia potworów na żywo
+                ctx.fillStyle = '#222'; ctx.fillRect(e.worldX - camX - 20, e.worldY - camY - e.radius - 12, 40, 5);
+                ctx.fillStyle = '#ff3333'; ctx.fillRect(e.worldX - camX - 20, e.worldY - camY - e.radius - 12, (e.hp/e.maxHp)*40, 5);
             });
 
             animals.forEach(a => {
-                let ax = Math.round(a.worldX - cameraX), ay = Math.round(a.worldY - cameraY);
-                if (a.behavior === 'flying') {
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)'; ctx.beginPath(); ctx.arc(ax, ay + a.heightOffset, a.radius * 0.8, 0, Math.PI*2); ctx.fill();
-                    ay -= a.heightOffset;
-                } else {
-                    ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.beginPath(); ctx.ellipse(ax + 3, ay + 3, a.radius, a.radius*0.5, 0, 0, Math.PI*2); ctx.fill();
-                }
-                ctx.fillStyle = a.color; ctx.beginPath(); ctx.arc(ax, ay, a.radius, 0, Math.PI*2); ctx.fill();
-                ctx.strokeStyle = '#2d3436'; ctx.lineWidth = 1.5; ctx.stroke();
+                ctx.beginPath(); ctx.arc(a.worldX - camX, a.worldY - camY, a.radius, 0, Math.PI*2);
+                ctx.fillStyle = '#8e8e8e'; ctx.fill();
             });
 
+            // Rysowanie pocisków
             bullets.forEach(b => {
-                let bx = Math.round(b.worldX - cameraX);
-                let by = Math.round(b.worldY - cameraY);
-
-                if (b.type === 'energy_ball') {
-                    ctx.save();
-                    ctx.shadowColor = '#00d2ff'; ctx.shadowBlur = 15;
-                    
-                    ctx.strokeStyle = 'rgba(51, 204, 255, 0.6)';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.ellipse(bx, by, b.radius * 2.2, b.radius * 0.8, b.animFrame * 0.15, 0, Math.PI * 2);
-                    ctx.stroke();
-
-                    ctx.beginPath();
-                    ctx.ellipse(bx, by, b.radius * 0.8, b.radius * 2.2, -b.animFrame * 0.2, 0, Math.PI * 2);
-                    ctx.stroke();
-
-                    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.beginPath();
-                    for(let i=0; i<4; i++) {
-                        let len = b.radius * (1.2 + Math.random()*0.8);
-                        let ang = (Math.PI / 2) * i + (Math.random() - 0.5);
-                        ctx.moveTo(bx, by);
-                        ctx.lineTo(bx + Math.cos(ang)*len, by + Math.sin(ang)*len);
-                    }
-                    ctx.stroke();
-
-                    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(bx, by, b.radius, 0, Math.PI*2); ctx.fill();
-                    ctx.restore();
-                } 
-                else if (b.type === 'arrow') {
-                    ctx.save(); ctx.translate(bx, by); ctx.rotate(b.angle);
-                    ctx.strokeStyle = '#f39c12'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(8, 0); ctx.stroke(); 
-                    ctx.fillStyle = '#ecf0f1'; ctx.beginPath(); ctx.moveTo(-10, -3); ctx.lineTo(-14, -5); ctx.lineTo(-12, 0); ctx.lineTo(-14, 5); ctx.lineTo(-10, 3); ctx.fill(); 
-                    ctx.restore();
-                }
-            });
-
-            visualEffects.forEach(fx => {
-                if (fx.type === 'slash') {
-                    ctx.save();
-                    ctx.translate(Math.round(fx.worldX - cameraX), Math.round(fx.worldY - cameraY));
-                    ctx.rotate(fx.angle);
-                    
-                    let alpha = fx.life / fx.maxLife;
-                    ctx.strokeStyle = `rgba(255, 51, 51, ${alpha})`;
-                    ctx.lineWidth = 5; ctx.shadowBlur = 10; ctx.shadowColor = '#ff0000';
-                    ctx.beginPath();
-                    ctx.arc(15, 0, 45, -Math.PI/3, Math.PI/3, false);
-                    ctx.stroke();
-                    ctx.restore();
-                }
+                ctx.beginPath(); ctx.arc(b.worldX - camX, b.worldY - camY, b.radius, 0, Math.PI*2);
+                ctx.fillStyle = b.type === 'magic_orb' ? '#33ccff' : '#d2b48c'; ctx.fill();
             });
 
             enemyBullets.forEach(eb => {
-                ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(Math.round(eb.worldX - cameraX), Math.round(eb.worldY - cameraY), eb.radius, 0, Math.PI * 2); ctx.fillStyle = '#df00ff'; ctx.fill(); ctx.shadowBlur = 0;
+                ctx.beginPath(); ctx.arc(eb.worldX - camX, eb.worldY - camY, eb.radius, 0, Math.PI*2);
+                ctx.fillStyle = '#ff0055'; ctx.fill();
             });
 
-            enemies.forEach(e => {
-                let scrX = Math.round(e.worldX - cameraX + e.shakeX), scrY = Math.round(e.worldY - cameraY + e.shakeY);
-                ctx.save(); 
-                
-                // POPRAWKA 4: Wizualna przezroczystość dla Stalkera w celu zasymulowania kamuflażu
-                if (e.type === 'stalker' && e.state === 'aggressive') {
-                    ctx.globalAlpha = 0.35; 
+            // RYSOWANIE INNYCH GRACZY SIECIOWYCH (REMOTE MULTIPLAYER)
+            Object.keys(window.remotePlayers).forEach(nick => {
+                let rp = window.remotePlayers[nick];
+                let rx = rp.x - camX;
+                let ry = rp.y - camY;
+
+                // Korpus zdalnego gracza
+                ctx.beginPath();
+                ctx.arc(rx, ry, 18, 0, Math.PI * 2);
+                ctx.fillStyle = rp.charClass === 'wojownik' ? '#ff3333' : rp.charClass === 'lucznik' ? '#2ecc71' : '#33ccff';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.stroke();
+
+                // Wskaźnik obrotu głowy sieciowego gracza
+                ctx.beginPath();
+                ctx.moveTo(rx, ry);
+                ctx.lineTo(rx + Math.cos(rp.angle) * 25, ry + Math.sin(rp.angle) * 25);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.lineWidth = 1;
+
+                // Animacja rozbłysku miecza/magii gracza sieciowego
+                if(rp.isAttacking) {
+                    ctx.beginPath();
+                    ctx.arc(rx, ry, 35, rp.angle - 0.4, rp.angle + 0.4);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                    ctx.lineWidth = 1;
                 }
 
-                ctx.beginPath(); ctx.arc(scrX, scrY, e.radius, 0, Math.PI * 2);
-                if (e.type === 'boss') {
-                    if (e.bossActionState === 'preparing' && Math.floor(Date.now() / 70) % 2 === 0) ctx.fillStyle = '#ff3300'; else ctx.fillStyle = '#2980b9';
-                } else { ctx.fillStyle = e.state === 'aggressive' ? e.agroColor : e.color; }
-                ctx.fill(); ctx.strokeStyle = '#111'; ctx.lineWidth = e.type === 'boss' ? 4 : 2; ctx.stroke(); 
-                
-                // Efekt wizualny szału szamana (obwódka)
-                if (e.rageMode > 1.0) {
-                    ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(scrX, scrY, e.radius + 4, 0, Math.PI*2); ctx.stroke();
-                }
-                
-                ctx.restore();
+                // Mini pasek życia innego gracza nad głową
+                ctx.fillStyle = '#000'; ctx.fillRect(rx - 20, ry - 32, 40, 4);
+                ctx.fillStyle = '#2ecc71'; ctx.fillRect(rx - 20, ry - 32, (rp.hp / rp.maxHp) * 40, 4);
 
-                let barW = e.radius * 2, barH = 4;
-                ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(scrX - barW/2, scrY - e.radius - 12, barW, barH);
-                ctx.fillStyle = '#00ffcc'; ctx.fillRect(scrX - barW/2, scrY - e.radius - 12, barW * (e.hp / e.maxHp), barH);
+                // Nick oraz poziom gracza nad postacią
+                ctx.fillStyle = '#00ffcc'; ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'center';
+                ctx.fillText(`Lvl ${rp.level} ${nick}`, rx, ry - 38);
             });
 
-            ctx.save(); ctx.translate(screenCenterX, screenCenterY); 
-            
-            ctx.lineWidth = 2;
-            if(player.charClass === 'mag') {
-                ctx.strokeStyle = 'rgba(51,204,255,0.4)'; ctx.beginPath(); ctx.arc(0, 0, player.radius + 6 + Math.sin(Date.now()*0.01)*2, 0, Math.PI*2); ctx.stroke();
-            } else if(player.charClass === 'wojownik') {
-                ctx.strokeStyle = 'rgba(255,51,51,0.4)'; ctx.beginPath(); ctx.arc(0, 0, player.radius + 6 + Math.cos(Date.now()*0.01)*2, 0, Math.PI*2); ctx.stroke();
-            } else if(player.charClass === 'lucznik') {
-                ctx.strokeStyle = 'rgba(46,204,113,0.4)'; ctx.beginPath(); ctx.arc(0, 0, player.radius + 5, 0, Math.PI*2); ctx.stroke();
-            }
-
-            ctx.rotate(player.angle);
-            
-            ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
-            if(player.charClass === 'mag') ctx.fillStyle = '#00d2ff';
-            else if(player.charClass === 'wojownik') ctx.fillStyle = '#ff3333';
-            else if(player.charClass === 'lucznik') ctx.fillStyle = '#2ecc71';
-            ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
-            
-            if (player.charClass === 'mag') {
-                ctx.fillStyle = '#8e44ad'; ctx.fillRect(8, -4, player.radius + 10, 6);
-                ctx.fillStyle = '#33ccff'; ctx.beginPath(); ctx.arc(player.radius + 12, -1, 5, 0, Math.PI*2); ctx.fill(); 
-            } else if (player.charClass === 'wojownik') {
-                ctx.fillStyle = '#7f8c8d'; ctx.fillRect(5, -3, player.radius + 20, 6); 
-                ctx.fillStyle = '#f1c40f'; ctx.fillRect(5, -5, 3, 10); 
-            } else if (player.charClass === 'lucznik') {
-                ctx.strokeStyle = '#d35400'; ctx.lineWidth = 3; ctx.beginPath();
-                ctx.arc(player.radius - 2, 0, 14, -Math.PI/2, Math.PI/2); ctx.stroke(); 
-                ctx.strokeStyle = '#eee'; ctx.lineWidth = 1; ctx.beginPath();
-                ctx.moveTo(player.radius - 2, -14); ctx.lineTo(player.radius - 2, 14); ctx.stroke();
-            }
-
-            ctx.restore();
-
-            let ambientIntensity = 0;
-            if (gameTime < 400 || gameTime > 2000) ambientIntensity = 0.75; 
-            else if (gameTime >= 400 && gameTime < 700) ambientIntensity = 0.75 - ((gameTime - 400) / 300) * 0.75; 
-            else if (gameTime >= 1700 && gameTime <= 2000) ambientIntensity = ((gameTime - 1700) / 300) * 0.75; 
-            if (currentWeather === 'fog') ambientIntensity = Math.max(ambientIntensity, 0.4); 
-
-            if (ambientIntensity > 0 && thunderFlash <= 0) {
-                ctx.save();
-                let lightGrad = ctx.createRadialGradient(screenCenterX, screenCenterY, 30, screenCenterX, screenCenterY, 180);
-                lightGrad.addColorStop(0, 'rgba(0, 0, 0, 0)'); lightGrad.addColorStop(1, `rgba(10, 15, 30, ${ambientIntensity})`);
-                ctx.fillStyle = lightGrad; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore();
-            }
-            if (thunderFlash > 0) { ctx.fillStyle = `rgba(255, 255, 255, ${thunderFlash * 0.12})`; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+            // RYSOWANIE NASZEGO BOHATERA (LOKALNY GRACZ)
+            let px = player.worldX - camX;
+            let py = player.worldY - camY;
 
             ctx.save();
-            particles.forEach(p => {
-                if (p.type === 'rain') {
-                    ctx.strokeStyle = 'rgba(174, 214, 241, 0.5)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + 1, p.y + p.len); ctx.stroke();
-                } else if (p.type === 'snow') {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; ctx.beginPath(); ctx.arc(p.x, p.y, p.len/2, 0, Math.PI * 2); ctx.fill();
-                }
-            });
-            ctx.restore();
+            ctx.beginPath();
+            ctx.arc(px, py, player.radius, 0, Math.PI*2);
+            ctx.fillStyle = player.charClass === 'wojownik' ? '#b31a1a' : player.charClass === 'lucznik' ? '#1e7b43' : '#1a7fb3';
+            ctx.fill();
+            ctx.strokeStyle = '#00ffcc';
+            ctx.stroke();
 
-            if (joystick.active) {
-                ctx.beginPath(); ctx.arc(joystick.startX, joystick.startY, joystick.maxRadius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; ctx.fill();
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; ctx.lineWidth = 3; ctx.stroke();
-                let dx = joystick.currentX - joystick.startX, dy = joystick.currentY - joystick.startY;
-                let dist = Math.sqrt(dx*dx + dy*dy), knobX = joystick.currentX, knobY = joystick.currentY;
-                if (dist > joystick.maxRadius) { let angle = Math.atan2(dy, dx); knobX = joystick.startX + Math.cos(angle) * joystick.maxRadius; knobY = joystick.startY + Math.sin(angle) * joystick.maxRadius; }
-                ctx.beginPath(); ctx.arc(knobX, knobY, 28, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0, 255, 204, 0.6)'; ctx.fill(); ctx.stroke();
+            // Kierunek patrzenia / Celowanie
+            let lookAngle = player.angle;
+            if(!joystick.active && !chatIsOpen) {
+                lookAngle = Math.atan2(mouseY - py, mouseX - px);
+                player.angle = lookAngle;
             }
 
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(px + Math.cos(lookAngle)*26, py + Math.sin(lookAngle)*26);
+            ctx.strokeStyle = '#00ffcc';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.restore();
+
+            // Efekt wizualny cięcia / ataku dla gracza lokalnego
+            if(player.isAttacking) {
+                ctx.beginPath();
+                ctx.arc(px, py, 40, lookAngle - 0.5, lookAngle + 0.5);
+                ctx.strokeStyle = 'rgba(0, 255, 204, 0.5)';
+                ctx.lineWidth = 5;
+                ctx.stroke();
+                ctx.lineWidth = 1;
+            }
+
+            // Nick nad naszym lokalnym graczem
+            ctx.fillStyle = '#fff'; ctx.font = '12px Arial'; ctx.textAlign = 'center';
+            ctx.fillText(window.myNickname ? window.myNickname : 'Bohater', px, py - 26);
+
+            // Rysowanie cząsteczek
+            particles.forEach(p => {
+                ctx.save(); ctx.globalAlpha = p.alpha; ctx.beginPath();
+                ctx.arc(p.x - camX, p.y - camY, p.radius, 0, Math.PI*2);
+                ctx.fillStyle = p.color; ctx.fill(); ctx.restore();
+            });
+
+            // Rysowanie wyskakujących tekstów obrażeń
+            floatingTexts.forEach(ft => {
+                ctx.fillStyle = ft.color; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center';
+                ctx.fillText(ft.text, ft.x - camX, ft.y - camY);
+            });
+
+            // Nakładki Atmosferyczne Pogody (Środowisko)
+            if(currentWeather === 'rainy') {
+                ctx.fillStyle = 'rgba(50, 100, 255, 0.08)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else if(currentWeather === 'foggy') {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.06)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else if(currentWeather === 'snowy') {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.12)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Rysowanie UI Kontrolek Mobilnych (Joystick)
+            if (joystick.active) {
+                ctx.beginPath(); ctx.arc(joystick.startX, joystick.startY, joystick.maxRadius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.05)'; ctx.fill();
+                ctx.strokeStyle = 'rgba(0, 255, 204, 0.3)'; ctx.stroke();
+
+                let dx = joystick.currentX - joystick.startX;
+                let dy = joystick.currentY - joystick.startY;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                let knobX = joystick.currentX, knobY = joystick.currentY;
+
+                if (dist > joystick.maxRadius) {
+                    let angle = Math.atan2(dy, dx);
+                    knobX = joystick.startX + Math.cos(angle) * joystick.maxRadius;
+                    knobY = joystick.startY + Math.sin(angle) * joystick.maxRadius;
+                }
+                ctx.beginPath(); ctx.arc(knobX, knobY, 28, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 255, 204, 0.6)'; ctx.fill(); ctx.stroke();
+            }
+
+            // Minimapa w prawym dolnym rogu ekranu
             ctx.save();
             let miniRadius = 65, miniCenterX = canvas.width - miniRadius - 20, miniCenterY = canvas.height - miniRadius - 20;
             ctx.beginPath(); ctx.arc(miniCenterX, miniCenterY, miniRadius, 0, Math.PI * 2); ctx.clip(); 
             ctx.fillStyle = 'rgba(20, 20, 20, 0.85)'; ctx.fillRect(miniCenterX - miniRadius, miniCenterY - miniRadius, miniRadius*2, miniRadius*2);
+            
+            // Czerwone kropki potworów na minimapie
             enemies.forEach(e => {
                 let mdx = (e.worldX - player.worldX) / 12, mdy = (e.worldY - player.worldY) / 12;
-                if (mdx*mdx + mdy*mdy < miniRadius*miniRadius) { ctx.beginPath(); ctx.arc(miniCenterX + mdx, miniCenterY + mdy, e.type === 'boss' ? 4 : 2.5, 0, Math.PI * 2); ctx.fillStyle = e.type === 'boss' ? '#2980b9' : '#ff3333'; ctx.fill(); }
+                if (mdx*mdx + mdy*mdy < miniRadius*miniRadius) {
+                    ctx.beginPath(); ctx.arc(miniCenterX + mdx, miniCenterY + mdy, e.type === 'boss' ? 4 : 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ff3333'; ctx.fill();
+                }
             });
-            ctx.restore();
-            ctx.beginPath(); ctx.arc(miniCenterX, miniCenterY, miniRadius, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(0, 255, 204, 0.4)'; ctx.lineWidth = 3; ctx.stroke();
-        }
 
-        function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
-        gameLoop();
+            // Zielone kropki innych graczy sieciowych na Twojej minimapie
+            Object.keys(window.remotePlayers).forEach(nick => {
+                let rp = window.remotePlayers[nick];
+                let rdx = (rp.x - player.worldX) / 12, rdy = (rp.y - player.worldY) / 12;
+                if(rdx*rdx + rdy*rdy < miniRadius*miniRadius) {
+                    ctx.beginPath(); ctx.arc(miniCenterX + rdx, miniCenterY + rdy, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = '#00ff00'; ctx.fill();
+                }
+            });
+
+            // Środek mapy (Twój gracz jako biały punkt)
+            ctx.beginPath(); ctx.arc(miniCenterX, miniCenterY, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff'; ctx.fill();
+            ctx.restore();
+        }
     </script>
 </body>
 </html>
