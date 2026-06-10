@@ -487,21 +487,6 @@
             border: 1px solid var(--border-color);
             display: none;
         }
-
-        /* MAP TOGGLE PROMPT */
-        #map-hint {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.85);
-            color: #fff;
-            padding: 6px 12px;
-            border-radius: 5px;
-            font-size: 12px;
-            border: 1px solid var(--accent-color);
-            z-index: 10;
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -622,15 +607,13 @@
         <button class="stat-btn" onclick="upgradeStat('damage')">+ Siła Ataku</button>
     </div>
 
-    <div id="chat-hint">Naciśnij [ ` ] aby czat | Naciśnij [ M ] aby zobaczyć Całą Mapę</div>
-    <div id="map-hint">CAŁA MAPA ŚWIATA AKTYWNA [M aby zamknąć]</div>
+    <div id="chat-hint">Naciśnij klawisz [ ` ] (tylda), aby otworzyć czat</div>
 
     <canvas id="gameCanvas"></canvas>
 
     <script>
         let userIsAuthenticated = false;
         let chatIsOpen = false;
-        let fullMapOpen = false;
 
         function toggleChatOverlay() {
             if (!userIsAuthenticated) return;
@@ -663,11 +646,6 @@
                 e.preventDefault();
                 toggleChatOverlay();
             }
-
-            if (e.key.toLowerCase() === 'm' && userIsAuthenticated && !chatIsOpen) {
-                fullMapOpen = !fullMapOpen;
-                document.getElementById('map-hint').style.display = fullMapOpen ? 'block' : 'none';
-            }
         });
     </script>
 
@@ -691,11 +669,6 @@
         let isLoginMode = false;
         let currentUser = null;
         let myOnlineRef = null;
-        let myGamePosRef = null;
-
-        // Udostępnienie bazy danych i nicku globalnie do pętli gry
-        window.globalFirebaseDb = db;
-        window.currentPlayersOnline = {};
 
         const authForm = document.getElementById('authForm');
         const toggleAuthText = document.getElementById('toggleAuthText');
@@ -740,7 +713,6 @@
                         set(ref(db, 'users/' + username), { email, password })
                         .then(() => {
                             currentUser = username;
-                            window.currentUsername = username;
                             enterGameAndChat();
                         });
                     }
@@ -749,7 +721,6 @@
                 onValue(ref(db, 'users/' + username), (snapshot) => {
                     if (snapshot.exists() && snapshot.val().password === password) {
                         currentUser = username;
-                        window.currentUsername = username;
                         enterGameAndChat();
                     } else {
                         showError("Nieprawidłowy login lub hasło.");
@@ -774,16 +745,11 @@
             myOnlineRef = ref(db, 'online/' + currentUser);
             set(myOnlineRef, true);
 
-            myGamePosRef = ref(db, 'gameStates/' + currentUser);
-
-            window.addEventListener('beforeunload', () => {
-                remove(myOnlineRef);
-                remove(myGamePosRef);
-            });
+            window.addEventListener('beforeunload', () => { if(myOnlineRef) remove(myOnlineRef); });
 
             listenForMessages();
             listenForOnlineUsers();
-            listenToGlobalGameStates();
+            initGameEngine();
         }
 
         function sendMessage() {
@@ -849,44 +815,19 @@
             });
         }
 
-        // Śledzenie koordynatów innych graczy w czasie rzeczywistym
-        function listenToGlobalGameStates() {
-            const gameStatesRef = ref(db, 'gameStates');
-            onValue(gameStatesRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    window.currentPlayersOnline = snapshot.val();
-                } else {
-                    window.currentPlayersOnline = {};
-                }
-            });
-
-            // Słuchaj globalnych interakcji z potworami (obrażenia/smierć synchronizowana)
-            onValue(ref(db, 'globalEnemies'), (snapshot) => {
-                if (snapshot.exists() && typeof window.syncEnemiesFromServer === 'function') {
-                    window.syncEnemiesFromServer(snapshot.val());
-                }
-            });
-        }
-
         logoutBtn.addEventListener('click', () => {
             if (myOnlineRef) remove(myOnlineRef);
-            if (myGamePosRef) remove(myGamePosRef);
             off(ref(db, 'messages'));
             off(ref(db, 'online'));
-            off(ref(db, 'gameStates'));
-            off(ref(db, 'globalEnemies'));
             
             currentUser = null;
-            window.currentUsername = null;
             userIsAuthenticated = false;
             chatIsOpen = false;
-            fullMapOpen = false;
             
             document.getElementById('chatOverlay').style.display = 'none';
             document.getElementById('start-menu').style.display = 'none';
             document.getElementById('ui').style.display = 'none';
             document.getElementById('chat-hint').style.display = 'none';
-            document.getElementById('map-hint').style.display = 'none';
             document.getElementById('authBox').style.display = 'block';
             
             if (typeof gameIsRunning !== 'undefined') {
@@ -927,9 +868,6 @@
         let camShakeTime = 0, camShakeIntensity = 0;
         let gameIsRunning = false;
 
-        // Granice eksploracji całej mapy gry
-        const MAP_BOUNDS = { minX: -2000, maxX: 2000, minY: -2000, maxY: 2000 };
-
         function resizeCanvas() {
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
             screenCenterX = canvas.width / 2; screenCenterY = canvas.height / 2;
@@ -939,12 +877,6 @@
 
         // --- PROCEDURALNY GENERATOR ŚWIATA ---
         const TILE_SIZE = 64;
-        
-        function MathNoise(x, y) {
-            let n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123;
-            return n - Math.floor(n);
-        }
-        
         function getSmoothNoise(x, y) {
             let total = 0;
             total += (Math.sin(x * 0.05) + Math.cos(y * 0.05)) * 2.0;
@@ -986,7 +918,7 @@
             currentWeather = WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
             weatherTimer = 3000 + Math.random() * 3000;
             let names = { 'sunny': 'Słonecznie', 'rain': 'Deszcz', 'snow': 'Śnieg', 'fog': 'Mgła', 'thunder': 'Burza' };
-            weatherValEl.textContent = names[currentWeather];
+            if(weatherValEl) weatherValEl.textContent = names[currentWeather];
         }
 
         function updateWeatherAndTime() {
@@ -1014,29 +946,19 @@
             }
         }
 
-        // --- TABLICE OBIEKTÓW ---
+        // --- ENCORES ---
         const bullets = [];
         const enemyBullets = [];
-        let enemies = [];
+        const enemies = [];
         const animals = [];
         const loots = [];
         const fishes = [];
         const visualEffects = []; 
 
-        for(let i=0; i<30; i++) {
-            fishes.push({
-                worldX: (Math.random() - 0.5) * 4000,
-                worldY: (Math.random() - 0.5) * 4000,
-                angle: Math.random() * Math.PI * 2,
-                speed: 0.5 + Math.random() * 1,
-                timeOffset: Math.random() * 100
-            });
-        }
-
-        // --- WEJŚCIE (INPUT GRY) ---
+        // --- WEJŚCIE (INPUT) ---
         const keys = { w: false, a: false, s: false, d: false };
         window.addEventListener('keydown', (e) => { 
-            if (chatIsOpen) return; 
+            if (chatIsOpen) return;
             if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = true; 
         });
         window.addEventListener('keyup', (e) => { 
@@ -1044,29 +966,25 @@
         });
 
         const mouse = { x: screenCenterX, y: screenCenterY };
-        let isMousing = false;
-        let isMouseDown = false;
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = e.clientX; mouse.y = e.clientY;
-            isMousing = true;
-        });
-        window.addEventListener('mousedown', (e) => {
+        let isMouseDown = false; 
+
+        window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
+        window.addEventListener('mousedown', (e) => { 
             if (chatIsOpen) return;
             if (e.button === 0) {
                 isMouseDown = true;
                 if(gameIsRunning && player.charClass !== 'lucznik') playerAttack();
             }
         });
-        window.addEventListener('mouseup', (e) => {
-            if (e.button === 0) isMouseDown = false;
-        });
+        window.addEventListener('mouseup', (e) => { if (e.button === 0) isMouseDown = false; });
 
-        // STERY DOTYKOWE (MOBILNE)
         const joystick = { startX: 0, startY: 0, currentX: 0, currentY: 0, active: false, pointerId: null, maxRadius: 60 };
         const touchAim = { x: screenCenterX, y: screenCenterY, active: false, pointerId: null };
+
         window.addEventListener('pointerdown', (e) => {
             if(!gameIsRunning || chatIsOpen) return;
             if(e.target.closest('#chatInterface') || e.target.closest('#authBox') || e.target.closest('#ui') || e.target.closest('#level-up-panel')) return;
+            
             if (e.clientX < canvas.width / 2 && !joystick.active) {
                 joystick.active = true;
                 joystick.pointerId = e.pointerId;
@@ -1077,600 +995,15 @@
                 touchAim.pointerId = e.pointerId;
                 touchAim.x = e.clientX;
                 touchAim.y = e.clientY;
-                isMousing = false;
                 isMouseDown = true;
                 if(player.charClass !== 'lucznik') playerAttack();
             }
         });
+
         window.addEventListener('pointermove', (e) => {
             if (chatIsOpen) return;
             if (joystick.active && e.pointerId === joystick.pointerId) {
-                joystick.currentX = e.clientX; joystick.currentY = e.clientY;
+                joystick.currentX = e.clientX;
+                joystick.currentY = e.clientY;
             }
-            if (touchAim.active && e.pointerId === touchAim.pointerId) {
-                touchAim.x = e.clientX; touchAim.y = e.clientY;
-                isMousing = false;
-            }
-        });
-        window.addEventListener('pointerup', (e) => {
-            if (joystick.active && e.pointerId === joystick.pointerId) joystick.active = false;
-            if (touchAim.active && e.pointerId === touchAim.pointerId) {
-                touchAim.active = false;
-                isMouseDown = false;
-            }
-        });
-
-        // --- GRACZ I KLASY (Zwolniono prędkość bazową gracza) ---
-        const player = { 
-            worldX: 0, worldY: 0, radius: 18, vx: 0, vy: 0, 
-            acceleration: 0.5, friction: 0.82, maxSpeed: 4.2, 
-            angle: 0, hp: 100, maxHp: 100, mana: 100, maxMana: 100, 
-            manaRegen: 0.3, level: 1, xp: 0, xpNeeded: 100, 
-            bulletDamage: 35, skillPoints: 0, charClass: 'mag', 
-            attackCooldown: 0, swingSide: 1 
-        };
-
-        window.selectClass = function(className) {
-            player.charClass = className;
-            if (className === 'mag') {
-                player.bulletDamage = 35; player.maxMana = 100; player.manaRegen = 0.35;
-            } else if (className === 'wojownik') {
-                player.bulletDamage = 55; player.maxMana = 80; player.manaRegen = 0.45;
-            } else if (className === 'lucznik') {
-                player.bulletDamage = 25; player.maxMana = 100; player.manaRegen = 0.3;
-            }
-            player.mana = player.maxMana;
-            player.hp = player.maxHp;
-            startMenuEl.style.display = 'none';
-            uiEl.style.display = 'block';
-            gameIsRunning = true;
-            
-            // Zainicjuj potwory po zalogowaniu i wyborze klasy
-            generateInitialEnemies();
-            updatePointsUI();
-        }
-
-        function updatePointsUI() {
-            hpTextEl.textContent = `${Math.ceil(player.hp)}/${player.maxHp}`;
-            hpBarEl.style.width = `${Math.max(0, (player.hp / player.maxHp) * 100)}%`;
-            manaTextEl.textContent = `${Math.ceil(player.mana)}/${player.maxMana}`;
-            manaBarEl.style.width = `${Math.max(0, (player.mana / player.maxMana) * 100)}%`;
-            lvlValEl.textContent = player.level;
-            xpBarEl.style.width = `${Math.min(100, (player.xp / player.xpNeeded) * 100)}%`;
-            levelUpPanelEl.style.display = player.skillPoints > 0 ? 'block' : 'none';
-            if (player.skillPoints > 0) skillPointsEl.textContent = player.skillPoints;
-        }
-
-        // USTAWIONO 5 PUNKTÓW DO ROZDAWANIA PODCZAS NOWEGO LVL
-        window.upgradeStat = function(stat) {
-            if (player.skillPoints <= 0) return;
-            if (stat === 'hp') { player.maxHp += 25; player.hp += 25; } 
-            else if (stat === 'mana') { player.maxMana += 25; player.manaRegen += 0.08; player.mana += 25; } 
-            else if (stat === 'speed') { player.maxSpeed += 0.5; player.acceleration += 0.08; } 
-            else if (stat === 'damage') { player.bulletDamage += 15; }
-            player.skillPoints--;
-            updatePointsUI();
-        }
-
-        function addXp(amount) {
-            player.xp += amount;
-            if (player.xp >= player.xpNeeded) {
-                player.xp -= player.xpNeeded;
-                player.level++;
-                player.skillPoints += 5; // Nadano 5 punktów zamiast starej wartości
-                player.xpNeeded = Math.floor(player.xpNeeded * 1.6);
-            }
-            updatePointsUI();
-        }
-
-        function triggerCameraShake(time, intensity) {
-            camShakeTime = time; camShakeIntensity = intensity;
-        }
-
-        function playerAttack() {
-            if (player.attackCooldown > 0 || chatIsOpen) return;
-            if (player.charClass === 'mag') {
-                if (player.mana >= 15) {
-                    player.mana -= 15;
-                    bullets.push({ 
-                        type: 'energy_ball', worldX: player.worldX, worldY: player.worldY, 
-                        vx: Math.cos(player.angle) * 11, vy: Math.sin(player.angle) * 11, 
-                        radius: 7, life: 65, damage: player.bulletDamage, animFrame: 0 
-                    });
-                    player.attackCooldown = 18;
-                }
-            } else if (player.charClass === 'wojownik') {
-                if (player.mana >= 12) {
-                    player.mana -= 12;
-                    player.swingSide *= -1;
-                    let attackAngle = player.angle + (0.4 * player.swingSide);
-                    visualEffects.push({ type: 'slash', worldX: player.worldX, worldY: player.worldY, angle: attackAngle, side: player.swingSide, life: 12, maxLife: 12 });
-                    
-                    let range = 80;
-                    let ax = player.worldX + Math.cos(player.angle) * 35;
-                    let ay = player.worldY + Math.sin(player.angle) * 35;
-                    
-                    for (let i = 0; i < enemies.length; i++) {
-                        let e = enemies[i];
-                        if(!e) continue;
-                        let edx = e.worldX - ax, edy = e.worldY - ay;
-                        if (Math.sqrt(edx*edx + edy*edy) < e.radius + range/2) {
-                            damageEnemyGlobal(i, player.bulletDamage);
-                        }
-                    }
-                    player.attackCooldown = 12;
-                }
-            }
-        }
-
-        // --- GENEROWANIE I AI POTWORÓW (GLOBALNA POZYCJA) ---
-        function generateInitialEnemies() {
-            enemies = [];
-            // Zwykłe moby
-            for(let i=0; i<45; i++) {
-                enemies.push({
-                    id: i,
-                    type: Math.random() > 0.3 ? 'goblin' : 'szkielet',
-                    worldX: (Math.random() - 0.5) * 3000,
-                    worldY: (Math.random() - 0.5) * 3000,
-                    radius: 16, hp: 90, maxHp: 90, color: '#e74c3c',
-                    speed: 1.2 + Math.random() * 0.8,
-                    patrolAngle: Math.random() * Math.PI * 2,
-                    patrolTimer: Math.random() * 100
-                });
-            }
-            // Super Boss
-            enemies.push({
-                id: 999,
-                type: 'boss',
-                worldX: 300, worldY: -400,
-                radius: 45, hp: 1800, maxHp: 1800, color: '#9b59b6',
-                speed: 1.4, patrolAngle: 0, patrolTimer: 0
-            });
-            pushEnemiesToFirebase();
-        }
-
-        function pushEnemiesToFirebase() {
-            if (window.globalFirebaseDb && window.currentUsername) {
-                // Tylko pierwszy zalogowany/inicjujący aktualizuje mapę mobów na serwerze, by unikać nadpisywania
-                set(ref(window.globalFirebaseDb, 'globalEnemies'), enemies);
-            }
-        }
-
-        window.syncEnemiesFromServer = function(serverEnemies) {
-            if(!serverEnemies) return;
-            // Mapowanie struktury bez utraty lokalnych referencji rysowania
-            enemies = Object.values(serverEnemies);
-        }
-
-        function damageEnemyGlobal(index, dmg) {
-            if(!enemies[index]) return;
-            enemies[index].hp -= dmg;
-            
-            visualEffects.push({
-                type: 'text', worldX: enemies[index].worldX, worldY: enemies[index].worldY - 20,
-                text: `-${dmg}`, color: '#ff3333', life: 30
-            });
-
-            // GWARANCJA GLOBALNEGO UPDATE'U: Wyślij natychmiast stan do bazy danych
-            if (enemies[index].hp <= 0) {
-                // Bezpieczne usuwanie potwora chroniące przed crashami
-                let killed = enemies[index];
-                score++;
-                scoreValEl.textContent = score;
-                addXp(killed.type === 'boss' ? 350 : 35);
-                
-                // Generuj loot
-                if (Math.random() > 0.4) {
-                    loots.push({ worldX: killed.worldX, worldY: killed.worldY, type: Math.random() > 0.5 ? 'gold' : 'mana', amt: 10 + Math.floor(Math.random()*15), life: 600 });
-                }
-
-                if (killed.type === 'boss') {
-                    bossUiEl.style.display = 'none';
-                }
-
-                enemies.splice(index, 1);
-            }
-            pushEnemiesToFirebase();
-        }
-
-        function updateEnemyAI() {
-            // Pobranie listy pozycji wszystkich aktywnych graczy online w Firebase
-            let allPlayers = [];
-            if (window.currentPlayersOnline) {
-                allPlayers = Object.values(window.currentPlayersOnline);
-            }
-            // Zawsze uwzględnij też gracza lokalnego
-            allPlayers.push({ worldX: player.worldX, worldY: player.worldY });
-
-            for (let i = 0; i < enemies.length; i++) {
-                let e = enemies[i];
-                if (!e) continue;
-
-                // Szukanie najbliższego celu spośród wszystkich graczy sieciowych online
-                let closestPlayer = null;
-                let minDist = Infinity;
-
-                for (let p of allPlayers) {
-                    let dx = p.worldX - e.worldX;
-                    let dy = p.worldY - e.worldY;
-                    let dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist < minDist) {
-                        minDist = dist;
-                        closestPlayer = p;
-                    }
-                }
-
-                // NADANIE RUCHU ORAZ PODĄŻANIA GDY SĄ BLISKO (350 pikseli)
-                if (closestPlayer && minDist < 350) {
-                    let angle = Math.atan2(closestPlayer.worldY - e.worldY, closestPlayer.worldX - e.worldX);
-                    e.worldX += Math.cos(angle) * e.speed;
-                    e.worldY += Math.sin(angle) * e.speed;
-
-                    // Atak dystansowy bossa lub przeciwnika
-                    if (e.type === 'boss' && Math.random() < 0.015) {
-                        enemyBullets.push({ worldX: e.worldX, worldY: e.worldY, vx: Math.cos(angle) * 6, vy: Math.sin(angle) * 6, radius: 8, damage: 18, life: 100 });
-                    }
-                } else {
-                    // Płynny autonomiczny ruch patrolowy oparty na czasie
-                    e.patrolTimer++;
-                    if (e.patrolTimer % 120 === 0) {
-                        e.patrolAngle = Math.random() * Math.PI * 2;
-                    }
-                    e.worldX += Math.cos(e.patrolAngle) * (e.speed * 0.4);
-                    e.worldY += Math.sin(e.patrolAngle) * (e.speed * 0.4);
-                }
-
-                // Zabezpieczenie granic mapy dla potworów
-                e.worldX = Math.max(MAP_BOUNDS.minX, Math.min(MAP_BOUNDS.maxX, e.worldX));
-                e.worldY = Math.max(MAP_BOUNDS.minY, Math.min(MAP_BOUNDS.maxY, e.worldY));
-            }
-        }
-
-        // --- AKTUALIZACJA SILNIKA I STRZELANIA ---
-        function updateGame() {
-            if (!gameIsRunning) return;
-
-            // Płynny ruch lokalnego bohatera z uwzględnieniem spowolnienia
-            let moveX = 0, moveY = 0;
-            if (keys.w) moveY -= 1;
-            if (keys.s) moveY += 1;
-            if (keys.a) moveX -= 1;
-            if (keys.d) moveX += 1;
-
-            if (joystick.active) {
-                let dx = joystick.currentX - joystick.startX;
-                let dy = joystick.currentY - joystick.startY;
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist > 5) {
-                    moveX = dx / dist; moveY = dy / dist;
-                }
-            }
-
-            if (moveX !== 0 || moveY !== 0) {
-                let length = Math.sqrt(moveX*moveX + moveY*moveY);
-                player.vx += (moveX / length) * player.acceleration;
-                player.vy += (moveY / length) * player.acceleration;
-            }
-
-            player.vx *= player.friction; player.vy *= player.friction;
-            player.worldX += player.vx; player.worldY += player.vy;
-
-            // Blokada opuszczenia granic świata gry
-            player.worldX = Math.max(MAP_BOUNDS.minX, Math.min(MAP_BOUNDS.maxX, player.worldX));
-            player.worldY = Math.max(MAP_BOUNDS.minY, Math.min(MAP_BOUNDS.maxY, player.worldY));
-
-            // Wysyłanie współrzędnych aktualnego gracza online do bazy w czasie rzeczywistym
-            if (window.globalFirebaseDb && window.currentUsername && Math.random() < 0.3) {
-                set(ref(window.globalFirebaseDb, 'gameStates/' + window.currentUsername), {
-                    worldX: player.worldX, worldY: player.worldY, charClass: player.charClass, level: player.level, hp: player.hp
-                });
-            }
-
-            // Kąt celowania i automatyczny atak łucznika
-            if (isMousing) {
-                player.angle = Math.atan2(mouse.y - screenCenterY, mouse.x - screenCenterX);
-            } else if (touchAim.active) {
-                player.angle = Math.atan2(touchAim.y - screenCenterY, touchAim.x - screenCenterX);
-            }
-            
-            if (player.attackCooldown > 0) player.attackCooldown--;
-
-            if (isMouseDown && player.charClass === 'lucznik' && player.attackCooldown <= 0 && !chatIsOpen) {
-                bullets.push({ type: 'arrow', worldX: player.worldX, worldY: player.worldY, vx: Math.cos(player.angle) * 14, vy: Math.sin(player.angle) * 14, radius: 4, life: 55, damage: player.bulletDamage });
-                player.attackCooldown = 9; 
-            }
-
-            // Aktualizacja pocisków i wykrywanie trafień (Zabezpieczone pętle bez crashów)
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                let b = bullets[i];
-                b.worldX += b.vx; b.worldY += b.vy; b.life--;
-                
-                let hitEnemy = false;
-                for (let j = 0; j < enemies.length; j++) {
-                    let e = enemies[j];
-                    if(!e) continue;
-                    let dx = b.worldX - e.worldX, dy = b.worldY - e.worldY;
-                    if (dx*dx + dy*dy < (b.radius + e.radius)*(b.radius + e.radius)) {
-                        damageEnemyGlobal(j, b.damage);
-                        hitEnemy = true; break;
-                    }
-                }
-                if (hitEnemy || b.life <= 0) bullets.splice(i, 1);
-            }
-
-            // Pociski wroga zadające obrażenia graczowi
-            for (let i = enemyBullets.length - 1; i >= 0; i--) {
-                let eb = enemyBullets[i];
-                eb.worldX += eb.vx; eb.worldY += eb.vy; eb.life--;
-                
-                let dx = eb.worldX - player.worldX, dy = eb.worldY - player.worldY;
-                if (dx*dx + dy*dy < (eb.radius + player.radius)*(eb.radius + player.radius)) {
-                    player.hp = Math.max(0, player.hp - eb.damage);
-                    triggerCameraShake(8, 4);
-                    updatePointsUI();
-                    enemyBullets.splice(i, 1);
-                    continue;
-                }
-                if (eb.life <= 0) enemyBullets.splice(i, 1);
-            }
-
-            // Aktualizacja AI potworów i środowiska
-            updateEnemyAI();
-            updateWeatherAndTime();
-
-            // Pasive mana regen
-            if (player.mana < player.maxMana) {
-                player.mana = Math.min(player.maxMana, player.mana + player.manaRegen);
-                manaTextEl.textContent = `${Math.ceil(player.mana)}/${player.maxMana}`;
-                manaBarEl.style.width = `${(player.mana / player.maxMana) * 100}%`;
-            }
-
-            // Zbieranie lootu
-            for (let i = loots.length - 1; i >= 0; i--) {
-                let l = loots[i]; l.life--;
-                let dx = l.worldX - player.worldX, dy = l.worldY - player.worldY;
-                if (dx*dx + dy*dy < 40*40) {
-                    if (l.type === 'mana') { player.mana = Math.min(player.maxMana, player.mana + 30); }
-                    addXp(l.amt);
-                    loots.splice(i, 1);
-                } else if (l.life <= 0) loots.splice(i, 1);
-            }
-
-            // Filtrowanie efektów wizualnych
-            for(let i = visualEffects.length - 1; i >= 0; i--){
-                visualEffects[i].life--;
-                if(visualEffects[i].life <= 0) visualEffects.splice(i, 1);
-            }
-        }
-
-        // --- RYSOWANIE ŚWIATA GRY ---
-        function drawGame() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            ctx.save();
-            // Efekt wstrząsu kamery
-            if (camShakeTime > 0) {
-                let dx = (Math.random() - 0.5) * camShakeIntensity;
-                let dy = (Math.random() - 0.5) * camShakeIntensity;
-                ctx.translate(dx, dy);
-                camShakeTime--;
-            }
-
-            // Przesunięcie kamery na gracza loklanego
-            let camX = screenCenterX - player.worldX;
-            let camY = screenCenterY - player.worldY;
-            ctx.translate(camX, camY);
-
-            // Rysowanie kafelków podłogi mapy widocznych na ekranie
-            let startTileX = Math.floor((player.worldX - screenCenterX) / TILE_SIZE) - 1;
-            let endTileX = Math.ceil((player.worldX + screenCenterX) / TILE_SIZE) + 1;
-            let startTileY = Math.floor((player.worldY - screenCenterY) / TILE_SIZE) - 1;
-            let endTileY = Math.ceil((player.worldY + screenCenterY) / TILE_SIZE) + 1;
-
-            for (let tx = startTileX; tx <= endTileX; tx++) {
-                for (let ty = startTileY; ty <= endTileY; ty++) {
-                    let tile = getTileAt(tx, ty);
-                    ctx.fillStyle = tile.c1;
-                    ctx.fillRect(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-                    
-                    // Siatka mikrotekstury kafelka
-                    ctx.fillStyle = tile.c2;
-                    if (MathNoise(tx, ty) > 0.7) {
-                        ctx.fillRect(tx * TILE_SIZE + 12, ty * TILE_SIZE + 12, 6, 6);
-                        ctx.fillRect(tx * TILE_SIZE + 40, ty * TILE_SIZE + 36, 4, 4);
-                    }
-                }
-            }
-
-            // Rysowanie lootów
-            loots.forEach(l => {
-                ctx.beginPath(); ctx.arc(l.worldX, l.worldY, 7, 0, Math.PI*2);
-                ctx.fillStyle = l.type === 'gold' ? '#f1c40f' : '#2ecc71'; ctx.fill();
-            });
-
-            // Rysowanie pocisków gracza i wrogów
-            bullets.forEach(b => {
-                ctx.beginPath(); ctx.arc(b.worldX, b.worldY, b.radius, 0, Math.PI*2);
-                ctx.fillStyle = player.charClass === 'mag' ? '#00ffcc' : '#e67e22'; ctx.fill();
-            });
-            enemyBullets.forEach(eb => {
-                ctx.beginPath(); ctx.arc(eb.worldX, eb.worldY, eb.radius, 0, Math.PI*2);
-                ctx.fillStyle = '#ff3333'; ctx.fill();
-            });
-
-            // Rysowanie potworów (Gobliny/Szkielety/Boss)
-            let bossPresent = false;
-            enemies.forEach(e => {
-                if(!e) return;
-                ctx.beginPath(); ctx.arc(e.worldX, e.worldY, e.radius, 0, Math.PI*2);
-                ctx.fillStyle = e.color; ctx.fill();
-                ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
-
-                // Pasek życia nad potworem
-                ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(e.worldX - 20, e.worldY - e.radius - 12, 40, 5);
-                ctx.fillStyle = '#ff3333'; ctx.fillRect(e.worldX - 20, e.worldY - e.radius - 12, (e.hp / e.maxHp) * 40, 5);
-
-                if (e.type === 'boss') {
-                    bossPresent = true;
-                    bossUiEl.style.display = 'block';
-                    bossHpBarEl.style.width = `${(e.hp / e.maxHp) * 100}%`;
-                }
-            });
-            if(!bossPresent) bossUiEl.style.display = 'none';
-
-            // INTERFEJS SIECIOWY: Rysowanie innych graczy online zalogowanych do Firebase
-            if (window.currentPlayersOnline) {
-                Object.keys(window.currentPlayersOnline).forEach(name => {
-                    if (name !== window.currentUsername) {
-                        let op = window.currentPlayersOnline[name];
-                        ctx.beginPath(); ctx.arc(op.worldX, op.worldY, 18, 0, Math.PI*2);
-                        ctx.fillStyle = '#9b59b6'; ctx.fill(); // Inny kolor dla towarzysza online
-                        ctx.stroke();
-
-                        ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
-                        ctx.fillText(`${name} (Lvl ${op.level})`, op.worldX, op.worldY - 26);
-                    }
-                });
-            }
-
-            // Rysowanie gracza lokalnego
-            ctx.save();
-            ctx.translate(player.worldX, player.worldY);
-            ctx.rotate(player.angle);
-            ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI*2);
-            ctx.fillStyle = player.charClass === 'mag' ? '#33ccff' : player.charClass === 'wojownik' ? '#ff3333' : '#2ecc71';
-            ctx.fill();
-            ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
-            
-            // Wskaźnik przodu / broń
-            ctx.fillStyle = '#fff'; ctx.fillRect(8, -4, 15, 8);
-            ctx.restore();
-
-            // Nazwa gracza lokalnego nad głową
-            ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText(`${window.currentUsername || 'Bohater'} (Ty)`, player.worldX, player.worldY - 28);
-
-            // Teksty i animacje cięcia
-            visualEffects.forEach(v => {
-                if(v.type === 'text') {
-                    ctx.fillStyle = v.color; ctx.font = 'bold 14px sans-serif'; ctx.fillText(v.text, v.worldX, v.worldY);
-                } else if(v.type === 'slash') {
-                    ctx.save(); ctx.translate(v.worldX, v.worldY); ctx.rotate(v.angle);
-                    ctx.beginPath(); ctx.arc(0,0, 50, -0.5, 0.5); ctx.strokeStyle = `rgba(255,255,255,${v.life/v.maxLife})`;
-                    ctx.lineWidth = 5; ctx.stroke(); ctx.restore();
-                }
-            });
-
-            ctx.restore(); // Przywrócenie transformacji z kamery
-
-            // --- POGODA EFEKTY PANEL ---
-            if (currentWeather === 'fog') {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.16)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            } else if (thunderFlash > 0) {
-                ctx.fillStyle = `rgba(255, 255, 255, ${thunderFlash / 8})`; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            }
-            ctx.fillStyle = (currentWeather === 'rain' || currentWeather === 'thunder') ? 'rgba(0, 50, 150, 0.2)' : 'transparent';
-            particles.forEach(p => {
-                ctx.strokeStyle = p.type === 'rain' ? '#7fb3d5' : '#fff';
-                ctx.lineWidth = p.type === 'rain' ? 1.5 : p.len;
-                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + (p.type==='rain'?1:0), p.y + p.len); ctx.stroke();
-            });
-
-            // Rysowanie gałek joysticka mobilnego
-            if (joystick.active) {
-                ctx.beginPath(); ctx.arc(joystick.startX, joystick.startY, joystick.maxRadius, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; ctx.fill(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; ctx.stroke();
-                let dx = joystick.currentX - joystick.startX, dy = joystick.currentY - joystick.startY;
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                let knobX = joystick.currentX, knobY = joystick.currentY;
-                if (dist > joystick.maxRadius) {
-                    let angle = Math.atan2(dy, dx);
-                    knobX = joystick.startX + Math.cos(angle) * joystick.maxRadius;
-                    knobY = joystick.startY + Math.sin(angle) * joystick.maxRadius;
-                }
-                ctx.beginPath(); ctx.arc(knobX, knobY, 24, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(0, 255, 204, 0.6)'; ctx.fill();
-            }
-
-            // --- NOWA FUNKCJONALNOŚĆ: INTERFEJS CAŁEJ MAPY ŚWIATA (ALL IN GAME TO EXPLORE) ---
-            if (fullMapOpen) {
-                drawFullExploreMap();
-            }
-        }
-
-        // FUNKCJA GENERUJĄCA WGLĄD W CAŁĄ MAPĘ DOSTĘPNĄ DO ZWIEDZENIA
-        function drawFullExploreMap() {
-            let mapWidth = canvas.width * 0.75;
-            let mapHeight = canvas.height * 0.75;
-            let mapX = (canvas.width - mapWidth) / 2;
-            let mapY = (canvas.height - mapHeight) / 2;
-
-            // Tło okna mapy
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
-            ctx.fillRect(mapX, mapY, mapWidth, mapHeight);
-            ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 3;
-            ctx.strokeRect(mapX, mapY, mapWidth, mapHeight);
-
-            // Tytuł
-            ctx.fillStyle = '#00ffcc'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText("PEŁNA MAPA ŚWIATA - EKSPLORACJA", canvas.width / 2, mapY + 30);
-
-            // Funkcja przeliczająca pozycję gry na pozycję w oknie mapy
-            function worldToMapCoords(wx, wy) {
-                let totalWorldWidth = MAP_BOUNDS.maxX - MAP_BOUNDS.minX;
-                let totalWorldHeight = MAP_BOUNDS.maxY - MAP_BOUNDS.minY;
-                
-                let rx = (wx - MAP_BOUNDS.minX) / totalWorldWidth;
-                let ry = (wy - MAP_BOUNDS.minY) / totalWorldHeight;
-
-                return {
-                    x: mapX + 40 + rx * (mapWidth - 80),
-                    y: mapY + 60 + ry * (mapHeight / 1.2)
-                };
-            }
-
-            // Rysowanie granic obszaru gry
-            ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
-            ctx.strokeRect(mapX + 40, mapY + 60, mapWidth - 80, mapHeight / 1.2);
-
-            // Oznaczenie innych zalogowanych graczy na mapie
-            if (window.currentPlayersOnline) {
-                Object.keys(window.currentPlayersOnline).forEach(name => {
-                    if (name !== window.currentUsername) {
-                        let op = window.currentPlayersOnline[name];
-                        let mc = worldToMapCoords(op.worldX, op.worldY);
-                        ctx.beginPath(); ctx.arc(mc.x, mc.y, 5, 0, Math.PI*2);
-                        ctx.fillStyle = '#9b59b6'; ctx.fill();
-                    }
-                });
-            }
-
-            // Oznaczenie potworów i Bossów na mapie świata
-            enemies.forEach(e => {
-                if(!e) return;
-                let mc = worldToMapCoords(e.worldX, e.worldY);
-                ctx.beginPath(); ctx.arc(mc.x, mc.y, e.type === 'boss' ? 7 : 3, 0, Math.PI*2);
-                ctx.fillStyle = e.type === 'boss' ? '#ff3333' : '#e67e22'; ctx.fill();
-            });
-
-            // Oznaczenie pozycji lokalnego gracza (Ciebie)
-            let myMc = worldToMapCoords(player.worldX, player.worldY);
-            ctx.beginPath(); ctx.arc(myMc.x, myMc.y, 7, 0, Math.PI*2);
-            ctx.fillStyle = '#00ffcc'; ctx.fill();
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
-
-            ctx.fillStyle = '#fff'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText("Ty", myMc.x, myMc.y - 12);
-        }
-
-        // --- GŁÓWNA PĘTLA GRY ---
-        function gameLoop() {
-            updateGame();
-            drawGame();
-            requestAnimationFrame(gameLoop);
-        }
-        requestAnimationFrame(gameLoop);
-    </script>
-</body>
-</html>
+            if (touchAim.active &&
