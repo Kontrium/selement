@@ -1,1009 +1,1876 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CryptoPixiRPG z Czat Room</title>
-    <style>
-        :root {
-            --bg-color: #0b0f19;
-            --panel-bg: #151d30;
-            --accent-color: #00ffcc;
-            --text-color: #f3f4f6;
-            --text-muted: #6b7280;
-            --border-color: #24324f;
-            --error-color: #ff4a4a;
-        }
+```
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        touch-action: none;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            touch-action: none;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-        }
+    body, html {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
 
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
+    canvas {
+        display: block;
+    }
 
-        canvas {
-            display: block;
-        }
+    /* --- STYLIZACJA AUTORYZACJI --- */
+    .auth-container {
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 2rem;
+        width: 100%;
+        max-width: 400px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        z-index: 200;
+        position: absolute;
+    }
 
-        /* --- STYLIZACJA AUTORYZACJI --- */
-        .auth-container {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 2rem;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            z-index: 200;
-            position: absolute;
-        }
+    .auth-container h2 {
+        margin-bottom: 1.5rem;
+        text-align: center;
+        color: var(--accent-color);
+        font-size: 1.6rem;
+        letter-spacing: 1px;
+    }
 
-        .auth-container h2 {
-            margin-bottom: 1.5rem;
-            text-align: center;
-            color: var(--accent-color);
-            font-size: 1.6rem;
-            letter-spacing: 1px;
-        }
+    .form-group {
+        margin-bottom: 1.2rem;
+    }
 
-        .form-group {
-            margin-bottom: 1.2rem;
-        }
+    .form-group label {
+        display: block;
+        margin-bottom: 0.4rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 0.4rem;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
+    .form-group input {
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-color);
+        font-size: 1rem;
+        transition: border-color 0.3s;
+        -webkit-user-select: text;
+        user-select: text;
+    }
 
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-color);
-            font-size: 1rem;
-            transition: border-color 0.3s;
-            -webkit-user-select: text;
-            user-select: text;
-        }
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+    }
 
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
+    .auth-btn {
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--accent-color);
+        color: var(--bg-color);
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: opacity 0.3s;
+        margin-top: 0.5rem;
+    }
 
-        .auth-btn {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--accent-color);
-            color: var(--bg-color);
-            border: none;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: opacity 0.3s;
-            margin-top: 0.5rem;
-        }
+    .auth-btn:hover {
+        opacity: 0.9;
+    }
 
-        .auth-btn:hover {
-            opacity: 0.9;
-        }
+    .auth-toggle {
+        text-align: center;
+        margin-top: 1rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
 
-        .auth-toggle {
-            text-align: center;
-            margin-top: 1rem;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
+    .auth-toggle span {
+        color: var(--accent-color);
+        cursor: pointer;
+        text-decoration: underline;
+    }
 
-        .auth-toggle span {
-            color: var(--accent-color);
-            cursor: pointer;
-            text-decoration: underline;
-        }
+    .error-msg {
+        color: var(--error-color);
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+        display: none;
+    }
 
-        .error-msg {
-            color: var(--error-color);
-            font-size: 0.85rem;
-            margin-top: 0.5rem;
-            display: none;
-        }
+    /* --- STYLIZACJA NAKŁADKI CZATU --- */
+    .chat-overlay {
+        display: none;
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        justify-content: center;
+        align-items: center;
+        z-index: 150;
+    }
 
-        /* --- STYLIZACJA NAKŁADKI CZATU --- */
-        .chat-overlay {
-            display: none;
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            justify-content: center;
-            align-items: center;
-            z-index: 150;
-        }
+    .chat-interface {
+        width: 90vw;
+        max-width: 1000px;
+        height: 80vh;
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+        display: flex;
+        flex-direction: column;
+    }
 
-        .chat-interface {
-            width: 90vw;
-            max-width: 1000px;
-            height: 80vh;
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-            display: flex;
-            flex-direction: column;
-        }
+    .chat-header {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-        .chat-header {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .chat-header h1 {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
 
-        .chat-header h1 {
-            font-size: 1.2rem;
-            font-weight: 600;
-        }
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    .my-stats-trigger {
+        color: var(--accent-color);
+        font-size: 0.85rem;
+        cursor: pointer;
+        text-decoration: underline;
+        margin-right: 10px;
+    }
 
-        .logout-btn {
-            background: transparent;
-            border: 1px solid var(--error-color);
-            color: var(--error-color);
-            padding: 0.4rem 0.8rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: all 0.3s;
-        }
+    .logout-btn {
+        background: transparent;
+        border: 1px solid var(--error-color);
+        color: var(--error-color);
+        padding: 0.4rem 0.8rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.3s;
+    }
 
-        .logout-btn:hover {
-            background: var(--error-color);
-            color: white;
-        }
+    .logout-btn:hover {
+        background: var(--error-color);
+        color: white;
+    }
 
-        .chat-body {
-            display: flex;
-            flex: 1;
-            height: calc(100% - 60px);
-            position: relative;
-        }
+    .chat-body {
+        display: flex;
+        flex: 1;
+        height: calc(100% - 60px);
+        position: relative;
+    }
 
-        .messages-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: rgba(0, 0, 0, 0.1);
-        }
+    .messages-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: rgba(0, 0, 0, 0.1);
+    }
 
-        .messages-container {
-            flex: 1;
-            padding: 1.5rem;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            -webkit-user-select: text;
-            user-select: text;
-        }
+    .messages-container {
+        flex: 1;
+        padding: 1.5rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        -webkit-user-select: text;
+        user-select: text;
+    }
 
-        .message {
-            background: var(--border-color);
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            max-width: 75%;
-            align-self: flex-start;
-        }
+    .message {
+        background: var(--border-color);
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        max-width: 75%;
+        align-self: flex-start;
+    }
 
-        .message.own {
-            background: rgba(0, 255, 204, 0.1);
-            border: 1px solid var(--accent-color);
-            align-self: flex-end;
-        }
+    .message.own {
+        background: rgba(0, 255, 204, 0.1);
+        border: 1px solid var(--accent-color);
+        align-self: flex-end;
+    }
 
-        .message.system {
-            background: transparent;
-            color: var(--accent-color);
-            font-size: 0.85rem;
-            align-self: center;
-            text-align: center;
-            border: none;
-            padding: 0.2rem;
-        }
+    .message.system {
+        background: transparent;
+        color: var(--accent-color);
+        font-size: 0.85rem;
+        align-self: center;
+        text-align: center;
+        border: none;
+        padding: 0.2rem;
+    }
 
-        .message .meta {
-            font-size: 0.75rem;
-            color: var(--accent-color);
-            margin-bottom: 0.25rem;
-            font-weight: bold;
-        }
+    .message .meta {
+        font-size: 0.75rem;
+        color: var(--accent-color);
+        margin-bottom: 0.25rem;
+        font-weight: bold;
+    }
 
-        .message .text {
-            font-size: 0.95rem;
-            word-break: break-word;
-        }
+    .message .text {
+        font-size: 0.95rem;
+        word-break: break-word;
+    }
 
-        .chat-input-area {
-            padding: 1rem;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            gap: 10px;
-        }
+    .chat-input-area {
+        padding: 1rem;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        gap: 10px;
+    }
 
-        .chat-input-area input {
-            flex: 1;
-            padding: 0.75rem;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-color);
-            -webkit-user-select: text;
-            user-select: text;
-        }
+    .chat-input-area input {
+        flex: 1;
+        padding: 0.75rem;
+        background: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-color);
+        -webkit-user-select: text;
+        user-select: text;
+    }
 
-        .chat-input-area input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
+    .chat-input-area input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+    }
 
-        .send-btn {
-            padding: 0 1.5rem;
-            background: var(--accent-color);
-            color: var(--bg-color);
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+    .send-btn {
+        padding: 0 1.5rem;
+        background: var(--accent-color);
+        color: var(--bg-color);
+        border: none;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+    }
 
-        .users-window {
-            width: 240px;
-            border-left: 1px solid var(--border-color);
-            background: rgba(21, 29, 48, 0.85);
-            display: flex;
-            flex-direction: column;
-        }
+    .users-window {
+        width: 260px;
+        border-left: 1px solid var(--border-color);
+        background: rgba(21, 29, 48, 0.85);
+        display: flex;
+        flex-direction: column;
+    }
 
-        .users-window-header {
-            padding: 1rem;
-            background: rgba(0, 0, 0, 0.15);
-            border-bottom: 1px solid var(--border-color);
-            font-weight: bold;
-            font-size: 0.9rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .users-window-header {
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.15);
+        border-bottom: 1px solid var(--border-color);
+        font-weight: bold;
+        font-size: 0.9rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-        .online-count {
-            background: var(--accent-color);
-            color: var(--bg-color);
-            font-size: 0.75rem;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-weight: bold;
-        }
+    .online-count {
+        background: var(--accent-color);
+        color: var(--bg-color);
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-weight: bold;
+    }
 
-        .users-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
+    .users-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
 
-        .user-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 0.5rem;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.02);
-            font-size: 0.9rem;
-        }
+    .user-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.6rem;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.02);
+        font-size: 0.9rem;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+    }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background-color: var(--accent-color);
-            border-radius: 50%;
-            box-shadow: 0 0 8px var(--accent-color);
-        }
+    .user-item:hover {
+        background: rgba(0, 255, 204, 0.05);
+        border-color: rgba(0, 255, 204, 0.2);
+    }
 
-        /* --- STYLIZACJA MENU STARTOWEGO GRY --- */
-        #start-menu {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, #2c3e50 0%, #0f171e 100%);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            color: white;
-            padding: 20px;
-        }
-        #start-menu h1 {
-            font-size: 36px;
-            color: #00ffcc;
-            margin-bottom: 10px;
-            text-shadow: 0 0 15px rgba(0,255,204,0.5);
-            text-align: center;
-        }
-        #start-menu p {
-            color: #ccc;
-            margin-bottom: 30px;
-            font-size: 16px;
-        }
-        .class-container {
-            display: flex;
-            gap: 20px;
-            max-width: 900px;
-            width: 100%;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .class-card {
-            background: rgba(0, 0, 0, 0.6);
-            border: 2px solid #555;
-            border-radius: 12px;
-            padding: 20px;
-            width: 240px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-        }
-        .class-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,255,204,0.3);
-        }
-        .class-card.mag { border-color: #33ccff; }
-        .class-card.mag:hover { background: rgba(51, 204, 255, 0.15); }
-        .class-card.wojownik { border-color: #ff3333; }
-        .class-card.wojownik:hover { background: rgba(255, 51, 51, 0.15); }
-        .class-card.lucznik { border-color: #2ecc71; }
-        .class-card.lucznik:hover { background: rgba(46, 204, 113, 0.15); }
-        
-        .class-card h2 { margin-bottom: 10px; font-size: 22px; }
-        .class-card.mag h2 { color: #33ccff; }
-        .class-card.wojownik h2 { color: #ff3333; }
-        .class-card.lucznik h2 { color: #2ecc71; }
-        .class-card ul { list-style: none; text-align: left; margin-top: 15px; font-size: 13px; color: #aaa; }
-        .class-card ul li { margin-bottom: 6px; }
+    .user-info-side {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
 
-        /* INTERFEJS HUD GRY */
-        #ui {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: #fff;
-            font-size: 14px;
-            pointer-events: none;
-            background: rgba(0,0,0,0.85);
-            padding: 12px;
-            border-radius: 8px;
-            z-index: 10;
-            border: 1px solid rgba(255,255,255,0.2);
-            min-width: 220px;
-            display: none;
-        }
-        .stat-line { margin-bottom: 6px; }
-        .highlight { color: #00ffcc; font-weight: bold; }
-        .weather-info { color: #ffcc00; font-weight: bold; text-transform: uppercase; }
-        .bar-container {
-            width: 100%;
-            background: #444;
-            height: 12px;
-            border-radius: 6px;
-            overflow: hidden;
-            margin-top: 4px;
-            border: 1px solid #222;
-        }
-        #hp-bar { width: 100%; height: 100%; background: #ff3366; transition: width 0.1s ease; }
-        #mana-bar { width: 100%; height: 100%; background: #33ccff; transition: width 0.05s ease; }
-        #xp-bar { width: 0%; height: 100%; background: #e0a816; transition: width 0.2s ease; }
-        
-        #boss-ui {
-            position: absolute;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50%;
-            min-width: 280px;
-            background: rgba(0,0,0,0.8);
-            padding: 10px;
-            border-radius: 6px;
-            border: 2px solid #ff3333;
-            text-align: center;
-            display: none;
-            z-index: 15;
-        }
-        #boss-hp-bar { width: 100%; height: 16px; background: #ff0000; }
-        #level-up-panel {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            border: 2px solid #e0a816;
-            padding: 15px;
-            border-radius: 10px;
-            color: white;
-            text-align: center;
-            z-index: 20;
-            display: none;
-            box-shadow: 0 0 20px rgba(224, 168, 22, 0.4);
-        }
-        #level-up-panel h3 { color: #e0a816; margin-bottom: 5px; font-size: 16px; }
-        #level-up-panel p { font-size: 12px; margin-bottom: 12px; color: #aaa; }
-        .stat-btn {
-            background: #222; color: #fff; border: 1px solid #555;
-            padding: 8px 12px; margin: 4px; border-radius: 5px;
-            cursor: pointer; font-weight: bold; font-size: 12px; transition: all 0.2s;
-        }
-        .stat-btn:hover { background: #e0a816; color: #000; border-color: #fff; }
-        
-        #chat-hint {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.7);
-            color: var(--accent-color);
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            pointer-events: none;
-            z-index: 10;
-            border: 1px solid var(--border-color);
-            display: none;
-        }
-    </style>
-</head>
-<body>
+    .view-profile-link {
+        font-size: 0.75rem;
+        color: var(--accent-color);
+        cursor: pointer;
+        text-decoration: none;
+        border: 1px solid rgba(0, 255, 204, 0.3);
+        padding: 2px 6px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
 
-    <div class="auth-container" id="authBox">
-        <h2 id="authTitle">Utwórz Konto</h2>
-        <form id="authForm">
-            <div class="form-group" id="emailGroup">
-                <label for="emailInput">Adres E-mail</label>
-                <input type="email" id="emailInput" required placeholder="np. twoj@email.com">
-            </div>
-            <div class="form-group">
-                <label for="userInput">Nazwa użytkownika (Nick)</label>
-                <input type="text" id="userInput" required placeholder="np. Satoshi99">
-            </div>
-            <div class="form-group">
-                <label for="passInput">Hasło</label>
-                <input type="password" id="passInput" required placeholder="••••••••">
-            </div>
-            <button type="submit" class="auth-btn" id="authSubmitBtn">Zarejestruj się</button>
-            <div class="error-msg" id="authError">Błąd autoryzacji.</div>
-        </form>
-        <div class="auth-toggle">
-            <span id="toggleAuthText">Masz już konto? Zaloguj się</span>
+    .view-profile-link:hover {
+        background: var(--accent-color);
+        color: var(--bg-color);
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--accent-color);
+        border-radius: 50%;
+        box-shadow: 0 0 8px var(--accent-color);
+    }
+
+    /* --- OKNO DIALOGOWE PROFILU UŻYTKOWNIKA --- */
+    .profile-modal {
+        display: none;
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.75);
+        z-index: 180;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .profile-card {
+        background: var(--panel-bg);
+        border: 2px solid var(--accent-color);
+        box-shadow: 0 0 25px rgba(0, 255, 204, 0.3);
+        border-radius: 12px;
+        width: 90%;
+        max-width: 400px;
+        padding: 1.5rem;
+        position: relative;
+    }
+
+    .profile-card h3 {
+        color: var(--accent-color);
+        font-size: 1.4rem;
+        margin-bottom: 1rem;
+        text-align: center;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+        letter-spacing: 1px;
+    }
+
+    .profile-stat-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.6rem 0;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+        font-size: 1rem;
+    }
+
+    .profile-stat-label {
+        color: var(--text-muted);
+    }
+
+    .profile-stat-value {
+        font-weight: bold;
+        color: #fff;
+    }
+
+    .profile-close-btn {
+        margin-top: 1.2rem;
+        width: 100%;
+        padding: 0.6rem;
+        background: var(--border-color);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.2s;
+    }
+
+    .profile-close-btn:hover {
+        background: #fff;
+        color: var(--bg-color);
+    }
+
+    /* --- STYLIZACJA MENU STARTOWEGO GRY --- */
+    #start-menu {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: radial-gradient(circle, #2c3e50 0%, #0f171e 100%);
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        color: white;
+        padding: 20px;
+    }
+    #start-menu h1 {
+        font-size: 36px;
+        color: #00ffcc;
+        margin-bottom: 10px;
+        text-shadow: 0 0 15px rgba(0,255,204,0.5);
+        text-align: center;
+    }
+    #start-menu p {
+        color: #ccc;
+        margin-bottom: 30px;
+        font-size: 16px;
+    }
+    .class-container {
+        display: flex;
+        gap: 20px;
+        max-width: 900px;
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .class-card {
+        background: rgba(0, 0, 0, 0.6);
+        border: 2px solid #555;
+        border-radius: 12px;
+        padding: 20px;
+        width: 240px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    }
+    .class-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,255,204,0.3);
+    }
+    .class-card.mag { border-color: #33ccff; }
+    .class-card.mag:hover { background: rgba(51, 204, 255, 0.15); }
+    .class-card.wojownik { border-color: #ff3333; }
+    .class-card.wojownik:hover { background: rgba(255, 51, 51, 0.15); }
+    .class-card.lucznik { border-color: #2ecc71; }
+    .class-card.lucznik:hover { background: rgba(46, 204, 113, 0.15); }
+    
+    .class-card h2 { margin-bottom: 10px; font-size: 22px; }
+    .class-card.mag h2 { color: #33ccff; }
+    .class-card.wojownik h2 { color: #ff3333; }
+    .class-card.lucznik h2 { color: #2ecc71; }
+    .class-card ul { list-style: none; text-align: left; margin-top: 15px; font-size: 13px; color: #aaa; }
+    .class-card ul li { margin-bottom: 6px; }
+
+    /* INTERFEJS HUD GRY */
+    #ui {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: #fff;
+        font-size: 14px;
+        pointer-events: none;
+        background: rgba(0,0,0,0.85);
+        padding: 12px;
+        border-radius: 8px;
+        z-index: 10;
+        border: 1px solid rgba(255,255,255,0.2);
+        min-width: 220px;
+        display: none;
+    }
+    .stat-line { margin-bottom: 6px; }
+    .highlight { color: #00ffcc; font-weight: bold; }
+    .weather-info { color: #ffcc00; font-weight: bold; text-transform: uppercase; }
+    .bar-container {
+        width: 100%;
+        background: #444;
+        height: 12px;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-top: 4px;
+        border: 1px solid #222;
+    }
+    #hp-bar { width: 100%; height: 100%; background: #ff3366; transition: width 0.1s ease; }
+    #mana-bar { width: 100%; height: 100%; background: #33ccff; transition: width 0.05s ease; }
+    #xp-bar { width: 0%; height: 100%; background: #e0a816; transition: width 0.2s ease; }
+    
+    #boss-ui {
+        position: absolute;
+        top: 15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50%;
+        min-width: 280px;
+        background: rgba(0,0,0,0.8);
+        padding: 10px;
+        border-radius: 6px;
+        border: 2px solid #ff3333;
+        text-align: center;
+        display: none;
+        z-index: 15;
+    }
+    #boss-hp-bar { width: 100%; height: 16px; background: #ff0000; }
+    #level-up-panel {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.9);
+        border: 2px solid #e0a816;
+        padding: 15px;
+        border-radius: 10px;
+        color: white;
+        text-align: center;
+        z-index: 20;
+        display: none;
+        box-shadow: 0 0 20px rgba(224, 168, 22, 0.4);
+    }
+    #level-up-panel h3 { color: #e0a816; margin-bottom: 5px; font-size: 16px; }
+    #level-up-panel p { font-size: 12px; margin-bottom: 12px; color: #aaa; }
+    .stat-btn {
+        background: #222; color: #fff; border: 1px solid #555;
+        padding: 8px 12px; margin: 4px; border-radius: 5px;
+        cursor: pointer; font-weight: bold; font-size: 12px; transition: all 0.2s;
+    }
+    .stat-btn:hover { background: #e0a816; color: #000; border-color: #fff; }
+    
+    #chat-hint {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.7);
+        color: var(--accent-color);
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 10;
+        border: 1px solid var(--border-color);
+        display: none;
+    }
+</style>
+
+```
+
+```
+<div class="auth-container" id="authBox">
+    <h2 id="authTitle">Utwórz Konto</h2>
+    <form id="authForm">
+        <div class="form-group" id="emailGroup">
+            <label for="emailInput">Adres E-mail</label>
+            <input type="email" id="emailInput" required placeholder="np. twoj@email.com">
         </div>
+        <div class="form-group">
+            <label for="userInput">Nazwa użytkownika (Nick)</label>
+            <input type="text" id="userInput" required placeholder="np. Satoshi99">
+        </div>
+        <div class="form-group">
+            <label for="passInput">Hasło</label>
+            <input type="password" id="passInput" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="auth-btn" id="authSubmitBtn">Zarejestruj się</button> <div class="error-msg" id="authError">Błąd autoryzacji.</div>
+    </form>
+    <div class="auth-toggle">
+        <span id="toggleAuthText">Masz już konto? Zaloguj się</span>
     </div>
+</div>
 
-    <div class="chat-overlay" id="chatOverlay">
-        <div class="chat-interface" id="chatInterface">
-            <div class="chat-header">
-                <h1># Global Realtime DevRoom</h1>
-                <div class="user-profile">
-                    <span id="currentUserDisplay" style="font-weight: bold;"></span>
-                    <button class="logout-btn" id="logoutBtn">Wyloguj</button>
+<div class="chat-overlay" id="chatOverlay">
+    <div class="chat-interface" id="chatInterface">
+        <div class="chat-header">
+            <h1># Global Realtime DevRoom</h1>
+            <div class="user-profile">
+                <span id="myProfileTrigger" class="my-stats-trigger">Mój Profil</span>
+                <span id="currentUserDisplay" style="font-weight: bold; color: var(--accent-color);"></span>
+                <button class="logout-btn" id="logoutBtn">Wyloguj</button>
+            </div>
+        </div>
+        
+        <div class="chat-body">
+            <div class="messages-area">
+                <div class="messages-container" id="messagesContainer"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="messageInput" placeholder="Napisz wiadomość... (Wciśnij ESC lub ` aby wrócić do gry)">
+                    <button class="send-btn" id="sendBtn">Wyślij</button>
                 </div>
             </div>
-            
-            <div class="chat-body">
-                <div class="messages-area">
-                    <div class="messages-container" id="messagesContainer"></div>
-                    <div class="chat-input-area">
-                        <input type="text" id="messageInput" placeholder="Napisz wiadomość... (Wciśnij ESC lub ` aby wrócić do gry)">
-                        <button class="send-btn" id="sendBtn">Wyślij</button>
-                    </div>
+
+            <div class="users-window" id="usersWindow">
+                <div class="users-window-header">
+                    <span>Użytkownicy Online</span>
+                    <span class="online-count" id="onlineCount">0</span>
                 </div>
-
-                <div class="users-window" id="usersWindow">
-                    <div class="users-window-header">
-                        <span>Użytkownicy Online</span>
-                        <span class="online-count" id="onlineCount">0</span>
-                    </div>
-                    <div class="users-list" id="usersList"></div>
-                </div>
+                <div class="users-list" id="usersList"></div>
             </div>
         </div>
     </div>
+</div>
 
-    <div id="start-menu">
-        <h1>Wybierz swoją Klasę Bohatera</h1>
-        <p>Dopasuj swój styl walki i wkrocz do niebezpiecznego świata</p>
-        <div class="class-container">
-            <div class="class-card mag" onclick="selectClass('mag')">
-                <h2>MAG</h2>
-                <p>Mistrz Piorunów Kulistych</p>
-                <ul>
-                    <li>• Broń: Kostur Mocy</li>
-                    <li>• Atak: Samonaprowadzające kule energii</li>
-                    <li>• Cecha: Silna, widowiskowa magia elektryczna</li>
-                </ul>
-            </div>
-            <div class="class-card wojownik" onclick="selectClass('wojownik')">
-                <h2>WOJOWNIK</h2>
-                <p>Nieokiełznany Szermierz</p>
-                <ul>
-                    <li>• Broń: Ciężki Miecz</li>
-                    <li>• Atak: Szybkie cięcia po skosie w zwarciu</li>
-                    <li>• Cecha: "Szał Przecinania" przy trzymaniu myszy</li>
-                </ul>
-            </div>
-            <div class="class-card lucznik" onclick="selectClass('lucznik')">
-                <h2>ŁUCZNIK</h2>
-                <p>Zabójczy Strzelec Wyborowy</p>
-                <ul>
-                    <li>• Broń: Łuk Refleksyjny</li>
-                    <li>• Atak: Celne, fizyczne strzały z dystansu</li>
-                    <li>• Cecha: Wysoka częstotliwość i celność strzał</li>
-                </ul>
-            </div>
+<div class="profile-modal" id="profileModal">
+    <div class="profile-card">
+        <h3 id="profileUsername">---KONTRIUM---</h3>
+        <div class="profile-stat-row">
+            <span class="profile-stat-label">Klasa Bohatera:</span>
+            <span class="profile-stat-value" id="profileClassVal">-</span>
+        </div>
+        <div class="profile-stat-row">
+            <span class="profile-stat-label">Poziom (Level):</span>
+            <span class="profile-stat-value" id="profileLevelVal">1</span>
+        </div>
+        <div class="profile-stat-row">
+            <span class="profile-stat-label">Pokonani wrogowie:</span>
+            <span class="profile-stat-value" id="profileScoreVal">0</span>
+        </div>
+        <div class="profile-stat-row">
+            <span class="profile-stat-label">Status połączenia:</span>
+            <span class="profile-stat-value" style="color: var(--accent-color);">ONLINE</span>
+        </div>
+        <button class="profile-close-btn" id="closeProfileBtn">Zamknij Podgląd</button>
+    </div>
+</div>
+
+<div id="start-menu">
+    <h1>Wybierz swoją Klasę Bohatera</h1>
+    <p>Dopasuj swój styl walki i wkrocz do niebezpiecznego świata</p>
+    <div class="class-container">
+        <div class="class-card mag" onclick="selectClass('mag')">
+            <h2>MAG</h2>
+            <p>Mistrz Piorunów Kulistych</p>
+            <ul>
+                <li>• Broń: Kostur Mocy</li>
+                <li>• Atak: Samonaprowadzające kule energii</li>
+                <li>• Cecha: Silna, widowiskowa magia elektryczna</li>
+            </ul>
+        </div>
+        <div class="class-card wojownik" onclick="selectClass('wojownik')">
+            <h2>WOJOWNIK</h2>
+            <p>Nieokiełznany Szermierz</p>
+            <ul>
+                <li>• Broń: Ciężki Miecz</li>
+                <li>• Atak: Szybkie cięcia po skosie w zwarciu</li>
+                <li>• Cecha: "Szał Przecinania" przy trzymaniu myszy</li>
+            </ul>
+        </div>
+        <div class="class-card lucznik" onclick="selectClass('lucznik')">
+            <h2>ŁUCZNIK</h2>
+            <p>Zabójczy Strzelec Wyborowy</p>
+            <ul>
+                <li>• Broń: Łuk Refleksyjny</li>
+                <li>• Atak: Celne, fizyczne strzały z dystansu</li>
+                <li>• Cecha: Wysoka częstotliwość i celność strzał</li>
+            </ul>
         </div>
     </div>
+</div>
 
-    <div id="ui">
-        <div class="stat-line"><span class="highlight">Poziom: <span id="lvl-val">1</span></span></div>
-        <div class="stat-line">Zdrowie: <span id="hp-text">100/100</span>
-            <div class="bar-container"><div id="hp-bar"></div></div>
-        </div>
-        <div class="stat-line">Energia / Mana: <span id="mana-text">100/100</span>
-            <div class="bar-container"><div id="mana-bar"></div></div>
-        </div>
-        <div class="stat-line">Doświadczenie (XP):
-            <div class="bar-container"><div id="xp-bar"></div></div>
-        </div>
-        <div class="stat-line" style="margin-top: 5px; font-size: 13px;">Pogoda: <span id="weather-val" class="weather-info">Słonecznie</span></div>
-        <div class="stat-line" style="font-size: 12px; color: #aaa;">Pokonani wrogowie: <span id="score-val" class="highlight">0</span></div>
+<div id="ui">
+    <div class="stat-line"><span class="highlight">Poziom: <span id="lvl-val">1</span></span></div>
+    <div class="stat-line">Zdrowie: <span id="hp-text">100/100</span>
+        <div class="bar-container"><div id="hp-bar"></div></div>
     </div>
-
-    <div id="boss-ui">
-        <div style="color: #ff3333; font-weight: bold; margin-bottom: 5px; font-size: 14px;" id="boss-name">BOSS: SIERADZKI NISZCZYCIEL</div>
-        <div class="bar-container" style="height: 16px;"><div id="boss-hp-bar"></div></div>
+    <div class="stat-line">Energia / Mana: <span id="mana-text">100/100</span>
+        <div class="bar-container"><div id="mana-bar"></div></div>
     </div>
-
-    <div id="level-up-panel">
-        <h3>AWANS POZIOMU!</h3>
-        <p>Punkty do rozdania: <span id="skill-points" class="highlight">0</span></p>
-        <button class="stat-btn" onclick="upgradeStat('hp')">+ Zdrowie (+25)</button>
-        <button class="stat-btn" onclick="upgradeStat('mana')">+ Max Energia & Reg.</button>
-        <button class="stat-btn" onclick="upgradeStat('speed')">+ Prędkość</button>
-        <button class="stat-btn" onclick="upgradeStat('damage')">+ Siła Ataku</button>
+    <div class="stat-line">Doświadczenie (XP):
+        <div class="bar-container"><div id="xp-bar"></div></div>
     </div>
+    <div class="stat-line" style="margin-top: 5px; font-size: 13px;">Pogoda: <span id="weather-val" class="weather-info">Słonecznie</span></div>
+    <div class="stat-line" style="font-size: 12px; color: #aaa;">Pokonani wrogowie: <span id="score-val" class="highlight">0</span></div>
+</div>
 
-    <div id="chat-hint">Naciśnij klawisz [ ` ] (tylda), aby otworzyć czat</div>
+<div id="boss-ui">
+    <div style="color: #ff3333; font-weight: bold; margin-bottom: 5px; font-size: 14px;" id="boss-name">BOSS: SIERADZKI NISZCZYCIEL</div>
+    <div class="bar-container" style="height: 16px;"><div id="boss-hp-bar"></div></div>
+</div>
 
-    <canvas id="gameCanvas"></canvas>
+<div id="level-up-panel">
+    <h3>AWANS POZIOMU!</h3>
+    <p>Punkty do rozdania: <span id="skill-points" class="highlight">0</span></p>
+    <button class="stat-btn" onclick="upgradeStat('hp')">+ Zdrowie (+25)</button>
+    <button class="stat-btn" onclick="upgradeStat('mana')">+ Max Energia & Reg.</button>
+    <button class="stat-btn" onclick="upgradeStat('speed')">+ Prędkość</button>
+    <button class="stat-btn" onclick="upgradeStat('damage')">+ Siła Ataku</button>
+</div>
 
-    <script>
-        let userIsAuthenticated = false;
-        let chatIsOpen = false;
+<div id="chat-hint">Naciśnij klawisz [ ` ] (tylda), aby otworzyć czat</div>
 
-        function toggleChatOverlay() {
-            if (!userIsAuthenticated) return;
-            
-            const overlay = document.getElementById('chatOverlay');
-            const msgInput = document.getElementById('messageInput');
-            
-            chatIsOpen = !chatIsOpen;
-            if (chatIsOpen) {
-                overlay.style.display = 'flex';
-                msgInput.focus();
-                if (typeof keys !== 'undefined') {
-                    keys.w = keys.a = keys.s = keys.d = false;
-                }
-            } else {
-                overlay.style.display = 'none';
-                msgInput.blur();
+<canvas id="gameCanvas"></canvas>
+
+<script>
+    let userIsAuthenticated = false;
+    let chatIsOpen = false;
+
+    function toggleChatOverlay() {
+        if (!userIsAuthenticated) return;
+        
+        const overlay = document.getElementById('chatOverlay');
+        const msgInput = document.getElementById('messageInput');
+        
+        chatIsOpen = !chatIsOpen;
+        if (chatIsOpen) {
+            overlay.style.display = 'flex';
+            msgInput.focus();
+            if (typeof keys !== 'undefined') {
+                keys.w = keys.a = keys.s = keys.d = false;
             }
+        } else {
+            overlay.style.display = 'none';
+            msgInput.blur();
+            document.getElementById('profileModal').style.display = 'none';
         }
+    }
 
-        window.addEventListener('keydown', (e) => {
-            if (document.activeElement === document.getElementById('messageInput')) {
-                if (e.key === 'Escape') {
-                    toggleChatOverlay();
-                }
-                return;
-            }
-
-            if (e.key === '`') {
-                e.preventDefault();
+    window.addEventListener('keydown', (e) => {
+        if (document.activeElement === document.getElementById('messageInput')) {
+            if (e.key === 'Escape') {
                 toggleChatOverlay();
             }
-        });
-    </script>
+            return;
+        }
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, push, onChildAdded, onValue, remove, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBx1DftUTvzQIkgJqwIMDWo-snk7YwlE4Q",
-            authDomain: "selementchat.firebaseapp.com",
-            databaseURL: "https://selementchat-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "selementchat",
-            storageBucket: "selementchat.firebasestorage.app",
-            messagingSenderId: "277474489738",
-            appId: "1:277474489738:web:74a74d9b63890d21e78473"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        let isLoginMode = false;
-        let currentUser = null;
-        let myOnlineRef = null;
-
-        const authForm = document.getElementById('authForm');
-        const toggleAuthText = document.getElementById('toggleAuthText');
-        const authTitle = document.getElementById('authTitle');
-        const emailGroup = document.getElementById('emailGroup');
-        const emailInput = document.getElementById('emailInput');
-        const authSubmitBtn = document.getElementById('authSubmitBtn');
-        const authError = document.getElementById('authError');
-        const messageInput = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-
-        toggleAuthText.addEventListener('click', () => {
-            isLoginMode = !isLoginMode;
-            authError.style.display = 'none';
-            if (isLoginMode) {
-                authTitle.innerText = "Logowanie";
-                emailGroup.style.display = "none";
-                emailInput.removeAttribute('required');
-                authSubmitBtn.innerText = "Zaloguj się";
-                toggleAuthText.innerHTML = "Nie masz konta? <span>Zarejestruj się</span>";
-            } else {
-                authTitle.innerText = "Utwórz Konto";
-                emailGroup.style.display = "block";
-                emailInput.setAttribute('required', 'required');
-                authSubmitBtn.innerText = "Zarejestruj się";
-                toggleAuthText.innerHTML = "Masz już konto? <span>Zaloguj się</span>";
-            }
-        });
-
-        authForm.addEventListener('submit', (e) => {
+        if (e.key === '`') {
             e.preventDefault();
-            const username = document.getElementById('userInput').value.trim();
-            const password = document.getElementById('passInput').value;
-            const email = document.getElementById('emailInput').value.trim();
+            toggleChatOverlay();
+        }
+    });
+</script>
 
-            if (!isLoginMode) {
-                onValue(ref(db, 'users/' + username), (snapshot) => {
-                    if (snapshot.exists()) {
-                        showError("Ta nazwa użytkownika jest zajęta.");
-                    } else {
-                        set(ref(db, 'users/' + username), { email, password })
-                        .then(() => {
-                            currentUser = username;
-                            enterGameAndChat();
-                        });
-                    }
-                }, { onlyOnce: true });
+<script type="module">
+    import { initializeApp } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js)";
+    import { getDatabase, ref, set, push, onChildAdded, onValue, remove, off, onChildChanged, onChildRemoved } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js)";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBx1DftUTvzQIkgJqwIMDWo-snk7YwlE4Q",
+        authDomain: "selementchat.firebaseapp.com",
+        databaseURL: "[https://selementchat-default-rtdb.europe-west1.firebasedatabase.app](https://selementchat-default-rtdb.europe-west1.firebasedatabase.app)",
+        projectId: "selementchat",
+        storageBucket: "selementchat.firebasestorage.app",
+        messagingSenderId: "277474489738",
+        appId: "1:277474489738:web:74a74d9b63890d21e78473"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let isLoginMode = false;
+    let currentUser = null;
+    let myOnlineRef = null;
+
+    // Globalne referencje do bazy danych dla silnika gry
+    window.gameDatabase = db;
+    window.getCurrentUser = () => currentUser;
+
+    const authForm = document.getElementById('authForm');
+    const toggleAuthText = document.getElementById('toggleAuthText');
+    const authTitle = document.getElementById('authTitle');
+    const emailGroup = document.getElementById('emailGroup');
+    const emailInput = document.getElementById('emailInput');
+    const authSubmitBtn = document.getElementById('authSubmitBtn');
+    const authError = document.getElementById('authError');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    
+    const profileModal = document.getElementById('profileModal');
+    const profileUsername = document.getElementById('profileUsername');
+    const profileClassVal = document.getElementById('profileClassVal');
+    const profileLevelVal = document.getElementById('profileLevelVal');
+    const profileScoreVal = document.getElementById('profileScoreVal');
+    const closeProfileBtn = document.getElementById('closeProfileBtn');
+    const myProfileTrigger = document.getElementById('myProfileTrigger');
+
+    window.syncMyStatsToDatabase = function() {
+        if (!currentUser || !userIsAuthenticated) return;
+        const statsRef = ref(db, 'stats/' + currentUser);
+        set(statsRef, {
+            charClass: (typeof player !== 'undefined' && player.charClass) ? player.charClass.toUpperCase() : 'NIEWYBRANA',
+            level: (typeof player !== 'undefined') ? player.level : 1,
+            score: (typeof score !== 'undefined') ? score : 0,
+            lastUpdate: Date.now()
+        });
+    };
+
+    window.openUserProfile = function(targetUser) {
+        profileUsername.innerText = `--- ${targetUser} ---`;
+        profileClassVal.innerText = "Wczytywanie...";
+        profileLevelVal.innerText = "-";
+        profileScoreVal.innerText = "-";
+        profileModal.style.display = "flex";
+
+        onValue(ref(db, 'stats/' + targetUser), (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                profileClassVal.innerText = data.charClass || "MAG";
+                profileLevelVal.innerText = data.level || "1";
+                profileScoreVal.innerText = data.score || "0";
             } else {
-                onValue(ref(db, 'users/' + username), (snapshot) => {
-                    if (snapshot.exists() && snapshot.val().password === password) {
+                profileClassVal.innerText = "BRAK DANYCH";
+                profileLevelVal.innerText = "1";
+                profileScoreVal.innerText = "0";
+            }
+        }, { onlyOnce: true });
+    };
+
+    closeProfileBtn.addEventListener('click', () => { profileModal.style.display = "none"; });
+    myProfileTrigger.addEventListener('click', () => { if(currentUser) window.openUserProfile(currentUser); });
+
+    toggleAuthText.addEventListener('click', () => {
+        isLoginMode = !isLoginMode;
+        authError.style.display = 'none';
+        if (isLoginMode) {
+            authTitle.innerText = "Logowanie";
+            emailGroup.style.display = "none";
+            emailInput.removeAttribute('required');
+            authSubmitBtn.innerText = "Zaloguj się";
+            toggleAuthText.innerHTML = "Nie masz konta? <span>Zarejestruj się</span>";
+        } else {
+            authTitle.innerText = "Utwórz Konto";
+            emailGroup.style.display = "block";
+            emailInput.setAttribute('required', 'required');
+            authSubmitBtn.innerText = "Zarejestruj się";
+            toggleAuthText.innerHTML = "Masz już konto? <span>Zaloguj się</span>";
+        }
+    });
+
+    authForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = document.getElementById('userInput').value.trim();
+        const password = document.getElementById('passInput').value;
+        const email = document.getElementById('emailInput').value.trim();
+
+        if (!isLoginMode) {
+            onValue(ref(db, 'users/' + username), (snapshot) => {
+                if (snapshot.exists()) {
+                    showError("Ta nazwa użytkownika jest zajęta.");
+                } else {
+                    set(ref(db, 'users/' + username), { email, password })
+                    .then(() => {
                         currentUser = username;
                         enterGameAndChat();
-                    } else {
-                        showError("Nieprawidłowy login lub hasło.");
-                    }
-                }, { onlyOnce: true });
-            }
+                    });
+                }
+            }, { onlyOnce: true });
+        } else {
+            onValue(ref(db, 'users/' + username), (snapshot) => {
+                if (snapshot.exists() && snapshot.val().password === password) {
+                    currentUser = username;
+                    enterGameAndChat();
+                } else {
+                    showError("Nieprawidłowy login lub hasło.");
+                }
+            }, { onlyOnce: true });
+        }
+    });
+
+    function showError(text) {
+        authError.innerText = text;
+        authError.style.display = 'block';
+    }
+
+    function enterGameAndChat() {
+        document.getElementById('authBox').style.display = 'none';
+        
+        userIsAuthenticated = true;
+        document.getElementById('start-menu').style.display = 'flex';
+        document.getElementById('chat-hint').style.display = 'block';
+        
+        document.getElementById('currentUserDisplay').innerText = `@${currentUser}`;
+        authForm.reset();
+
+        myOnlineRef = ref(db, 'online/' + currentUser);
+        set(myOnlineRef, true);
+        window.syncMyStatsToDatabase();
+
+        window.addEventListener('beforeunload', () => {
+            if (myOnlineRef) remove(myOnlineRef);
+            if (currentUser) remove(ref(db, 'players/' + currentUser));
         });
 
-        function showError(text) {
-            authError.innerText = text;
-            authError.style.display = 'block';
+        listenForMessages();
+        listenForOnlineUsers();
+        
+        // Inicjalizacja nasłuchiwania graczy i ataków w czasie rzeczywistym
+        if (window.initMultiplayerSubscribers) {
+            window.initMultiplayerSubscribers(db);
         }
+    }
 
-        function enterGameAndChat() {
-            document.getElementById('authBox').style.display = 'none';
-            userIsAuthenticated = true;
-            document.getElementById('start-menu').style.display = 'flex';
-            document.getElementById('chat-hint').style.display = 'block';
-            document.getElementById('currentUserDisplay').innerText = `@${currentUser}`;
-            authForm.reset();
+    function sendMessage() {
+        const text = messageInput.value.trim();
+        if (!text) return;
+        const messagesRef = ref(db, 'messages');
+        push(messagesRef, { user: currentUser, text: text, timestamp: Date.now() });
+        messageInput.value = '';
+    }
 
-            myOnlineRef = ref(db, 'online/' + currentUser);
-            set(myOnlineRef, true);
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
 
-            window.addEventListener('beforeunload', () => { if(myOnlineRef) remove(myOnlineRef); });
+    function listenForMessages() {
+        const messagesRef = ref(db, 'messages');
+        const container = document.getElementById('messagesContainer');
+        container.innerHTML = '';
+        onChildAdded(messagesRef, (snapshot) => {
+            const data = snapshot.val();
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            if (data.user === currentUser) messageDiv.classList.add('own');
+            messageDiv.innerHTML = `
+                <div class="meta" style="cursor:pointer;" onclick="window.openUserProfile('${data.user}')">${data.user}</div>
+                <div class="text">${escapeHTML(data.text)}</div>
+            `;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        });
+    }
 
-            listenForMessages();
-            listenForOnlineUsers();
-            initGameEngine();
-        }
-
-        function sendMessage() {
-            const text = messageInput.value.trim();
-            if (!text) return;
-
-            const messagesRef = ref(db, 'messages');
-            push(messagesRef, {
-                user: currentUser,
-                text: text,
-                timestamp: Date.now()
-            });
-            messageInput.value = '';
-        }
-
-        sendBtn.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-
-        function listenForMessages() {
-            const messagesRef = ref(db, 'messages');
-            const container = document.getElementById('messagesContainer');
-            container.innerHTML = '';
-
-            onChildAdded(messagesRef, (snapshot) => {
-                const data = snapshot.val();
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'message';
-                if (data.user === currentUser) messageDiv.classList.add('own');
-
-                messageDiv.innerHTML = `
-                    <div class="meta">${data.user}</div>
-                    <div class="text">${escapeHTML(data.text)}</div>
-                `;
-                container.appendChild(messageDiv);
-                container.scrollTop = container.scrollHeight;
-            });
-        }
-
-        function listenForOnlineUsers() {
-            const onlineRef = ref(db, 'online');
-            const usersListContainer = document.getElementById('usersList');
-            const onlineCount = document.getElementById('onlineCount');
-
-            onValue(onlineRef, (snapshot) => {
-                usersListContainer.innerHTML = '';
-                if (!snapshot.exists()) {
-                    onlineCount.innerText = "0";
-                    return;
-                }
-
-                const users = Object.keys(snapshot.val());
-                onlineCount.innerText = users.length;
-
-                users.forEach(user => {
-                    const userItem = document.createElement('div');
-                    userItem.className = 'user-item';
-                    userItem.innerHTML = `
+    function listenForOnlineUsers() {
+        const onlineRef = ref(db, 'online');
+        const usersListContainer = document.getElementById('usersList');
+        const onlineCount = document.getElementById('onlineCount');
+        onValue(onlineRef, (snapshot) => {
+            usersListContainer.innerHTML = '';
+            if (!snapshot.exists()) {
+                onlineCount.innerText = "0";
+                return;
+            }
+            const users = Object.keys(snapshot.val());
+            onlineCount.innerText = users.length;
+            users.forEach(user => {
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                userItem.innerHTML = `
+                    <div class="user-info-side">
                         <div class="status-dot"></div>
                         <span>${user} ${user === currentUser ? '(Ty)' : ''}</span>
-                    `;
-                    usersListContainer.appendChild(userItem);
+                    </div>
+                    <div class="view-profile-link" onclick="window.openUserProfile('${user}')">Zobacz profil</div>
+                `;
+                usersListContainer.appendChild(userItem);
+            });
+        });
+    }
+
+    logoutBtn.addEventListener('click', () => {
+        if (myOnlineRef) remove(myOnlineRef);
+        if (currentUser) remove(ref(db, 'players/' + currentUser));
+        off(ref(db, 'messages'));
+        off(ref(db, 'online'));
+        off(ref(db, 'players'));
+        off(ref(db, 'sync_enemies'));
+        off(ref(db, 'global_attacks'));
+        
+        currentUser = null;
+        userIsAuthenticated = false;
+        chatIsOpen = false;
+        document.getElementById('chatOverlay').style.display = 'none';
+        document.getElementById('start-menu').style.display = 'none';
+        document.getElementById('ui').style.display = 'none';
+        document.getElementById('chat-hint').style.display = 'none';
+        document.getElementById('profileModal').style.display = 'none';
+        document.getElementById('authBox').style.display = 'block';
+        
+        if (typeof gameIsRunning !== 'undefined') {
+            gameIsRunning = false;
+            enemies.length = 0;
+            bullets.length = 0;
+            enemyBullets.length = 0;
+            animals.length = 0;
+            loots.length = 0;
+            visualEffects.length = 0;
+            document.getElementById('boss-ui').style.display = 'none';
+            score = 0;
+            document.getElementById('score-val').textContent = score;
+        }
+    });
+
+    function escapeHTML(str) {
+        return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag) );
+    }
+</script>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreValEl = document.getElementById('score-val');
+    const lvlValEl = document.getElementById('lvl-val');
+    const hpTextEl = document.getElementById('hp-text');
+    const manaTextEl = document.getElementById('mana-text');
+    const hpBarEl = document.getElementById('hp-bar');
+    const manaBarEl = document.getElementById('mana-bar');
+    const xpBarEl = document.getElementById('xp-bar');
+    const levelUpPanelEl = document.getElementById('level-up-panel');
+    const skillPointsEl = document.getElementById('skill-points');
+    const bossUiEl = document.getElementById('boss-ui');
+    const bossHpBarEl = document.getElementById('boss-hp-bar');
+    const weatherValEl = document.getElementById('weather-val');
+    const startMenuEl = document.getElementById('start-menu');
+    const uiEl = document.getElementById('ui');
+    
+    let screenCenterX = 0, screenCenterY = 0, score = 0;
+    let camShakeTime = 0, camShakeIntensity = 0;
+    let gameIsRunning = false;
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        screenCenterX = canvas.width / 2;
+        screenCenterY = canvas.height / 2;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // --- ROZSZERZONY PROCEDURALNY GENERATOR ŚWIATA (1000x1000) ---
+    const TILE_SIZE = 64;
+    const MAP_WIDTH_TILES = 1000;
+    const MAP_HEIGHT_TILES = 1000;
+
+    function MathNoise(x, y) {
+        let n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123;
+        return n - Math.floor(n);
+    }
+
+    function getSmoothNoise(x, y) {
+        let total = 0;
+        total += (Math.sin(x * 0.05) + Math.cos(y * 0.05)) * 2.0;
+        total += (Math.sin(x * 0.15) * Math.cos(y * 0.12)) * 1.0;
+        total += (Math.sin(x * 0.01) + Math.sin(y * 0.01)) * 4.0;
+        return total;
+    }
+
+    const BIOMES = {
+        WATER: { id: 0, c1: '#1f618d', c2: '#2e86c1', name: 'Woda' },
+        SAND: { id: 1, c1: '#f1c40f', c2: '#f39c12', name: 'Pustynia' },
+        GRASS: { id: 2, c1: '#4caf50', c2: '#45a049', name: 'Łąka' },
+        FOREST: { id: 3, c1: '#1e8449', c2: '#196f3d', name: 'Las' },
+        RAINFOREST: { id: 4, c1: '#117a65', c2: '#0e6251', name: 'Las Deszczowy' },
+        MOUNTAIN: { id: 5, c1: '#7f8c8d', c2: '#95a5a6', name: 'Góry' }
+    };
+
+    function getTileAt(tileX, tileY) {
+        if (tileX < 0 || tileX >= MAP_WIDTH_TILES || tileY < 0 || tileY >= MAP_HEIGHT_TILES) {
+            return BIOMES.WATER; 
+        }
+        let n = getSmoothNoise(tileX, tileY);
+        let riverNoise = Math.abs(Math.sin(tileX * 0.08) + Math.cos(tileY * 0.08));
+        if (n < -2.2 || riverNoise < 0.08) return BIOMES.WATER;
+        if (n < -1.2) return BIOMES.SAND;
+        if (n < 0.8) return BIOMES.GRASS;
+        if (n < 2.2) return BIOMES.FOREST;
+        if (n < 3.8) return BIOMES.RAINFOREST;
+        return BIOMES.MOUNTAIN;
+    }
+
+    // --- SYSTEM POGODY I CZASU ---
+    let gameTime = 1200;
+    const WEATHER_TYPES = ['sunny', 'rain', 'snow', 'fog', 'thunder'];
+    let currentWeather = 'sunny';
+    let weatherTimer = 4000;
+    let particles = [];
+    let thunderFlash = 0;
+
+    function changeWeather() {
+        currentWeather = WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
+        weatherTimer = 3000 + Math.random() * 3000;
+        let names = { 'sunny': 'Słonecznie', 'rain': 'Deszcz', 'snow': 'Śnieg', 'fog': 'Mgła', 'thunder': 'Burza' };
+        weatherValEl.textContent = names[currentWeather];
+    }
+
+    function updateWeatherAndTime() {
+        gameTime = (gameTime + 0.5) % 2400;
+        weatherTimer--;
+        if (weatherTimer <= 0) changeWeather();
+        
+        if ((currentWeather === 'rain' || currentWeather === 'thunder') && particles.length < 150) {
+            particles.push({ x: Math.random() * canvas.width, y: -10, speed: 10 + Math.random() * 5, len: 15 + Math.random() * 10, type: 'rain' });
+        } else if (currentWeather === 'snow' && particles.length < 100) {
+            particles.push({ x: Math.random() * canvas.width, y: -10, speed: 2 + Math.random() * 2, len: 3 + Math.random() * 3, drift: (Math.random() - 0.5) * 1, type: 'snow' });
+        }
+        
+        if (currentWeather === 'thunder' && Math.random() < 0.003 && thunderFlash <= 0) {
+            thunderFlash = 8;
+            triggerCameraShake(15, 6);
+        }
+        if (thunderFlash > 0) thunderFlash--;
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            if (p.type === 'rain') { p.y += p.speed; p.x += 1; }
+            else if (p.type === 'snow') { p.y += p.speed; p.x += p.drift; }
+            if (p.y > canvas.height) particles.splice(i, 1);
+        }
+    }
+
+    // --- TABLICE OBIEKTÓW GRY ---
+    const bullets = [];
+    const enemyBullets = [];
+    const enemies = [];
+    const animals = [];
+    const loots = [];
+    const fishes = [];
+    const visualEffects = [];
+    const onlinePlayers = {}; // Przechowywanie innych graczy w czasie rzeczywistym
+
+    // Logika Minmapy i Pełnej Mapy
+    let fullMapOpen = false;
+    let fullMapHoverPos = { x: null, y: null };
+
+    for(let i=0; i<30; i++) {
+        fishes.push({
+            worldX: Math.random() * MAP_WIDTH_TILES * TILE_SIZE,
+            worldY: Math.random() * MAP_HEIGHT_TILES * TILE_SIZE,
+            angle: Math.random() * Math.PI * 2,
+            speed: 0.5 + Math.random() * 1,
+            timeOffset: Math.random() * 100
+        });
+    }
+
+    // --- WEJŚCIE GRACZA (INPUT) ---
+    const keys = { w: false, a: false, s: false, d: false };
+    window.addEventListener('keydown', (e) => {
+        if (chatIsOpen) return;
+        if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = true;
+        
+        // Obsługa klawisza T (Teleportacja dla profesji MAG)
+        if (e.key.toLowerCase() === 't' && fullMapOpen && player.charClass === 'mag') {
+            if (fullMapHoverPos.x !== null && fullMapHoverPos.y !== null) {
+                player.worldX = fullMapHoverPos.x * TILE_SIZE + TILE_SIZE / 2;
+                player.worldY = fullMapHoverPos.y * TILE_SIZE + TILE_SIZE / 2;
+                triggerCameraShake(10, 5);
+                createVisualEffect(player.worldX, player.worldY, 'explosion', '#33ccff');
+                fullMapOpen = false; 
+            }
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = false;
+    });
+
+    const mouse = { x: screenCenterX, y: screenCenterY };
+    let isMousing = false;
+    let isMouseDown = false;
+
+    window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        isMousing = true;
+        
+        // Pobieranie współrzędnych kafla na pełnej mapie
+        if (fullMapOpen) {
+            let mRadius = Math.min(canvas.width, canvas.height) * 0.45;
+            let mCenterX = canvas.width / 2;
+            let mCenterY = canvas.height / 2;
+            let dx = mouse.x - mCenterX;
+            let dy = mouse.y - mCenterY;
+            
+            if (Math.abs(dx) <= mRadius && Math.abs(dy) <= mRadius) {
+                let u = (dx + mRadius) / (mRadius * 2);
+                let v = (dy + mRadius) / (mRadius * 2);
+                fullMapHoverPos.x = Math.floor(u * MAP_WIDTH_TILES);
+                fullMapHoverPos.y = Math.floor(v * MAP_HEIGHT_TILES);
+                if (fullMapHoverPos.x < 0) fullMapHoverPos.x = 0;
+                if (fullMapHoverPos.x >= MAP_WIDTH_TILES) fullMapHoverPos.x = MAP_WIDTH_TILES - 1;
+                if (fullMapHoverPos.y < 0) fullMapHoverPos.y = 0;
+                if (fullMapHoverPos.y >= MAP_HEIGHT_TILES) fullMapHoverPos.y = MAP_HEIGHT_TILES - 1;
+            } else {
+                fullMapHoverPos.x = null;
+                fullMapHoverPos.y = null;
+            }
+        }
+    });
+
+    window.addEventListener('mousedown', (e) => {
+        if (chatIsOpen) return;
+        
+        // Detekcja kliknięcia w minimapę (Prawy dolny róg)
+        let miniRadius = 65;
+        let miniCenterX = canvas.width - miniRadius - 20;
+        let miniCenterY = canvas.height - miniRadius - 20;
+        let distToMinimap = Math.hypot(e.clientX - miniCenterX, e.clientY - miniCenterY);
+        
+        if (distToMinimap <= miniRadius) {
+            fullMapOpen = !fullMapOpen;
+            return;
+        }
+
+        if (fullMapOpen) return;
+
+        if (e.button === 0) {
+            isMouseDown = true;
+            if(gameIsRunning && player.charClass !== 'lucznik') playerAttack();
+        }
+    });
+
+    window.addEventListener('mouseup', (e) => {
+        if (e.button === 0) isMouseDown = false;
+    });
+
+    // --- STRUKTURA I STATYSTYKI GRACZA ---
+    const player = {
+        worldX: 500 * TILE_SIZE, 
+        worldY: 500 * TILE_SIZE,
+        speed: 4,
+        radius: 16,
+        charClass: null,
+        hp: 100, maxHp: 100,
+        mana: 100, maxMana: 100,
+        level: 1, xp: 0, nextLvlXp: 100,
+        skillPoints: 0,
+        baseDamage: 15,
+        attackCooldown: 0,
+        attackRate: 25,
+        speedMultiplier: 1
+    };
+
+    // --- OBSŁUGA MULTIPLAYER W CZASIE RZECZYWISTYM (REALTIME P2P/DAMAGE OVER DATABASE) ---
+    let lastFirebaseSync = 0;
+
+    function updateMultiplayerState() {
+        if (!gameIsRunning || !window.getCurrentUser || !window.getCurrentUser()) return;
+        let now = Date.now();
+        if (now - lastFirebaseSync > 60) { // Synchronizacja pozycji i stanu 15 razy na sekunde
+            lastFirebaseSync = now;
+            const db = window.gameDatabase;
+            const myName = window.getCurrentUser();
+            if (db) {
+                const myPlayerRef = document.getDatabaseRef ? document.getDatabaseRef(db, 'players/' + myName) : null;
+                // Bezpośrednie ustawienie w Firebase
+                const pRef = ref(db, 'players/' + myName);
+                set(pRef, {
+                    x: player.worldX,
+                    y: player.worldY,
+                    hp: player.hp,
+                    maxHp: player.maxHp,
+                    charClass: player.charClass,
+                    level: player.level,
+                    lastSeen: now
                 });
+            }
+        }
+    }
+
+    // Inicjalizacja subskrybentów bazy danych dla komponentów gry online
+    window.initMultiplayerSubscribers = function(db) {
+        // Słuchanie zmian pozycji/stanu innych graczy
+        onValue(ref(db, 'players'), (snapshot) => {
+            if (!snapshot.exists()) return;
+            const data = snapshot.val();
+            const myName = window.getCurrentUser();
+            
+            for (let name in data) {
+                if (name === myName) continue;
+                let pData = data[name];
+                // Ignoruj nieaktywnych graczy (timeout 5 sekund)
+                if (Date.now() - pData.lastSeen > 5000) {
+                    delete onlinePlayers[name];
+                    continue;
+                }
+                onlinePlayers[name] = pData;
+            }
+            // Usunięcie tych, którzy zniknęli całkowicie z gałęzi
+            for (let name in onlinePlayers) {
+                if (!data[name]) delete onlinePlayers[name];
+            }
+        });
+
+        // Globalne ataki i uderzenia w czasie rzeczywistym
+        onChildAdded(ref(db, 'global_attacks'), (snapshot) => {
+            const atk = snapshot.val();
+            const myName = window.getCurrentUser();
+            if (atk.sender === myName) return; // pomin własne powiadomienie
+            
+            // Wizualizacja strzału/ataku innego gracza w czasie rzeczywistym
+            createVisualEffect(atk.x, atk.y, 'burst', atk.classColor || '#00ffcc');
+            
+            // Sprawdź czy atak trafił mnie (Wzajemne zabijanie się graczy online)
+            if (atk.target === myName) {
+                player.hp -= atk.damage;
+                triggerCameraShake(12, 5);
+                createVisualEffect(player.worldX, player.worldY, 'blood', '#ff3333');
+                if (player.hp <= 0) {
+                    player.hp = 0;
+                    playerDied(atk.sender);
+                }
+                updateHud();
+            }
+        });
+        
+        // Synchronizacja usunięcia wrogów przez innych graczy w czasie rzeczywistym
+        onChildAdded(ref(db, 'sync_enemies'), (snapshot) => {
+            const deadEnemyId = snapshot.val().id;
+            let idx = enemies.findIndex(e => e.id === deadEnemyId);
+            if (idx !== -1) {
+                let enemy = enemies[idx];
+                createVisualEffect(enemy.worldX, enemy.worldY, 'explosion', enemy.type==='boss'?'#ff3333':'#00ffcc');
+                enemies.splice(idx, 1);
+            }
+        });
+    };
+
+    function notifyServerEnemyKilled(enemyId) {
+        const db = window.gameDatabase;
+        if (db) push(ref(db, 'sync_enemies'), { id: enemyId, killedBy: window.getCurrentUser(), time: Date.now() });
+    }
+
+    function sendGlobalAttack(targetName, damageAmount, hitX, hitY) {
+        const db = window.gameDatabase;
+        if (!db) return;
+        let cColor = '#00ffcc';
+        if (player.charClass === 'mag') cColor = '#33ccff';
+        if (player.charClass === 'wojownik') cColor = '#ff3333';
+        if (player.charClass === 'lucznik') cColor = '#2ecc71';
+        
+        push(ref(db, 'global_attacks'), {
+            sender: window.getCurrentUser(),
+            target: targetName,
+            damage: damageAmount,
+            x: hitX,
+            y: hitY,
+            classColor: cColor,
+            timestamp: Date.now()
+        });
+    }
+
+    function playerDied(killerName) {
+        alert(`Zostałeś pokonany przez gracza ${killerName}! Odradzasz się w bezpiecznej strefie.`);
+        player.hp = player.maxHp;
+        player.mana = player.maxMana;
+        player.worldX = 500 * TILE_SIZE;
+        player.worldY = 500 * TILE_SIZE;
+        updateHud();
+    }
+
+    function triggerCameraShake(time, intensity) {
+        camShakeTime = time;
+        camShakeIntensity = intensity;
+    }
+
+    function selectClass(className) {
+        player.charClass = className;
+        if (className === 'mag') {
+            player.maxMana = 150; player.mana = 150;
+            player.baseDamage = 20; player.attackRate = 35;
+        } else if (className === 'wojownik') {
+            player.speedMultiplier = 1.15;
+            player.baseDamage = 25; player.attackRate = 14;
+        } else if (className === 'lucznik') {
+            player.baseDamage = 14; player.attackRate = 10;
+        }
+        startMenuEl.style.display = 'none';
+        uiEl.style.display = 'block';
+        gameIsRunning = true;
+        updateHud();
+        if (window.syncMyStatsToDatabase) window.syncMyStatsToDatabase();
+        
+        // Generuj początkowych wrogów proceduralnie wokół gracza
+        spawnInitialEnemies();
+    }
+
+    function spawnInitialEnemies() {
+        enemies.length = 0;
+        // Zwykłe potwory rozproszone na gigantycznej mapie
+        for(let i=0; i<45; i++) {
+            let rx = player.worldX + (Math.random() - 0.5) * 2500;
+            let ry = player.worldY + (Math.random() - 0.5) * 2500;
+            enemies.push({
+                id: 'enemy_' + Date.now() + '_' + Math.random(),
+                worldX: rx, worldY: ry,
+                hp: 50, maxHp: 50, speed: 1.5 + Math.random(),
+                type: Math.random() < 0.15 ? 'elite' : 'normal',
+                radius: 14, damage: 8
             });
         }
+        // Główny Boss Świata
+        enemies.push({
+            id: 'world_boss_sieradz',
+            worldX: 520 * TILE_SIZE, worldY: 520 * TILE_SIZE,
+            hp: 1200, maxHp: 1200, speed: 1.2,
+            type: 'boss', radius: 36, damage: 22
+        });
+    }
 
-        logoutBtn.addEventListener('click', () => {
-            if (myOnlineRef) remove(myOnlineRef);
-            off(ref(db, 'messages'));
-            off(ref(db, 'online'));
+    function upgradeStat(stat) {
+        if (player.skillPoints <= 0) return;
+        player.skillPoints--;
+        if (stat === 'hp') { player.maxHp += 25; player.hp = player.maxHp; }
+        else if (stat === 'mana') { player.maxMana += 20; player.mana = player.maxMana; }
+        else if (stat === 'speed') { player.speed += 0.4; }
+        else if (stat === 'damage') { player.baseDamage += 5; }
+        
+        if (player.skillPoints <= 0) levelUpPanelEl.style.display = 'none';
+        else skillPointsEl.textContent = player.skillPoints;
+        updateHud();
+        if (window.syncMyStatsToDatabase) window.syncMyStatsToDatabase();
+    }
+
+    function updateHud() {
+        lvlValEl.textContent = player.level;
+        scoreValEl.textContent = score;
+        hpTextEl.textContent = `${Math.ceil(player.hp)}/${player.maxHp}`;
+        manaTextEl.textContent = `${Math.ceil(player.mana)}/${player.maxMana}`;
+        hpBarEl.style.width = `${(player.hp / player.maxHp) * 100}%`;
+        manaBarEl.style.width = `${(player.mana / player.maxMana) * 100}%`;
+        xpBarEl.style.width = `${(player.xp / player.nextLvlXp) * 100}%`;
+    }
+
+    function createVisualEffect(x, y, type, color) {
+        visualEffects.push({ x, y, type, color, alpha: 1.0, life: 30, maxLife: 30 });
+    }
+
+    function playerAttack() {
+        if (player.attackCooldown > 0) return;
+        player.attackCooldown = player.attackRate;
+
+        // Wyliczanie wektora kierunku ataku na podstawie pozycji myszy
+        let angle = Math.atan2(mouse.y - screenCenterY, mouse.x - screenCenterX);
+        
+        if (player.charClass === 'mag') {
+            if (player.mana >= 15) {
+                player.mana -= 15;
+                // Samonaprowadzający pocisk energetyczny
+                bullets.push({
+                    worldX: player.worldX, worldY: player.worldY,
+                    vx: Math.cos(angle) * 7, vy: Math.sin(angle) * 7,
+                    damage: player.baseDamage, radius: 8, type: 'magic', color: '#33ccff'
+                });
+                updateHud();
+            }
+        } else if (player.charClass === 'lucznik') {
+            // Szybki fizyczny pocisk strzały
+            bullets.push({
+                worldX: player.worldX, worldY: player.worldY,
+                vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10,
+                damage: player.baseDamage, radius: 4, type: 'arrow', color: '#2ecc71'
+            });
+        } else if (player.charClass === 'wojownik') {
+            // Atak obszarowy bliskiego zasięgu (Cięcie po skosie)
+            createVisualEffect(player.worldX + Math.cos(angle)*30, player.worldY + Math.sin(angle)*30, 'slash', '#ff3333');
             
-            currentUser = null;
-            userIsAuthenticated = false;
-            chatIsOpen = false;
+            // Sprawdzanie trafienia wrogów NPC
+            enemies.forEach((e, index) => {
+                let dist = Math.hypot(e.worldX - player.worldX, e.worldY - player.worldY);
+                if (dist < 80) {
+                    e.hp -= player.baseDamage;
+                    createVisualEffect(e.worldX, e.worldY, 'blood', '#ff3333');
+                    if (e.hp <= 0) {
+                        notifyServerEnemyKilled(e.id);
+                        enemies.splice(index, 1);
+                        gainXp(e.type === 'boss' ? 300 : 25);
+                    }
+                }
+            });
+
+            // Sprawdzanie trafienia innych graczy online w czasie rzeczywistym
+            for (let name in onlinePlayers) {
+                let op = onlinePlayers[name];
+                let dist = Math.hypot(op.x - player.worldX, op.y - player.worldY);
+                if (dist < 80) {
+                    sendGlobalAttack(name, player.baseDamage, op.x, op.y);
+                }
+            }
+        }
+    }
+
+    function gainXp(amount) {
+        player.xp += amount;
+        score += amount === 300 ? 10 : 1;
+        if (player.xp >= player.nextLvlXp) {
+            player.xp -= player.nextLvlXp;
+            player.level++;
+            player.nextLvlXp = Math.floor(player.nextLvlXp * 1.4);
+            player.skillPoints += 1;
+            skillPointsEl.textContent = player.skillPoints;
+            levelUpPanelEl.style.display = 'block';
+            triggerCameraShake(20, 8);
+            createVisualEffect(player.worldX, player.worldY, 'explosion', '#e0a816');
+        }
+        updateHud();
+        if (window.syncMyStatsToDatabase) window.syncMyStatsToDatabase();
+    }
+
+    // --- GŁÓWNA PĘTLA LOGICZNA GRY (TICK) ---
+    function updateGame() {
+        if (!gameIsRunning) return;
+
+        if (player.attackCooldown > 0) player.attackCooldown--;
+        if (player.charClass === 'lucznik' && isMouseDown) playerAttack();
+        if (player.charClass === 'wojownik' && isMouseDown && Math.random() < 0.3) playerAttack();
+
+        // Regeneracja many
+        if (player.mana < player.maxMana) {
+            player.mana += player.charClass === 'mag' ? 0.3 : 0.1;
+            if (player.mana > player.maxMana) player.mana = player.maxMana;
+            updateHud();
+        }
+
+        // Ruch gracza z ograniczeniem do krawędzi mapy 1000x1000 kafli
+        let moveX = 0, moveY = 0;
+        if (keys.w) moveY = -1; if (keys.s) moveY = 1;
+        if (keys.a) moveX = -1; if (keys.d) moveX = 1;
+
+        if (moveX !== 0 && moveY !== 0) { moveX *= 0.7071; moveY *= 0.7071; }
+        
+        player.worldX += moveX * player.speed * player.speedMultiplier;
+        player.worldY += moveY * player.speed * player.speedMultiplier;
+
+        let maxBoundX = MAP_WIDTH_TILES * TILE_SIZE - player.radius;
+        let maxBoundY = MAP_HEIGHT_TILES * TILE_SIZE - player.radius;
+        if (player.worldX < player.radius) player.worldX = player.radius;
+        if (player.worldX > maxBoundX) player.worldX = maxBoundX;
+        if (player.worldY < player.radius) player.worldY = player.radius;
+        if (player.worldY > maxBoundY) player.worldY = maxBoundY;
+
+        // Logika i aktualizacja pocisków
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            let b = bullets[i];
+            b.worldX += b.vx;
+            b.worldY += b.vy;
+
+            // Samonaprowadzanie dla Maga (szukanie najbliższego celu - NPC lub innego gracza online)
+            if (b.type === 'magic') {
+                let targetX = null, targetY = null, targetName = null, isNpc = true, npcIdx = -1;
+                let minDist = 350;
+
+                enemies.forEach((e, idx) => {
+                    let d = Math.hypot(e.worldX - b.worldX, e.worldY - b.worldY);
+                    if (d < minDist) { minDist = d; targetX = e.worldX; targetY = e.worldY; npcIdx = idx; }
+                });
+
+                for (let name in onlinePlayers) {
+                    let op = onlinePlayers[name];
+                    let d = Math.hypot(op.x - b.worldX, op.y - b.worldY);
+                    if (d < minDist) { minDist = d; targetX = op.x; targetY = op.y; targetName = name; isNpc = false; }
+                }
+
+                if (targetX !== null && targetY !== null) {
+                    let angle = Math.atan2(targetY - b.worldY, targetX - b.worldX);
+                    b.vx = Math.cos(angle) * 7;
+                    b.vy = Math.sin(angle) * 7;
+                }
+            }
+
+            // Kolizje pocisków z przeciwnikami NPC
+            let hitNpc = false;
+            for (let j = enemies.length - 1; j >= 0; j--) {
+                let e = enemies[j];
+                if (Math.hypot(e.worldX - b.worldX, e.worldY - b.worldY) < e.radius + b.radius) {
+                    e.hp -= b.damage;
+                    createVisualEffect(e.worldX, e.worldY, 'blood', '#ff3333');
+                    if (e.hp <= 0) {
+                        notifyServerEnemyKilled(e.id);
+                        enemies.splice(j, 1);
+                        gainXp(e.type === 'boss' ? 300 : 25);
+                    }
+                    hitNpc = true; break;
+                }
+            }
+
+            // Kolizje pocisków z innymi graczami online w czasie rzeczywistym
+            let hitPlayer = false;
+            if (!hitNpc) {
+                for (let name in onlinePlayers) {
+                    let op = onlinePlayers[name];
+                    if (Math.hypot(op.x - b.worldX, op.y - b.worldY) < 16 + b.radius) {
+                        sendGlobalAttack(name, b.damage, b.worldX, b.worldY);
+                        hitPlayer = true; break;
+                    }
+                }
+            }
+
+            if (hitNpc || hitPlayer || b.worldX < 0 || b.worldX > MAP_WIDTH_TILES*TILE_SIZE || b.worldY < 0 || b.worldY > MAP_HEIGHT_TILES*TILE_SIZE) {
+                bullets.splice(i, 1);
+            }
+        }
+
+        // Aktualizacja AI wrogów NPC (podążanie lokalne za najbliższym graczem)
+        let bossPresent = false;
+        enemies.forEach((e) => {
+            if (e.type === 'boss') { bossPresent = true; bossUiEl.style.display = 'block'; bossHpBarEl.style.width = `${(e.hp / e.maxHp) * 100}%`; }
             
-            document.getElementById('chatOverlay').style.display = 'none';
-            document.getElementById('start-menu').style.display = 'none';
-            document.getElementById('ui').style.display = 'none';
-            document.getElementById('chat-hint').style.display = 'none';
-            document.getElementById('authBox').style.display = 'block';
+            let distToMe = Math.hypot(player.worldX - e.worldX, player.worldY - e.worldY);
+            if (distToMe < 400) {
+                let angle = Math.atan2(player.worldY - e.worldY, player.worldX - e.worldX);
+                e.worldX += Math.cos(angle) * e.speed;
+                e.worldY += Math.sin(angle) * e.speed;
+                
+                if (distToMe < e.radius + player.radius && Math.random() < 0.05) {
+                    player.hp -= e.damage * 0.1;
+                    createVisualEffect(player.worldX, player.worldY, 'blood', '#ff2222');
+                    if (player.hp <= 0) { player.hp = 0; playerDied("Potwory z Sieradza"); }
+                    updateHud();
+                }
+            }
+        });
+        if (!bossPresent) bossUiEl.style.display = 'none';
+
+        // Synchronizacja własnego stanu z bazą danych Firebase
+        updateMultiplayerState();
+        updateWeatherAndTime();
+    }
+
+    // --- PANEL RENDERINGU GRAFIKI (DRAW) ---
+    function drawGame() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        let offsetX = screenCenterX - player.worldX;
+        let offsetY = screenCenterY - player.worldY;
+
+        if (camShakeTime > 0) {
+            offsetX += (Math.random() - 0.5) * camShakeIntensity;
+            offsetY += (Math.random() - 0.5) * camShakeIntensity;
+            camShakeTime--;
+        }
+
+        // Rysowanie dynamicznego, proceduralnego podłoża mapy widocznego ekranu
+        let startTileX = Math.floor((-offsetX) / TILE_SIZE) - 1;
+        let endTileX = Math.floor((-offsetX + canvas.width) / TILE_SIZE) + 1;
+        let startTileY = Math.floor((-offsetY) / TILE_SIZE) - 1;
+        let endTileY = Math.floor((-offsetY + canvas.height) / TILE_SIZE) + 1;
+
+        for (let tx = startTileX; tx <= endTileX; tx++) {
+            for (let ty = startTileY; ty <= endTileY; ty++) {
+                if (tx >= 0 && tx < MAP_WIDTH_TILES && ty >= 0 && ty < MAP_HEIGHT_TILES) {
+                    let tile = getTileAt(tx, ty);
+                    ctx.fillStyle = tile.c1;
+                    ctx.fillRect(tx * TILE_SIZE + offsetX, ty * TILE_SIZE + offsetY, TILE_SIZE, TILE_SIZE);
+                    
+                    // Siatka tekstury świata
+                    ctx.strokeStyle = tile.c2;
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(tx * TILE_SIZE + offsetX, ty * TILE_SIZE + offsetY, TILE_SIZE, TILE_SIZE);
+                }
+            }
+        }
+
+        // Rysowanie ryb w wodzie
+        fishes.forEach(f => {
+            let tile = getTileAt(Math.floor(f.worldX/TILE_SIZE), Math.floor(f.worldY/TILE_SIZE));
+            if (tile === BIOMES.WATER) {
+                ctx.fillStyle = 'rgba(255,255,255,0.25)';
+                ctx.beginPath();
+                ctx.arc(f.worldX + offsetX, f.worldY + offsetY, 5, 0, Math.PI*2);
+                ctx.fill();
+            }
+        });
+
+        // Rysowanie wrogów NPC
+        enemies.forEach(e => {
+            ctx.fillStyle = e.type === 'boss' ? '#800020' : (e.type === 'elite' ? '#e0a816' : '#c0392b');
+            ctx.beginPath();
+            ctx.arc(e.worldX + offsetX, e.worldY + offsetY, e.radius, 0, Math.PI*2);
+            ctx.fill();
             
-            if (typeof gameIsRunning !== 'undefined') {
-                gameIsRunning = false;
-                enemies.length = 0; bullets.length = 0; enemyBullets.length = 0; animals.length = 0; loots.length = 0; visualEffects.length = 0;
-                document.getElementById('boss-ui').style.display = 'none';
-                score = 0;
-                document.getElementById('score-val').textContent = score;
-            }
+            // Pasek życia wroga nad nim
+            ctx.fillStyle = '#222'; ctx.fillRect(e.worldX + offsetX - 15, e.worldY + offsetY - e.radius - 10, 30, 4);
+            ctx.fillStyle = '#ff3333'; ctx.fillRect(e.worldX + offsetX - 15, e.worldY + offsetY - e.radius - 10, (e.hp / e.maxHp) * 30, 4);
         });
 
-        function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, 
-                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-            );
-        }
-    </script>
+        // Rysowanie INNYCH GRACZY ONLINE na mapie globalnej w czasie rzeczywistym
+        for (let name in onlinePlayers) {
+            let op = onlinePlayers[name];
+            ctx.fillStyle = '#00ffcc'; // Kolor innych graczy online
+            ctx.beginPath();
+            ctx.arc(op.x + offsetX, op.y + offsetY, 16, 0, Math.PI*2);
+            ctx.fill();
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreValEl = document.getElementById('score-val');
-        const lvlValEl = document.getElementById('lvl-val');
-        const hpTextEl = document.getElementById('hp-text');
-        const manaTextEl = document.getElementById('mana-text');
-        const hpBarEl = document.getElementById('hp-bar');
-        const manaBarEl = document.getElementById('mana-bar');
-        const xpBarEl = document.getElementById('xp-bar');
-        const levelUpPanelEl = document.getElementById('level-up-panel');
-        const skillPointsEl = document.getElementById('skill-points');
-        const bossUiEl = document.getElementById('boss-ui');
-        const bossHpBarEl = document.getElementById('boss-hp-bar');
-        const weatherValEl = document.getElementById('weather-val');
-        const startMenuEl = document.getElementById('start-menu');
-        const uiEl = document.getElementById('ui');
-
-        let screenCenterX = 0, screenCenterY = 0, score = 0;
-        let camShakeTime = 0, camShakeIntensity = 0;
-        let gameIsRunning = false;
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            screenCenterX = canvas.width / 2; screenCenterY = canvas.height / 2;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        // --- PROCEDURALNY GENERATOR ŚWIATA ---
-        const TILE_SIZE = 64;
-        function getSmoothNoise(x, y) {
-            let total = 0;
-            total += (Math.sin(x * 0.05) + Math.cos(y * 0.05)) * 2.0;
-            total += (Math.sin(x * 0.15) * Math.cos(y * 0.12)) * 1.0;
-            total += (Math.sin(x * 0.01) + Math.sin(y * 0.01)) * 4.0; 
-            return total;
-        }
-
-        const BIOMES = {
-            WATER:      { id: 0, c1: '#1f618d', c2: '#2e86c1', name: 'Woda' }, 
-            SAND:       { id: 1, c1: '#f1c40f', c2: '#f39c12', name: 'Pustynia' },
-            GRASS:      { id: 2, c1: '#4caf50', c2: '#45a049', name: 'Łąka' },
-            FOREST:     { id: 3, c1: '#1e8449', c2: '#196f3d', name: 'Las' },
-            RAINFOREST: { id: 4, c1: '#117a65', c2: '#0e6251', name: 'Las Deszczowy' },
-            MOUNTAIN:   { id: 5, c1: '#7f8c8d', c2: '#95a5a6', name: 'Góry' }
-        };
-
-        function getTileAt(tileX, tileY) {
-            let n = getSmoothNoise(tileX, tileY);
-            let riverNoise = Math.abs(Math.sin(tileX * 0.08) + Math.cos(tileY * 0.08)); 
-
-            if (n < -2.2 || riverNoise < 0.08) return BIOMES.WATER;
-            if (n < -1.2) return BIOMES.SAND;
-            if (n < 0.8) return BIOMES.GRASS;
-            if (n < 2.2) return BIOMES.FOREST;
-            if (n < 3.8) return BIOMES.RAINFOREST;
-            return BIOMES.MOUNTAIN;
-        }
-
-        // --- SYSTEM POGODY I CZASU ---
-        let gameTime = 1200; 
-        const WEATHER_TYPES = ['sunny', 'rain', 'snow', 'fog', 'thunder'];
-        let currentWeather = 'sunny';
-        let weatherTimer = 4000; 
-        let particles = [];      
-        let thunderFlash = 0;    
-
-        function changeWeather() {
-            currentWeather = WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
-            weatherTimer = 3000 + Math.random() * 3000;
-            let names = { 'sunny': 'Słonecznie', 'rain': 'Deszcz', 'snow': 'Śnieg', 'fog': 'Mgła', 'thunder': 'Burza' };
-            if(weatherValEl) weatherValEl.textContent = names[currentWeather];
-        }
-
-        function updateWeatherAndTime() {
-            gameTime = (gameTime + 0.5) % 2400; 
-            weatherTimer--;
-            if (weatherTimer <= 0) changeWeather();
-
-            if ((currentWeather === 'rain' || currentWeather === 'thunder') && particles.length < 150) {
-                particles.push({ x: Math.random() * canvas.width, y: -10, speed: 10 + Math.random() * 5, len: 15 + Math.random() * 10, type: 'rain' });
-            } else if (currentWeather === 'snow' && particles.length < 100) {
-                particles.push({ x: Math.random() * canvas.width, y: -10, speed: 2 + Math.random() * 2, len: 3 + Math.random() * 3, drift: (Math.random() - 0.5) * 1, type: 'snow' });
-            }
-
-            if (currentWeather === 'thunder' && Math.random() < 0.003 && thunderFlash <= 0) {
-                thunderFlash = 8; 
-                triggerCameraShake(15, 6);
-            }
-            if (thunderFlash > 0) thunderFlash--;
-
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                if (p.type === 'rain') { p.y += p.speed; p.x += 1; } 
-                else if (p.type === 'snow') { p.y += p.speed; p.x += p.drift; }
-                if (p.y > canvas.height) particles.splice(i, 1);
-            }
-        }
-
-        // --- ENCORES ---
-        const bullets = [];
-        const enemyBullets = [];
-        const enemies = [];
-        const animals = [];
-        const loots = [];
-        const fishes = [];
-        const visualEffects = []; 
-
-        // --- WEJŚCIE (INPUT) ---
-        const keys = { w: false, a: false, s: false, d: false };
-        window.addEventListener('keydown', (e) => { 
-            if (chatIsOpen) return;
-            if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = true; 
-        });
-        window.addEventListener('keyup', (e) => { 
-            if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = false; 
-        });
-
-        const mouse = { x: screenCenterX, y: screenCenterY };
-        let isMouseDown = false; 
-
-        window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
-        window.addEventListener('mousedown', (e) => { 
-            if (chatIsOpen) return;
-            if (e.button === 0) {
-                isMouseDown = true;
-                if(gameIsRunning && player.charClass !== 'lucznik') playerAttack();
-            }
-        });
-        window.addEventListener('mouseup', (e) => { if (e.button === 0) isMouseDown = false; });
-
-        const joystick = { startX: 0, startY: 0, currentX: 0, currentY: 0, active: false, pointerId: null, maxRadius: 60 };
-        const touchAim = { x: screenCenterX, y: screenCenterY, active: false, pointerId: null };
-
-        window.addEventListener('pointerdown', (e) => {
-            if(!gameIsRunning || chatIsOpen) return;
-            if(e.target.closest('#chatInterface') || e.target.closest('#authBox') || e.target.closest('#ui') || e.target.closest('#level-up-panel')) return;
+            // Etykieta nazwy i levelu gracza nad jego postacią
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 11px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${name} (Lvl ${op.level})`, op.x + offsetX, op.y + offsetY - 24);
             
-            if (e.clientX < canvas.width / 2 && !joystick.active) {
-                joystick.active = true;
-                joystick.pointerId = e.pointerId;
-                joystick.startX = joystick.currentX = e.clientX;
-                joystick.startY = joystick.currentY = e.clientY;
-            } else if (e.clientX >= canvas.width / 2) {
-                touchAim.active = true;
-                touchAim.pointerId = e.pointerId;
-                touchAim.x = e.clientX;
-                touchAim.y = e.clientY;
-                isMouseDown = true;
-                if(player.charClass !== 'lucznik') playerAttack();
-            }
+            // Mini pasek zdrowia gracza online
+            ctx.fillStyle = '#222'; ctx.fillRect(op.x + offsetX - 16, op.y + offsetY - 18, 32, 3);
+            ctx.fillStyle = '#00ffcc'; ctx.fillRect(op.x + offsetX - 16, op.y + offsetY - 18, (op.hp / op.maxHp) * 32, 3);
+        }
+
+        // Rysowanie mojej postaci gracza
+        ctx.fillStyle = player.charClass === 'mag' ? '#33ccff' : (player.charClass === 'wojownik' ? '#ff3333' : '#2ecc71');
+        ctx.beginPath();
+        ctx.arc(screenCenterX, screenCenterY, player.radius, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Celownik / Linia kierunku
+        let angle = Math.atan2(mouse.y - screenCenterY, mouse.x - screenCenterX);
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(screenCenterX, screenCenterY);
+        ctx.lineTo(screenCenterX + Math.cos(angle)*30, screenCenterY + Math.sin(angle)*30);
+        ctx.stroke();
+
+        // Rysowanie pocisków
+        bullets.forEach(b => {
+            ctx.fillStyle = b.color;
+            ctx.beginPath(); ctx.arc(b.worldX + offsetX, b.worldY + offsetY, b.radius, 0, Math.PI*2);
+            ctx.fill();
         });
 
-        window.addEventListener('pointermove', (e) => {
-            if (chatIsOpen) return;
-            if (joystick.active && e.pointerId === joystick.pointerId) {
-                joystick.currentX = e.clientX;
-                joystick.currentY = e.clientY;
+        // Rysowanie efektów wizualnych (krew, wybuchy)
+        for (let i = visualEffects.length - 1; i >= 0; i--) {
+            let v = visualEffects[i];
+            ctx.save();
+            ctx.globalAlpha = v.alpha;
+            ctx.fillStyle = v.color;
+            if (v.type === 'blood' || v.type === 'burst') {
+                ctx.beginPath(); ctx.arc(v.x + offsetX, v.y + offsetY, 4, 0, Math.PI*2); ctx.fill();
+            } else if (v.type === 'explosion') {
+                ctx.beginPath(); ctx.arc(v.x + offsetX, v.y + offsetY, (1 - v.alpha)*35, 0, Math.PI*2); ctx.fill();
+            } else if (v.type === 'slash') {
+                ctx.strokeStyle = v.color; ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.arc(v.x + offsetX, v.y + offsetY, 20, angle - 0.5, angle + 0.5); ctx.stroke();
             }
-            if (touchAim.active &&
+            ctx.restore();
+            v.alpha -= 0.03;
+            if (v.alpha <= 0) visualEffects.splice(i, 1);
+        }
+
+        // Nakładanie cząsteczek pogodowych (deszcz, śnieg)
+        ctx.save();
+        particles.forEach(p => {
+            if (p.type === 'rain') {
+                ctx.strokeStyle = 'rgba(174,214,241,0.5)'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + 1, p.y + p.len); ctx.stroke();
+            } else {
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.len, 0, Math.PI*2); ctx.fill();
+            }
+        });
+        ctx.restore();
+
+        // Błysk burzy
+        if (thunderFlash > 0) { ctx.fillStyle = `rgba(255,255,255,${thunderFlash/8 * 0.35})`; ctx.fillRect(0,0,canvas.width,canvas.height); }
+
+        // --- MINIMAPA (PRAWI DOLNY RÓG - DWUKROTNOŚĆ WIDZIALNEGO EKRANU) ---
+        if (gameIsRunning && !fullMapOpen) {
+            let miniRadius = 65;
+            let miniCenterX = canvas.width - miniRadius - 20;
+            let miniCenterY = canvas.height - miniRadius - 20;
+
+            ctx.save();
+            ctx.beginPath(); ctx.arc(miniCenterX, miniCenterY, miniRadius, 0, Math.PI * 2); ctx.clip();
+            ctx.fillStyle = 'rgba(20, 20, 20, 0.85)';
+            ctx.fillRect(miniCenterX - miniRadius, miniCenterY - miniRadius, miniRadius * 2, miniRadius * 2);
+
+            // Widzialny obszar x2 oznacza podwójną skalę oddalenia
+            let miniScale = (miniRadius / (Math.max(canvas.width, canvas.height) * 2));
+
+            // Rysowanie kafli na minimapie wokół gracza
+            let miniTileRange = Math.ceil(miniRadius / (TILE_SIZE * miniScale)) + 1;
+            let pTileX = Math.floor(player.worldX / TILE_SIZE);
+            let pTileY = Math.floor(player.worldY / TILE_SIZE);
+
+            for (let tx = pTileX - miniTileRange; tx <= pTileX + miniTileRange; tx++) {
+                for (let ty = pTileY - miniTileRange; ty <= pTileY + miniTileRange; ty++) {
+                    if (tx >= 0 && tx < MAP_WIDTH_TILES && ty >= 0 && ty < MAP_HEIGHT_TILES) {
+                        let tile = getTileAt(tx, ty);
+                        let mdx = (tx * TILE_SIZE + TILE_SIZE/2 - player.worldX) * miniScale;
+                        let mdy = (ty * TILE_SIZE + TILE_SIZE/2 - player.worldY) * miniScale;
+                        ctx.fillStyle = tile.c1;
+                        ctx.fillRect(miniCenterX + mdx - 1, miniCenterY + mdy - 1, 3, 3);
+                    }
+                }
+            }
+
+            // Rysowanie kropki graczy online na minimapie
+            for (let name in onlinePlayers) {
+                let op = onlinePlayers[name];
+                let mdx = (op.x - player.worldX) * miniScale;
+                let mdy = (op.y - player.worldY) * miniScale;
+                if (mdx*mdx + mdy*mdy < miniRadius*miniRadius) {
+                    ctx.fillStyle = '#00ffcc';
+                    ctx.beginPath(); ctx.arc(miniCenterX + mdx, miniCenterY + mdy, 2.5, 0, Math.PI*2); ctx.fill();
+                }
+            }
+
+            // Kropka mojej pozycji na środku minimapy
+            ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(miniCenterX, miniCenterY, 3, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.restore();
+        }
+
+        // --- KOLOROWA PEŁNA MAPA CAŁEGO ŚWIATA (1000x1000 KAFLI) ---
+        if (fullMapOpen) {
+            let mRadius = Math.min(canvas.width, canvas.height) * 0.45;
+            let mCenterX = canvas.width / 2;
+            let mCenterY = canvas.height / 2;
+
+            ctx.fillStyle = 'rgba(11, 15, 25, 0.95)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 3;
+            ctx.strokeRect(mCenterX - mRadius, mCenterY - mRadius, mRadius * 2, mRadius * 2);
+
+            // Renderowanie pełnej tekstury kafli zoptymalizowanej (piksel per kafel/grupka)
+            let step = 2; // Zoptymalizowany skok rysowania wielkiej mapy
+            for (let x = 0; x < MAP_WIDTH_TILES; x += step) {
+                for (let y = 0; y < MAP_HEIGHT_TILES; y += step) {
+                    let tile = getTileAt(x, y);
+                    let rx = mCenterX - mRadius + (x / MAP_WIDTH_TILES) * (mRadius * 2);
+                    let ry = mCenterY - mRadius + (y / MAP_HEIGHT_TILES) * (mRadius * 2);
+                    ctx.fillStyle = tile.c1;
+                    ctx.fillRect(rx, ry, (mRadius*2)/MAP_WIDTH_TILES * step, (mRadius*2)/MAP_HEIGHT_TILES * step);
+                }
+            }
+
+            // Zaznaczenie pozycji mojej postaci na pełnej mapie
+            let myMapX = mCenterX - mRadius + (player.worldX / (MAP_WIDTH_TILES * TILE_SIZE)) * (mRadius * 2);
+            let myMapY = mCenterY - mRadius + (player.worldY / (MAP_HEIGHT_TILES * TILE_SIZE)) * (mRadius * 2);
+            ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(myMapX, myMapY, 6, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#ff3333'; ctx.lineWidth = 2; ctx.stroke();
+
+            // Wyświetlanie pozycji numerycznej nad kursorem myszy w formacie X, Y
+            if (fullMapHoverPos.x !== null && fullMapHoverPos.y !== null) {
+                ctx.fillStyle = '#00ffcc';
+                ctx.font = 'bold 16px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Kafel: X${fullMapHoverPos.x} , Y${fullMapHoverPos.y}`, mouse.x, mouse.y - 20);
+                
+                if (player.charClass === 'mag') {
+                    ctx.font = '12px Segoe UI';
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText('Naciśnij [T] aby się teleportować', mouse.x, mouse.y - 5);
+                }
+            }
+        }
+    }
+
+    // Główna pętla sterująca silnikiem
+    function gameLoop() {
+        updateGame();
+        drawGame();
+        requestAnimationFrame(gameLoop);
+    }
+    requestAnimationFrame(gameLoop);
+</script>
+
+```
