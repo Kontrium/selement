@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CryptoPixiRPG z Czat Room Online</title>
+    <title>CryptoPixiRPG z Czat Room & Realtime Multiplayer</title>
     <style>
         :root {
             --bg-color: #0b0f19;
@@ -215,7 +215,7 @@
             user-select: text;
         }
 
-        .messages-node {
+        .message {
             background: var(--border-color);
             padding: 0.75rem 1rem;
             border-radius: 8px;
@@ -223,13 +223,13 @@
             align-self: flex-start;
         }
 
-        .messages-node.own {
+        .message.own {
             background: rgba(0, 255, 204, 0.1);
             border: 1px solid var(--accent-color);
             align-self: flex-end;
         }
 
-        .messages-node.system {
+        .message.system {
             background: transparent;
             color: var(--accent-color);
             font-size: 0.85rem;
@@ -239,14 +239,14 @@
             padding: 0.2rem;
         }
 
-        .messages-node .meta {
+        .message .meta {
             font-size: 0.75rem;
             color: var(--accent-color);
             margin-bottom: 0.25rem;
             font-weight: bold;
         }
 
-        .messages-node .text {
+        .message .text {
             font-size: 0.95rem;
             word-break: break-word;
         }
@@ -487,6 +487,49 @@
             border: 1px solid var(--border-color);
             display: none;
         }
+
+        /* --- STYLIZACJA PEŁNOEKRANOWEJ MAPY ŚWIATA --- */
+        #world-map-overlay {
+            display: none;
+            position: absolute;
+            width: 85vw;
+            height: 85vh;
+            background: rgba(11, 15, 25, 0.95);
+            border: 3px solid var(--accent-color);
+            border-radius: 16px;
+            z-index: 180;
+            box-shadow: 0 0 40px rgba(0, 255, 204, 0.4);
+            overflow: hidden;
+            flex-direction: column;
+        }
+        #world-map-header {
+            background: rgba(0,0,0,0.4);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+        #world-map-canvas {
+            flex: 1;
+            background: #111;
+            width: 100%;
+            height: 100%;
+        }
+        .close-map-btn {
+            background: transparent;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .close-map-btn:hover {
+            background: var(--accent-color);
+            color: #000;
+        }
     </style>
 </head>
 <body>
@@ -544,9 +587,17 @@
         </div>
     </div>
 
+    <div id="world-map-overlay">
+        <div id="world-map-header">
+            <span>🗺️ MAPA ŚWIATA (KLIKNIJ LUB WCIŚNIJ 'M' ABY ZAMKNĄĆ)</span>
+            <button class="close-map-btn" onclick="toggleWorldMap()">Zamknij X</button>
+        </div>
+        <canvas id="world-map-canvas"></canvas>
+    </div>
+
     <div id="start-menu">
         <h1>Wybierz swoją Klasę Bohatera</h1>
-        <p>Dopasuj swój styl walki i wkrocz do niebezpiecznego świata</p>
+        <p>Dopasuj swój stil walki i wkrocz do niebezpiecznego świata</p>
         <div class="class-container">
             <div class="class-card mag" onclick="selectClass('mag')">
                 <h2>MAG</h2>
@@ -591,6 +642,7 @@
         </div>
         <div class="stat-line" style="margin-top: 5px; font-size: 13px;">Pogoda: <span id="weather-val" class="weather-info">Słonecznie</span></div>
         <div class="stat-line" style="font-size: 12px; color: #aaa;">Pokonani wrogowie: <span id="score-val" class="highlight">0</span></div>
+        <div class="stat-line" style="font-size: 11px; color: #00ffcc; margin-top:5px;">Naciśnij [M] lub kliknij Minimapę</div>
     </div>
 
     <div id="boss-ui">
@@ -607,27 +659,47 @@
         <button class="stat-btn" onclick="upgradeStat('damage')">+ Siła Ataku</button>
     </div>
 
-    <div id="chat-hint">Naciśnij klawisz [ ` ] (tylda), aby otworzyć czat</div>
+    <div id="chat-hint">Klawisz [ ` ] - Czat | Klawisz [ M ] - Duża Mapa</div>
 
     <canvas id="gameCanvas"></canvas>
 
     <script>
         let userIsAuthenticated = false;
         let chatIsOpen = false;
-        let keys = { w: false, a: false, s: false, d: false };
+        let worldMapIsOpen = false;
 
         function toggleChatOverlay() {
             if (!userIsAuthenticated) return;
+            if (worldMapIsOpen) toggleWorldMap();
+            
             const overlay = document.getElementById('chatOverlay');
             const msgInput = document.getElementById('messageInput');
+            
             chatIsOpen = !chatIsOpen;
             if (chatIsOpen) {
                 overlay.style.display = 'flex';
                 msgInput.focus();
-                keys.w = keys.a = keys.s = keys.d = false;
+                if (typeof keys !== 'undefined') {
+                    keys.w = keys.a = keys.s = keys.d = false;
+                }
             } else {
                 overlay.style.display = 'none';
                 msgInput.blur();
+            }
+        }
+
+        function toggleWorldMap() {
+            if (!userIsAuthenticated || !gameIsRunning) return;
+            if (chatIsOpen) return;
+
+            const mapOverlay = document.getElementById('world-map-overlay');
+            worldMapIsOpen = !worldMapIsOpen;
+
+            if (worldMapIsOpen) {
+                mapOverlay.style.display = 'flex';
+                drawFullWorldMap();
+            } else {
+                mapOverlay.style.display = 'none';
             }
         }
 
@@ -636,16 +708,21 @@
                 if (e.key === 'Escape') toggleChatOverlay();
                 return;
             }
-            if (e.key === '`' || e.key === 't' || e.key === 'T') {
+
+            if (e.key === '`') {
                 e.preventDefault();
                 toggleChatOverlay();
+            }
+            if (e.key.toLowerCase() === 'm') {
+                e.preventDefault();
+                toggleWorldMap();
             }
         });
     </script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, push, onChildAdded, onValue, remove, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, push, onChildAdded, onValue, remove, off, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBx1DftUTvzQIkgJqwIMDWo-snk7YwlE4Q",
@@ -659,11 +736,15 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        window.globalFirebaseDb = db; 
 
         let isLoginMode = false;
         let currentUser = null;
         let myOnlineRef = null;
+        let myPlayerRef = null;
+
+        // Eksponujemy bazę globalnie dla silnika gry
+        window.firebaseDB = db;
+        window.getCurrentUser = () => currentUser;
 
         const authForm = document.getElementById('authForm');
         const toggleAuthText = document.getElementById('toggleAuthText');
@@ -708,7 +789,6 @@
                         set(ref(db, 'users/' + username), { email, password })
                         .then(() => {
                             currentUser = username;
-                            window.currentOnlineUsername = username;
                             enterGameAndChat();
                         });
                     }
@@ -717,7 +797,6 @@
                 onValue(ref(db, 'users/' + username), (snapshot) => {
                     if (snapshot.exists() && snapshot.val().password === password) {
                         currentUser = username;
-                        window.currentOnlineUsername = username;
                         enterGameAndChat();
                     } else {
                         showError("Nieprawidłowy login lub hasło.");
@@ -733,20 +812,28 @@
 
         function enterGameAndChat() {
             document.getElementById('authBox').style.display = 'none';
+            
             userIsAuthenticated = true;
             document.getElementById('start-menu').style.display = 'flex';
             document.getElementById('chat-hint').style.display = 'block';
+            
             document.getElementById('currentUserDisplay').innerText = `@${currentUser}`;
             authForm.reset();
 
             myOnlineRef = ref(db, 'online/' + currentUser);
             set(myOnlineRef, true);
 
-            window.addEventListener('beforeunload', () => remove(myOnlineRef));
+            myPlayerRef = ref(db, 'players/' + currentUser);
+
+            window.addEventListener('beforeunload', () => {
+                remove(myOnlineRef);
+                remove(myPlayerRef);
+            });
 
             listenForMessages();
             listenForOnlineUsers();
-            if (window.setupMultiplayerSync) window.setupMultiplayerSync();
+            listenForOtherPlayers();
+            listenForGlobalMonsters();
         }
 
         function sendMessage() {
@@ -773,7 +860,7 @@
             onChildAdded(messagesRef, (snapshot) => {
                 const data = snapshot.val();
                 const messageDiv = document.createElement('div');
-                messageDiv.className = 'messages-node';
+                messageDiv.className = 'message';
                 if (data.user === currentUser) messageDiv.classList.add('own');
 
                 messageDiv.innerHTML = `
@@ -812,11 +899,77 @@
             });
         }
 
+        // Pobieranie graczy w czasie rzeczywistym
+        function listenForOtherPlayers() {
+            onValue(ref(db, 'players'), (snapshot) => {
+                window.remotePlayers = snapshot.exists() ? snapshot.val() : {};
+            });
+        }
+
+        // Globalne pobieranie potworów
+        function listenForGlobalMonsters() {
+            onValue(ref(db, 'monsters'), (snapshot) => {
+                const globalMonsters = snapshot.exists() ? snapshot.val() : {};
+                
+                // Konwertujemy obiekt z bazy na lokalną tablicę zachowując ID z bazy
+                window.enemies.length = 0;
+                Object.keys(globalMonsters).forEach(id => {
+                    let m = globalMonsters[id];
+                    window.enemies.push({
+                        id: id,
+                        worldX: m.worldX,
+                        worldY: m.worldY,
+                        type: m.type,
+                        hp: m.hp,
+                        maxHp: m.maxHp,
+                        radius: m.radius,
+                        speed: m.speed,
+                        color: m.color,
+                        xpReward: m.xpReward,
+                        state: 'idle'
+                    });
+                });
+
+                // Jeśli baza jest całkowicie pusta (np. uruchomienie), pierwszy gracz inicjuje potwory
+                if (Object.keys(globalMonsters).length === 0 && window.gameIsRunning && currentUser) {
+                    initGlobalMonsters();
+                }
+            });
+        }
+
+        function initGlobalMonsters() {
+            for (let i = 0; i < 25; i++) {
+                spawnNewMonsterGlobal();
+            }
+        }
+
+        window.spawnNewMonsterGlobal = function() {
+            const types = ['zombie', 'skeleton', 'slime', 'orc'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            const id = "mob_" + Date.now() + "_" + Math.floor(Math.random()*10000);
+            
+            let mobData = {
+                worldX: (Math.random() - 0.5) * 3500,
+                worldY: (Math.random() - 0.5) * 3500,
+                type: type,
+                hp: type === 'orc' ? 120 : 60,
+                maxHp: type === 'orc' ? 120 : 60,
+                radius: type === 'orc' ? 22 : 15,
+                speed: 1.5 + Math.random() * 1.5,
+                color: type === 'zombie' ? '#2ecc71' : type === 'skeleton' ? '#d5dbdb' : type === 'slime' ? '#00ffcc' : '#e67e22',
+                xpReward: type === 'orc' ? 45 : 20
+            };
+            
+            set(ref(db, 'monsters/' + id), mobData);
+        };
+
         logoutBtn.addEventListener('click', () => {
             if (myOnlineRef) remove(myOnlineRef);
-            if (window.cleanMultiplayer) window.cleanMultiplayer();
+            if (myPlayerRef) remove(myPlayerRef);
             off(ref(db, 'messages'));
             off(ref(db, 'online'));
+            off(ref(db, 'players'));
+            off(ref(db, 'monsters'));
             
             currentUser = null;
             userIsAuthenticated = false;
@@ -828,8 +981,12 @@
             document.getElementById('chat-hint').style.display = 'none';
             document.getElementById('authBox').style.display = 'block';
             
-            if (typeof window.stopGameExecution === 'function') {
-                window.stopGameExecution();
+            if (typeof gameIsRunning !== 'undefined') {
+                gameIsRunning = false;
+                enemies.length = 0; bullets.length = 0; enemyBullets.length = 0; animals.length = 0; loots.length = 0; visualEffects.length = 0;
+                document.getElementById('boss-ui').style.display = 'none';
+                score = 0;
+                document.getElementById('score-val').textContent = score;
             }
         });
 
@@ -861,6 +1018,7 @@
         let screenCenterX = 0, screenCenterY = 0, score = 0;
         let camShakeTime = 0, camShakeIntensity = 0;
         let gameIsRunning = false;
+        window.gameIsRunning = gameIsRunning;
 
         function resizeCanvas() {
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
@@ -872,6 +1030,11 @@
         // --- PROCEDURALNY GENERATOR ŚWIATA ---
         const TILE_SIZE = 64;
         
+        function MathNoise(x, y) {
+            let n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123;
+            return n - Math.floor(n);
+        }
+        
         function getSmoothNoise(x, y) {
             let total = 0;
             total += (Math.sin(x * 0.05) + Math.cos(y * 0.05)) * 2.0;
@@ -881,722 +1044,589 @@
         }
 
         const BIOMES = {
-            WATER: '#0f3d59',
-            SAND: '#e3c481',
-            GRASS: '#27ae60',
-            FOREST: '#1e8449',
-            ROCK: '#7f8c8d'
+            WATER:      { id: 0, c1: '#1f618d', c2: '#2e86c1', name: 'Woda' }, 
+            SAND:       { id: 1, c1: '#f1c40f', c2: '#f39c12', name: 'Pustynia' },
+            GRASS:      { id: 2, c1: '#4caf50', c2: '#45a049', name: 'Łąka' },
+            FOREST:     { id: 3, c1: '#1e8449', c2: '#196f3d', name: 'Las' },
+            RAINFOREST: { id: 4, c1: '#117a65', c2: '#0e6251', name: 'Las Deszczowy' },
+            MOUNTAIN:   { id: 5, c1: '#7f8c8d', c2: '#95a5a6', name: 'Góry' }
         };
 
-        function getBiomeAt(worldX, worldY) {
-            let n = getSmoothNoise(worldX / TILE_SIZE, worldY / TILE_SIZE);
-            if (n < -2) return BIOMES.WATER;
-            if (n < -1) return BIOMES.SAND;
-            if (n < 2) return BIOMES.GRASS;
-            if (n < 4) return BIOMES.FOREST;
-            return BIOMES.ROCK;
+        function getTileAt(tileX, tileY) {
+            let n = getSmoothNoise(tileX, tileY);
+            let riverNoise = Math.abs(Math.sin(tileX * 0.08) + Math.cos(tileY * 0.08)); 
+
+            if (n < -2.2 || riverNoise < 0.08) return BIOMES.WATER;
+            if (n < -1.2) return BIOMES.SAND;
+            if (n < 0.8) return BIOMES.GRASS;
+            if (n < 2.2) return BIOMES.FOREST;
+            if (n < 3.8) return BIOMES.RAINFOREST;
+            return BIOMES.MOUNTAIN;
         }
 
-        // --- MODEL BOHATERA I SYSTEMU SYSTEMÓW ---
-        let player = {
-            worldX: 0, worldY: 0,
-            speed: 3.5, radius: 16,
-            class: 'mag', lvl: 1, xp: 0, nextXp: 100, skillPoints: 0,
-            hp: 100, maxHp: 100, mana: 100, maxMana: 100, manaRegen: 0.15,
-            baseDamage: 25, attackCooldown: 0, angle: 0
-        };
+        // --- SYSTEM POGODY I CZASU ---
+        let gameTime = 1200; 
+        const WEATHER_TYPES = ['sunny', 'rain', 'snow', 'fog', 'thunder'];
+        let currentWeather = 'sunny';
+        let weatherTimer = 4000; 
+        let particles = [];      
+        let thunderFlash = 0;    
 
-        let bullets = [], enemies = [], particles = [], otherPlayers = {};
-        let weatherTimer = 0, currentWeather = 'SLONECZNIE';
-
-        // Kontrolery dotykowe (Mobile Joystick)
-        let joystick = { active: false, startX: 0, startY: 0, curX: 0, curY: 0, maxRadius: 50 };
-        let actionBtn = { x: 0, y: 0, radius: 35, pressed: false };
-
-        function updateTouchLayout() {
-            actionBtn.x = canvas.width - 70;
-            actionBtn.y = canvas.height - 160;
+        function changeWeather() {
+            currentWeather = WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
+            weatherTimer = 3000 + Math.random() * 3000;
+            let names = { 'sunny': 'Słonecznie', 'rain': 'Deszcz', 'snow': 'Śnieg', 'fog': 'Mgła', 'thunder': 'Burza' };
+            weatherValEl.textContent = names[currentWeather];
         }
 
-        function spawnEnemy(isBoss = false) {
-            let angle = Math.random() * Math.PI * 2;
-            let dist = 400 + Math.random() * 300;
-            let ex = player.worldX + Math.cos(angle) * dist;
-            let ey = player.worldY + Math.sin(angle) * dist;
+        function updateWeatherAndTime() {
+            gameTime = (gameTime + 0.5) % 2400; 
+            weatherTimer--;
+            if (weatherTimer <= 0) changeWeather();
 
-            let e = {
-                worldX: ex, worldY: ey,
-                homeX: ex, homeY: ey, // Zapamiętujemy punkt spawnu
-                radius: isBoss ? 35 : 15,
-                hp: isBoss ? 600 : 40,
-                maxHp: isBoss ? 600 : 40,
-                speed: isBoss ? 1.5 : 1.8,
-                type: isBoss ? 'boss' : (Math.random() < 0.25 ? 'elite' : 'normal'),
-                angle: 0,
-                color: isBoss ? '#ff3333' : '#9b59b6',
-                // --- NOWE PARAMETRY AI MASZYNY STANÓW ---
-                state: 'wandering',  // Początkowy stan: wandering, aggressive, returning
-                visionRange: isBoss ? 400 : 220, // Kiedy zauważy gracza
-                loseRange: isBoss ? 650 : 400,   // Kiedy odpuści pościg
-                wanderAngle: Math.random() * Math.PI * 2,
-                wanderTimer: Math.floor(Math.random() * 100) + 50,
-                isResting: false
-            };
-
-            if (e.type === 'elite' && !isBoss) {
-                e.hp = 90; e.maxHp = 90; e.speed = 2.2; e.color = '#e67e22';
+            if ((currentWeather === 'rain' || currentWeather === 'thunder') && particles.length < 150) {
+                particles.push({ x: Math.random() * canvas.width, y: -10, speed: 10 + Math.random() * 5, len: 15 + Math.random() * 10, type: 'rain' });
+            } else if (currentWeather === 'snow' && particles.length < 100) {
+                particles.push({ x: Math.random() * canvas.width, y: -10, speed: 2 + Math.random() * 2, len: 3 + Math.random() * 3, drift: (Math.random() - 0.5) * 1, type: 'snow' });
             }
-            enemies.push(e);
-        }
 
-        function createExplosion(x, y, color, count=8) {
-            for(let i=0; i<count; i++) {
-                particles.push({
-                    worldX: x, worldY: y,
-                    vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5,
-                    life: 20 + Math.random()*20, maxLife: 40, color: color,
-                    size: 2 + Math.random()*4
-                });
+            if (currentWeather === 'thunder' && Math.random() < 0.003 && thunderFlash <= 0) {
+                thunderFlash = 8; 
+                triggerCameraShake(15, 6);
+            }
+            if (thunderFlash > 0) thunderFlash--;
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                if (p.type === 'rain') { p.y += p.speed; p.x += 1; } 
+                else if (p.type === 'snow') { p.y += p.speed; p.x += p.drift; }
+                if (p.y > canvas.height) particles.splice(i, 1);
             }
         }
+
+        // --- TABLICE OBIEKTÓW ---
+        const bullets = [];
+        const enemyBullets = [];
+        const enemies = [];
+        window.enemies = enemies; // Globalny wskaźnik
+        const animals = [];
+        const loots = [];
+        const fishes = [];
+        const visualEffects = []; 
+        window.remotePlayers = {}; // Przechowywanie innych graczy z Firebase
+
+        // --- WEJŚCIE (INPUT GRY) ---
+        const keys = { w: false, a: false, s: false, d: false };
+        window.addEventListener('keydown', (e) => { 
+            if (chatIsOpen || worldMapIsOpen) return;
+            if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = true; 
+        });
+        window.addEventListener('keyup', (e) => { 
+            if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = false; 
+        });
+
+        const mouse = { x: screenCenterX, y: screenCenterY };
+        let isMousing = false;
+        let isMouseDown = false; 
+
+        window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; isMousing = true; });
+        window.addEventListener('mousedown', (e) => { 
+            if (chatIsOpen || worldMapIsOpen) return;
+            if (e.button === 0) {
+                isMouseDown = true;
+                if(gameIsRunning && player.charClass !== 'lucznik') playerAttack();
+            }
+        });
+        window.addEventListener('mouseup', (e) => { if (e.button === 0) isMouseDown = false; });
+
+        const joystick = { startX: 0, startY: 0, currentX: 0, currentY: 0, active: false, pointerId: null, maxRadius: 60 };
+        const touchAim = { x: screenCenterX, y: screenCenterY, active: false, pointerId: null };
+
+        window.addEventListener('pointerdown', (e) => {
+            if(!gameIsRunning || chatIsOpen || worldMapIsOpen) return;
+            if(e.target.closest('#chatInterface') || e.target.closest('#authBox') || e.target.closest('#world-map-overlay')) return;
+            
+            // KLIKNIĘCIE W MINIMAPĘ (Dolny prawy róg ekranu)
+            let miniRadius = 65, miniCenterX = canvas.width - miniRadius - 20, miniCenterY = canvas.height - miniRadius - 20;
+            let distToMini = Math.hypot(e.clientX - miniCenterX, e.clientY - miniCenterY);
+            if (distToMini <= miniRadius) {
+                toggleWorldMap();
+                return;
+            }
+
+            if (e.clientX < canvas.width / 2 && !joystick.active) {
+                joystick.active = true;
+                joystick.pointerId = e.pointerId;
+                joystick.startX = joystick.currentX = e.clientX;
+                joystick.startY = joystick.currentY = e.clientY;
+            } else if (e.clientX >= canvas.width / 2) {
+                touchAim.active = true;
+                touchAim.pointerId = e.pointerId;
+                touchAim.x = e.clientX;
+                touchAim.y = e.clientY;
+                isMousing = false;
+                isMouseDown = true;
+                if(player.charClass !== 'lucznik') playerAttack();
+            }
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (chatIsOpen || worldMapIsOpen) return;
+            if (joystick.active && e.pointerId === joystick.pointerId) {
+                joystick.currentX = e.clientX; joystick.currentY = e.clientY;
+            }
+            if (touchAim.active && e.pointerId === touchAim.pointerId) {
+                touchAim.x = e.clientX; touchAim.y = e.clientY; isMousing = false;
+            }
+        });
+        window.addEventListener('pointerup', (e) => {
+            if (joystick.active && e.pointerId === joystick.pointerId) joystick.active = false;
+            if (touchAim.active && e.pointerId === touchAim.pointerId) { touchAim.active = false; isMouseDown = false; }
+        });
+
+        // --- GRACZ I KLASY ---
+        const player = { worldX: 0, worldY: 0, radius: 18, vx: 0, vy: 0, acceleration: 0.8, friction: 0.85, maxSpeed: 6, angle: 0, hp: 100, maxHp: 100, mana: 100, maxMana: 100, manaRegen: 0.3, level: 1, xp: 0, xpNeeded: 100, bulletDamage: 35, skillPoints: 0, charClass: 'mag', attackCooldown: 0, swingSide: 1 };
 
         window.selectClass = function(className) {
-            player.class = className;
-            if (className === 'mag') {
-                player.maxMana = 150; player.mana = 150; player.manaRegen = 0.3; player.baseDamage = 20; player.speed = 3.3;
-            } else if (className === 'wojownik') {
-                player.maxHp = 160; player.hp = 160; player.maxMana = 50; player.mana = 50; player.manaRegen = 0.08; player.baseDamage = 35; player.speed = 3.6;
-            } else if (className === 'lucznik') {
-                player.maxHp = 100; player.hp = 100; player.maxMana = 90; player.mana = 90; player.manaRegen = 0.18; player.baseDamage = 26; player.speed = 4.2;
-            }
-            
+            player.charClass = className;
+            if (className === 'mag') { player.bulletDamage = 35; player.maxMana = 100; player.manaRegen = 0.35; } 
+            else if (className === 'wojownik') { player.bulletDamage = 55; player.maxMana = 80; player.manaRegen = 0.45; } 
+            else if (className === 'lucznik') { player.bulletDamage = 25; player.maxMana = 100; player.manaRegen = 0.3; }
+            player.mana = player.maxMana; player.hp = player.maxHp;
             startMenuEl.style.display = 'none';
             uiEl.style.display = 'block';
             gameIsRunning = true;
-            updateUI();
+            window.gameIsRunning = true;
+            updatePointsUI();
+            requestAnimationFrame(gameLoop);
+        }
 
-            // Pierwsza fala potworów
-            for(let i=0; i<6; i++) spawnEnemy();
-        };
-
-        function updateUI() {
-            lvlValEl.innerText = player.lvl;
-            scoreValEl.innerText = score;
-            hpTextEl.innerText = `${Math.ceil(player.hp)}/${player.maxHp}`;
-            manaTextEl.innerText = `${Math.ceil(player.mana)}/${player.maxMana}`;
-            hpBarEl.style.width = `${(player.hp / player.maxHp) * 100}%`;
-            manaBarEl.style.width = `${(player.mana / player.maxMana) * 100}%`;
-            xpBarEl.style.width = `${(player.xp / player.nextXp) * 100}%`;
-            skillPointsEl.innerText = player.skillPoints;
-            weatherValEl.innerText = currentWeather;
-            
-            if (currentWeather === 'BURZA') weatherValEl.style.color = '#33ccff';
-            else if (currentWeather === 'MGŁA') weatherValEl.style.color = '#bdc3c7';
-            else weatherValEl.style.color = '#ffcc00';
-
-            if (player.skillPoints > 0) levelUpPanelEl.style.display = 'block';
-            else levelUpPanelEl.style.display = 'none';
+        function updatePointsUI() {
+            hpTextEl.textContent = `${Math.ceil(player.hp)}/${player.maxHp}`;
+            hpBarEl.style.width = `${Math.max(0, (player.hp / player.maxHp) * 100)}%`;
+            manaTextEl.textContent = `${Math.ceil(player.mana)}/${player.maxMana}`;
+            manaBarEl.style.width = `${Math.max(0, (player.mana / player.maxMana) * 100)}%`;
+            lvlValEl.textContent = player.level;
+            xpBarEl.style.width = `${Math.min(100, (player.xp / player.xpNeeded) * 100)}%`;
+            levelUpPanelEl.style.display = player.skillPoints > 0 ? 'block' : 'none';
+            if (player.skillPoints > 0) skillPointsEl.textContent = player.skillPoints;
         }
 
         window.upgradeStat = function(stat) {
             if (player.skillPoints <= 0) return;
-            player.skillPoints--;
-            if (stat === 'hp') { player.maxHp += 25; player.hp = player.maxHp; }
-            else if (stat === 'mana') { player.maxMana += 25; player.mana = player.maxMana; player.manaRegen += 0.05; }
-            else if (stat === 'speed') { player.speed += 0.3; }
-            else if (stat === 'damage') { player.baseDamage += 6; }
-            updateUI();
-        };
+            if (stat === 'hp') { player.maxHp += 25; player.hp += 25; } 
+            else if (stat === 'mana') { player.maxMana += 25; player.manaRegen += 0.08; player.mana += 25; } 
+            else if (stat === 'speed') { player.maxSpeed += 0.8; player.acceleration += 0.12; } 
+            else if (stat === 'damage') { player.bulletDamage += 15; }
+            player.skillPoints--; updatePointsUI();
+        }
 
         function addXp(amount) {
             player.xp += amount;
-            if (player.xp >= player.nextXp) {
-                player.xp -= player.nextXp;
-                player.lvl++;
-                player.nextXp = Math.floor(player.nextXp * 1.4);
-                player.skillPoints += 2;
-                player.hp = player.maxHp;
-                player.mana = player.maxMana;
-                camShakeTime = 25; camShakeIntensity = 8;
-                createExplosion(player.worldX, player.worldY, '#e0a816', 30);
+            if (player.xp >= player.xpNeeded) {
+                player.xp -= player.xpNeeded; player.level++; player.skillPoints += 3;
+                player.xpNeeded = Math.floor(player.xpNeeded * 1.6);
             }
-            updateUI();
+            updatePointsUI();
         }
 
-        function triggerAttack(targetX, targetY) {
-            if (player.attackCooldown > 0 || player.hp <= 0) return;
+        function triggerCameraShake(time, intensity) { camShakeTime = time; camShakeIntensity = intensity; }
 
-            let dx = targetX - screenCenterX;
-            let dy = targetY - screenCenterY;
-            let angle = Math.atan2(dy, dx);
-            player.angle = angle;
-
-            if (player.class === 'mag') {
-                if (player.mana < 20) return;
-                player.mana -= 20;
-                player.attackCooldown = 22;
-                bullets.push({
-                    worldX: player.worldX, worldY: player.worldY,
-                    vx: Math.cos(angle) * 6, vy: Math.sin(angle) * 6,
-                    radius: 10, type: 'magic_orb', life: 100, damage: player.baseDamage, color: '#00ffff'
-                });
-            } else if (player.class === 'lucznik') {
-                if (player.mana < 8) return;
-                player.mana -= 8;
-                player.attackCooldown = 12;
-                bullets.push({
-                    worldX: player.worldX, worldY: player.worldY,
-                    vx: Math.cos(angle) * 9, vy: Math.sin(angle) * 9,
-                    radius: 4, type: 'arrow', life: 70, damage: player.baseDamage, color: '#2ecc71'
-                });
-            } else if (player.class === 'wojownik') {
-                player.attackCooldown = 15;
-                // Atak obszarowy z bliska (Cięcie mieczem)
-                let slashX = player.worldX + Math.cos(angle) * 35;
-                let slashY = player.worldY + Math.sin(angle) * 35;
-                createExplosion(slashX, slashY, '#ff3333', 6);
-                
-                enemies.forEach(e => {
-                    let edx = e.worldX - slashX;
-                    let edy = e.worldY - slashY;
-                    if (Math.sqrt(edx*edx + edy*edy) < e.radius + 40) {
-                        e.hp -= player.baseDamage;
-                        e.state = 'aggressive'; // Zaatakowany natychmiast przechodzi w szał pościgu
-                        createExplosion(e.worldX, e.worldY, '#ffffff', 5);
-                        camShakeTime = 8; camShakeIntensity = 3;
-                    }
-                });
-            }
-            updateUI();
-        }
-
-        // Obsługa sterowania klawiszy i myszy
-        window.addEventListener('keydown', e => {
-            if (chatIsOpen) return;
-            if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') keys.w = true;
-            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') keys.s = true;
-            if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.a = true;
-            if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.d = true;
-        });
-        window.addEventListener('keyup', e => {
-            if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') keys.w = false;
-            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') keys.s = false;
-            if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.a = false;
-            if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.d = false;
-        });
-
-        canvas.addEventListener('mousedown', e => {
-            if (!gameIsRunning || chatIsOpen) return;
-            // Sprawdzenie czy kliknięto przyciski HUD lub Joystick mobilny na desktopie
-            if (e.clientX < 180 && e.clientY < 180) return; 
-            triggerAttack(e.clientX, e.clientY);
-        });
-
-        // Obsługa dotyku mobilnego (Joystick + Przycisk Akcji)
-        canvas.addEventListener('touchstart', e => {
-            if (!gameIsRunning || chatIsOpen) return;
-            for (let t of e.changedTouches) {
-                let tx = t.clientX, ty = t.clientY;
-                // Przycisk Ataku
-                let bdx = tx - actionBtn.x, bdy = ty - actionBtn.y;
-                if (Math.sqrt(bdx*bdx + bdy*bdy) < actionBtn.radius) {
-                    actionBtn.pressed = true;
-                    triggerAttack(screenCenterX + Math.cos(player.angle), screenCenterY + Math.sin(player.angle));
-                    continue;
-                }
-                // Joystick Lewy
-                if (tx < canvas.width / 2 && !joystick.active) {
-                    joystick.active = true;
-                    joystick.startX = tx; joystick.startY = ty;
-                    joystick.curX = tx; joystick.curY = ty;
-                }
-            }
-        });
-
-        canvas.addEventListener('touchmove', e => {
-            if (!joystick.active) return;
-            for (let t of e.touches) {
-                if (t.clientX < canvas.width / 2) {
-                    joystick.curX = t.clientX; joystick.curY = t.clientY;
-                }
-            }
-        });
-
-        canvas.addEventListener('touchend', e => {
-            for (let t of e.changedTouches) {
-                if (t.clientX < canvas.width / 2) joystick.active = false;
-                let bdx = t.clientX - actionBtn.x, bdy = t.clientY - actionBtn.y;
-                if (Math.sqrt(bdx*bdx + bdy*bdy) < actionBtn.radius) actionBtn.pressed = false;
-            }
-        });
-
-        // --- GLOBALNA SYNCHRONIZACJA WEBNET FIREBASE (MULTIPLAYER SYNC) ---
-        window.setupMultiplayerSync = function() {
-            const db = window.globalFirebaseDb;
-            const nick = window.currentOnlineUsername;
-            if (!db || !nick) return;
-
-            const playerPosRef = ref(db, 'players/' + nick);
+        function playerAttack() {
+            if (player.attackCooldown > 0 || chatIsOpen || worldMapIsOpen) return;
             
-            // Wysyłanie współrzędnych do chmury
-            setInterval(() => {
-                if (gameIsRunning && player.hp > 0) {
-                    set(playerPosRef, {
-                        x: player.worldX, y: player.worldY,
-                        class: player.class, lvl: player.lvl, angle: player.angle,
-                        lastSeen: Date.now()
-                    });
+            if (player.charClass === 'mag') {
+                if (player.mana >= 15) {
+                    player.mana -= 15;
+                    bullets.push({ type: 'energy_ball', worldX: player.worldX, worldY: player.worldY, vx: Math.cos(player.angle) * 11, vy: Math.sin(player.angle) * 11, radius: 7, life: 65, damage: player.bulletDamage });
+                    player.attackCooldown = 18;
                 }
-            }, 90);
-
-            // Pobieranie danych o innych graczach sieciowych
-            const allPlayersRef = ref(db, 'players');
-            onValue(allPlayersRef, (snapshot) => {
-                if (!snapshot.exists()) return;
-                const data = snapshot.val();
-                let now = Date.now();
-                
-                // Filtrowanie nieaktywnych lub własnej postaci
-                for (let key in data) {
-                    if (key === nick) continue;
-                    if (now - data[key].lastSeen > 5000) {
-                        delete otherPlayers[key];
-                        continue;
-                    }
-                    otherPlayers[key] = data[key];
-                }
-            });
-        };
-
-        window.cleanMultiplayer = function() {
-            const db = window.globalFirebaseDb;
-            const nick = window.currentOnlineUsername;
-            if (db && nick) {
-                remove(ref(db, 'players/' + nick));
-            }
-            otherPlayers = {};
-        };
-
-        window.stopGameExecution = function() {
-            gameIsRunning = false;
-            uiEl.style.display = 'none';
-            bossUiEl.style.display = 'none';
-        };
-
-        // --- GŁÓWNA PĘTLA AKTUALIZACJI I LOGIKI GRY (GAME UPDATE LOOP) ---
-        function update() {
-            if (!gameIsRunning) {
-                requestAnimationFrame(update);
-                return;
-            }
-
-            // Obsługa pogody
-            weatherTimer--;
-            if (weatherTimer <= 0) {
-                let r = Math.random();
-                currentWeather = r < 0.5 ? 'SLONECZNIE' : (r < 0.8 ? 'MGŁA' : 'BURZA');
-                weatherTimer = 800 + Math.random() * 600;
-                updateUI();
-            }
-
-            // Regeneracja i coolowny bohatera
-            if (player.hp > 0) {
-                if (player.mana < player.maxMana) player.mana = Math.min(player.maxMana, player.mana + player.manaRegen);
-                if (player.attackCooldown > 0) player.attackCooldown--;
-                
-                // Naturalne wolne leczenie w słońcu
-                if (currentWeather === 'SLONECZNIE' && player.hp < player.maxHp && Math.random() < 0.02) {
-                    player.hp = Math.min(player.maxHp, player.hp + 1);
-                    updateUI();
-                }
-            }
-
-            // Ruch bohatera - Klawiatura
-            let mx = 0, my = 0;
-            if (keys.w) my -= 1; if (keys.s) my += 1;
-            if (keys.a) mx -= 1; if (keys.d) mx += 1;
-
-            // Ruch bohatera - Joystick Mobilny
-            if (joystick.active) {
-                let jdx = joystick.curX - joystick.startX;
-                let jdy = joystick.curY - joystick.startY;
-                let len = Math.sqrt(jdx*jdx + jdy*jdy);
-                if (len > 5) {
-                    mx = jdx / len; my = jdy / len;
-                    player.angle = Math.atan2(jdy, jdx);
-                }
-            }
-
-            if (mx !== 0 || my !== 0) {
-                let len = Math.sqrt(mx*mx + my*my);
-                let currentSpeed = player.speed;
-                if (currentWeather === 'BURZA') currentSpeed *= 0.85; // Deszcz spowalnia
-
-                player.worldX += (mx / len) * currentSpeed;
-                player.worldY += (my / len) * currentSpeed;
-                
-                if (!joystick.active) player.angle = Math.atan2(my, mx);
-            }
-
-            // Aktualizacja pocisków
-            bullets.forEach((b, index) => {
-                b.worldX += b.vx; b.worldY += b.vy; b.life--;
-
-                // Magiczne pociski samonaprowadzające się na najbliższego wroga w stanie agresywnym
-                if (b.type === 'magic_orb' && enemies.length > 0) {
-                    let nearest = null, minDist = 250;
-                    enemies.forEach(e => {
-                        let edx = e.worldX - b.worldX;
-                        let edy = e.worldY - b.worldY;
-                        let d = Math.sqrt(edx*edx + edy*edy);
-                        if (d < minDist) { minDist = d; nearest = e; }
-                    });
-                    if (nearest) {
-                        let nangle = Math.atan2(nearest.worldY - b.worldY, nearest.worldX - b.worldX);
-                        b.vx = b.vx * 0.85 + Math.cos(nangle) * 1.2;
-                        b.vy = b.vy * 0.85 + Math.sin(nangle) * 1.2;
-                    }
-                }
-
-                if (b.life <= 0) bullets.splice(index, 1);
-            });
-
-            // --- KOMPLETNA SZTUCZNA INTELIGENCJA (AI STATE MACHINE) ---
-            let bossPresent = null;
-
-            enemies.forEach((e, eIndex) => {
-                if (e.type === 'boss') bossPresent = e;
-
-                // Obliczanie dystansów
-                let dx = player.worldX - e.worldX;
-                let dy = player.worldY - e.worldY;
-                let distanceToPlayer = Math.sqrt(dx * dx + dy * dy);
-
-                let hdx = e.homeX - e.worldX;
-                let hdy = e.homeY - e.worldY;
-                let distanceToHome = Math.sqrt(hdx * hdx + hdy * hdy);
-
-                // STAN 1: AGRESJA (Goni gracza)
-                if (e.state === 'aggressive') {
-                    if (distanceToPlayer > e.loseRange) {
-                        e.state = 'returning'; // Gracz uciekł za daleko -> powrót potwora
-                    } else {
-                        e.angle = Math.atan2(dy, dx);
-                        e.worldX += Math.cos(e.angle) * e.speed;
-                        e.worldY += Math.sin(e.angle) * e.speed;
-
-                        // Atakowanie gracza (Zadawanie obrażeń w zwarciu)
-                        if (distanceToPlayer < e.radius + player.radius && player.hp > 0) {
-                            let dmg = e.type === 'boss' ? 1.2 : (e.type === 'elite' ? 0.6 : 0.25);
-                            player.hp = Math.max(0, player.hp - dmg);
-                            camShakeTime = 6; camShakeIntensity = e.type === 'boss' ? 5 : 2;
-                            if (Math.random() < 0.15) createExplosion(player.worldX, player.worldY, '#ff4a4a', 3);
-                            updateUI();
-                            
-                            if (player.hp <= 0) {
-                                createExplosion(player.worldX, player.worldY, '#ff0000', 40);
-                                setTimeout(() => {
-                                    alert("Zginąłeś! Twoja dusza odrodziła się w bezpiecznej strefie.");
-                                    player.hp = player.maxHp; player.mana = player.maxMana;
-                                    player.worldX = 0; player.worldY = 0;
-                                    score = Math.max(0, score - 5);
-                                    enemies = [];
-                                    for(let i=0; i<6; i++) spawnEnemy();
-                                    updateUI();
-                                }, 500);
-                            }
+            } else if (player.charClass === 'wojownik') {
+                if (player.mana >= 12) {
+                    player.mana -= 12; player.swingSide *= -1;
+                    let attackAngle = player.angle + (0.4 * player.swingSide);
+                    visualEffects.push({ type: 'slash', worldX: player.worldX, worldY: player.worldY, angle: attackAngle, side: player.swingSide, life: 12, maxLife: 12 });
+                    
+                    let range = 85, ax = player.worldX + Math.cos(player.angle) * 35, ay = player.worldY + Math.sin(player.angle) * 35;
+                    
+                    for (let i = enemies.length - 1; i >= 0; i--) {
+                        let e = enemies[i];
+                        let edx = e.worldX - ax, edy = e.worldY - ay;
+                        if (Math.sqrt(edx*edx + edy*edy) < e.radius + range/2) {
+                            damageMonsterGlobal(e, player.bulletDamage);
+                            triggerCameraShake(8, 3);
                         }
                     }
+                    player.attackCooldown = 14;
                 }
-                // STAN 2: POWRÓT (Wraca na swoje miejsce i się leczy)
-                else if (e.state === 'returning') {
-                    // Jeśli gracz bezczelnie podejdzie znowu blisko w trakcie odwrotu, zaatakuj go ponownie
-                    if (distanceToPlayer < e.visionRange * 0.5 && player.hp > 0) {
-                        e.state = 'aggressive';
-                    }
-                    else if (distanceToHome < 12) {
-                        e.worldX = e.homeX;
-                        e.worldY = e.homeY;
-                        e.state = 'wandering'; // Dotarł na miejsce startu -> zacznij spokojny patrol
-                    } else {
-                        e.angle = Math.atan2(hdy, hdx);
-                        e.worldX += Math.cos(e.angle) * (e.speed * 1.3); // Wycofuje się nieco szybciej
-                        e.worldY += Math.sin(e.angle) * (e.speed * 1.3);
-                        if (e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + 1.5); // Szybka regeneracja HP
-                    }
-                }
-                // STAN 3: BŁĄKANIE SIĘ / AUTONOMICZNA INTELIGENCJA (Wandering)
-                else {
-                    if (distanceToPlayer < e.visionRange && player.hp > 0) {
-                        e.state = 'aggressive'; // Wykryto gracza w polu widzenia
-                    } else {
-                        e.wanderTimer--;
-                        if (e.wanderTimer <= 0) {
-                            e.isResting = Math.random() < 0.45; // Losowanie odpoczynku (stoi w miejscu)
-                            e.wanderAngle = Math.random() * Math.PI * 2;
-                            e.wanderTimer = Math.floor(Math.random() * 140) + 60; // Czas trwania cyklu
-                        }
-
-                        if (!e.isResting) {
-                            // Jeśli za daleko błąka się od domu, zawróć go sztucznie ku bazie
-                            if (distanceToHome > 140) {
-                                e.wanderAngle = Math.atan2(hdy, hdx);
-                            }
-                            e.angle = e.wanderAngle;
-                            e.worldX += Math.cos(e.angle) * (e.speed * 0.45); // Spokojny chód (część prędkości max)
-                            e.worldY += Math.sin(e.angle) * (e.speed * 0.45);
-                        }
-                    }
-                }
-
-                // Kolizje pocisków z potworami
-                bullets.forEach((b, bIndex) => {
-                    let bdx = e.worldX - b.worldX;
-                    let bdy = e.worldY - b.worldY;
-                    let bDist = Math.sqrt(bdx*bdx + bdy*bdy);
-
-                    if (bDist < e.radius + b.radius) {
-                        e.hp -= b.damage;
-                        e.state = 'aggressive'; // Agresja po trafieniu z daleka!
-                        createExplosion(b.worldX, b.worldY, b.color, 6);
-                        bullets.splice(bIndex, 1);
-
-                        // Śmierć potwora
-                        if (e.hp <= 0) {
-                            createExplosion(e.worldX, e.worldY, e.color, e.type==='boss'?45:15);
-                            enemies.splice(eIndex, 1);
-                            score++;
-                            addXp(e.type === 'boss' ? 250 : (e.type === 'elite' ? 50 : 20));
-                            
-                            // Szansa na zrodzenie Bossa przy dużym wyniku
-                            if (e.type !== 'boss' && score % 12 === 0) {
-                                spawnEnemy(true);
-                            } else {
-                                if (enemies.length < 8) spawnEnemy();
-                            }
-                        }
-                    }
-                });
-            });
-
-            // Zarządzanie interfejsem paska życia bossa
-            if (bossPresent) {
-                bossUiEl.style.display = 'block';
-                bossHpBarEl.style.width = `${(bossPresent.hp / bossPresent.maxHp) * 100}%`;
-            } else {
-                bossUiEl.style.display = 'none';
+            } else if (player.charClass === 'lucznik') {
+                bullets.push({ type: 'arrow', worldX: player.worldX, worldY: player.worldY, vx: Math.cos(player.angle) * 14, vy: Math.sin(player.angle) * 14, radius: 4, life: 55, damage: player.bulletDamage });
+                player.attackCooldown = 10;
             }
-
-            // Cząsteczki
-            particles.forEach((p, index) => {
-                p.worldX += p.vx; p.worldY += p.vy; p.life--;
-                if (p.life <= 0) particles.splice(index, 1);
-            });
-
-            // Trzęsienie ziemi / kamery
-            if (camShakeTime > 0) camShakeTime--;
-
-            render();
-            requestAnimationFrame(update);
+            updatePointsUI();
         }
 
-        // --- RENDEROWANIE I GRAFIKA CANVAS (ENG_2D PROCESS) ---
-        function render() {
+        // Uszkodzenie potwora synchronizowane z Firebase
+        function damageMonsterGlobal(monster, dmg) {
+            if (!window.firebaseDB || !monster.id) return;
+            const nextHp = Math.max(0, monster.hp - dmg);
+            
+            if (nextHp <= 0) {
+                // Usuń potwora z Firebase (Killed!)
+                const { ref, remove } =  window.importFirebaseDB || {};
+                // Bezpośrednie wywołanie za pomocą globalnego interfejsu
+                const mRef = dataRef('monsters/' + monster.id);
+                window.firebaseDB.constructor.prototype.toString = () => {}; 
+                
+                // Wywołujemy operację usunięcia potwora
+                const dbRef = window.firebaseDB;
+                const pathRef = ref(dbRef, 'monsters/' + monster.id);
+                
+                // Wykonujemy aktualizację punktów i zabójstwa lokalnie
+                score++;
+                scoreValEl.textContent = score;
+                addXp(monster.xpReward);
+                
+                // Usuwamy z bazy i wywołujemy respawn nowego
+                const remRef = window.firebaseDB;
+                import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js").then((m) => {
+                    m.remove(m.ref(remRef, 'monsters/' + monster.id));
+                    // Globalny respawn nowego potwora
+                    if(window.spawnNewMonsterGlobal) window.spawnNewMonsterGlobal();
+                });
+            } else {
+                // Aktualizuj HP potwora w bazie danych
+                import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js").then((m) => {
+                    m.update(m.ref(window.firebaseDB, 'monsters/' + monster.id), { hp: nextHp });
+                });
+            }
+        }
+
+        // --- AKTUALIZACJA I PĘTLA GRY ---
+        function updateGame() {
+            if (!gameIsRunning) return;
+
+            // Ruch gracza
+            if (joystick.active) {
+                let dx = joystick.currentX - joystick.startX, dy = joystick.currentY - joystick.startY;
+                let dist = Math.hypot(dx, dy);
+                if (dist > 5) {
+                    let angle = Math.atan2(dy, dx);
+                    let power = Math.min(dist / joystick.maxRadius, 1);
+                    player.vx += Math.cos(angle) * player.acceleration * power;
+                    player.vy += Math.sin(angle) * player.acceleration * power;
+                    player.angle = angle;
+                }
+            } else {
+                if (keys.w) player.vy -= player.acceleration; if (keys.s) player.vy += player.acceleration;
+                if (keys.a) player.vx -= player.acceleration; if (keys.d) bracedMoveRight();
+            }
+
+            function bracedMoveRight() { player.vx += player.acceleration; }
+
+            player.vx *= player.friction; player.vy *= player.friction;
+            player.worldX += player.vx; player.worldY += player.vy;
+
+            // Obrót gracza na mysz
+            if (isMousing && !joystick.active) {
+                player.angle = Math.atan2(mouse.y - screenCenterY, mouse.x - screenCenterX);
+            }
+
+            if (player.charClass === 'lucznik' && isMouseDown) playerAttack();
+            if (player.attackCooldown > 0) player.attackCooldown--;
+
+            // Regeneracja many
+            if (player.mana < player.maxMana) {
+                player.mana = Math.min(player.maxMana, player.mana + player.manaRegen);
+                updatePointsUI();
+            }
+
+            // Aktualizacja pocisków i kolizji
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i]; b.worldX += b.vx; b.worldY += b.vy; b.life--;
+                
+                // Kolizja pocisku z potworami
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let e = enemies[j];
+                    if (Math.hypot(b.worldX - e.worldX, b.worldY - e.worldY) < b.radius + e.radius) {
+                        damageMonsterGlobal(e, b.damage);
+                        bullets.splice(i, 1);
+                        break;
+                    }
+                }
+                if (b.life <= 0 && bullets[i] === b) bullets.splice(i, 1);
+            }
+
+            // Aktualizacja efektów wizualnych
+            for(let i=visualEffects.length-1; i>=0; i--) {
+                visualEffects[i].life--;
+                if(visualEffects[i].life<=0) visualEffects.splice(i,1);
+            }
+
+            updateWeatherAndTime();
+
+            // WYSYŁANIE POZYCJI DO FIREBASE (W CZASIE RZECZYWISTYM)
+            if (window.firebaseDB && window.getCurrentUser && window.getCurrentUser()) {
+                const nick = window.getCurrentUser();
+                import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js").then((m) => {
+                    m.set(m.ref(window.firebaseDB, 'players/' + nick), {
+                        worldX: player.worldX, worldY: player.worldY,
+                        angle: player.angle, charClass: player.charClass,
+                        level: player.level, hp: player.hp, maxHp: player.maxHp
+                    });
+                });
+            }
+        }
+
+        // --- RENDEROWANIE (GRAFIKA 2D CANVAS) ---
+        function drawGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Efekt trzęsienia kamery
-            let shakeX = 0, shakeY = 0;
+            ctx.save();
+            // Efekt Shake Camery
             if (camShakeTime > 0) {
-                shakeX = (Math.random() - 0.5) * camShakeIntensity;
-                shakeY = (Math.random() - 0.5) * camShakeIntensity;
+                let dx = (Math.random() - 0.5) * camShakeIntensity;
+                let dy = (Math.random() - 0.5) * camShakeIntensity;
+                ctx.translate(dx, dy); camShakeTime--;
             }
 
-            ctx.save();
-            ctx.translate(shakeX, shakeY);
+            // Przesunięcie widoku na gracza
+            let camX = screenCenterX - player.worldX;
+            let camY = screenCenterY - player.worldY;
+            ctx.translate(camX, camY);
 
-            // 1. RYSOWANIE PROCESUALNYCH KAFELKÓW PODŁOŻA (BIOMÓW)
+            // Rysowanie kafelków podłoża wokół gracza
             let startTileX = Math.floor((player.worldX - screenCenterX) / TILE_SIZE) - 1;
             let endTileX = Math.ceil((player.worldX + screenCenterX) / TILE_SIZE) + 1;
             let startTileY = Math.floor((player.worldY - screenCenterY) / TILE_SIZE) - 1;
             let endTileY = Math.ceil((player.worldY + screenCenterY) / TILE_SIZE) + 1;
 
-            for (let ty = startTileY; ty <= endTileY; ty++) {
-                for (let tx = startTileX; tx <= endTileX; tx++) {
-                    let tileWorldX = tx * TILE_SIZE;
-                    let tileWorldY = ty * TILE_SIZE;
-                    let tileScreenX = tileWorldX - player.worldX + screenCenterX;
-                    let tileScreenY = tileWorldY - player.worldY + screenCenterY;
-
-                    ctx.fillStyle = getBiomeAt(tileWorldX, tileWorldY);
-                    ctx.fillRect(tileScreenX, tileScreenY, TILE_SIZE, TILE_SIZE);
-
-                    // Siatka kafelków retro
-                    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-                    ctx.strokeRect(tileScreenX, tileScreenY, TILE_SIZE, TILE_SIZE);
+            for (let tx = startTileX; tx <= endTileX; tx++) {
+                for (let ty = startTileY; ty <= endTileY; ty++) {
+                    let tile = getTileAt(tx, ty);
+                    ctx.fillStyle = tile.c1;
+                    ctx.fillRect(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                    
+                    // Siatka kafelków
+                    ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+                    ctx.strokeRect(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
                 }
             }
 
-            // Krycie mgły pogodowej
-            if (currentWeather === 'MGŁA') {
-                ctx.fillStyle = 'rgba(140, 160, 180, 0.35)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-            } else if (currentWeather === 'BURZA') {
-                ctx.fillStyle = 'rgba(10, 20, 50, 0.25)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // RYSOWANIE INNYCH GRACZY Z FIREBASE (MULTIPLAYER)
+            if (window.remotePlayers) {
+                Object.keys(window.remotePlayers).forEach(nick => {
+                    if (nick === window.getCurrentUser()) return; // Pomiń siebie
+                    let p = window.remotePlayers[nick];
+                    
+                    ctx.save();
+                    ctx.translate(p.worldX, p.worldY);
+                    
+                    // Nick gracza nad głową
+                    ctx.fillStyle = '#00ffcc';
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${nick} (Lvl ${p.level})`, 0, -p.radius - 12);
+                    
+                    // Pasek życia gracza
+                    ctx.fillStyle = '#444'; ctx.fillRect(-20, -p.radius - 8, 40, 4);
+                    ctx.fillStyle = '#ff3366'; ctx.fillRect(-20, -p.radius - 8, (p.hp / p.maxHp) * 40, 4);
+
+                    // Ciało zdalnego gracza
+                    ctx.rotate(p.angle);
+                    ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2);
+                    ctx.fillStyle = p.charClass === 'mag' ? '#33ccff' : p.charClass === 'wojownik' ? '#ff3333' : '#2ecc71';
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                    
+                    // Kierunek patrzenia
+                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(22, 0);
+                    ctx.strokeStyle = '#fff'; ctx.stroke();
+                    ctx.restore();
+                });
             }
 
-            // 2. RYSUJ INNYCH GRACZY SIECIOWYCH MULTIPLAYER
-            for (let id in otherPlayers) {
-                let pNet = otherPlayers[id];
-                let scrX = pNet.x - player.worldX + screenCenterX;
-                let scrY = pNet.y - player.worldY + screenCenterY;
-
-                // Cień gracza sieciowego
-                ctx.beginPath(); ctx.arc(scrX, scrY + 12, 12, 0, Math.PI*2);
-                ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill();
-
-                // Ciało postaci sieciowej
-                ctx.beginPath(); ctx.arc(scrX, scrY, 16, 0, Math.PI * 2);
-                ctx.fillStyle = pNet.class === 'mag' ? '#33ccff' : (pNet.class === 'wojownik' ? '#ff3333' : '#2ecc71');
-                ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
-
-                // Plakietka nad nickiem
-                ctx.fillStyle = '#00ffcc'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
-                ctx.fillText(`${id} (Lvl ${pNet.lvl})`, scrX, scrY - 24);
-            }
-
-            // 3. RYSOWANIE PRZECIWNIKÓW (ENEMIES)
+            // Rysowanie potworów (Zsynchronizowanych)
             enemies.forEach(e => {
-                let scrX = e.worldX - player.worldX + screenCenterX;
-                let scrY = e.worldY - player.worldY + screenCenterY;
-
-                // Cień potwora
-                ctx.beginPath(); ctx.arc(scrX, scrY + e.radius*0.8, e.radius, 0, Math.PI*2);
-                ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
-
-                // Ciało wroga
-                ctx.beginPath(); ctx.arc(scrX, scrY, e.radius, 0, Math.PI * 2);
+                ctx.save(); ctx.translate(e.worldX, e.worldY);
+                ctx.beginPath(); ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
                 ctx.fillStyle = e.color; ctx.fill();
-                ctx.strokeStyle = '#111'; ctx.lineWidth = e.type === 'elite' ? 3 : 1.5; ctx.stroke();
-
-                // Oczy kierunkowe potwora
-                let eyeX = scrX + Math.cos(e.angle) * (e.radius * 0.4);
-                let eyeY = scrY + Math.sin(e.angle) * (e.radius * 0.4);
-                ctx.beginPath(); ctx.arc(eyeX, eyeY, e.type==='boss'?5:3, 0, Math.PI*2);
-                ctx.fillStyle = '#fff'; ctx.fill();
-
-                // Pasek zdrowia mały nad potworem (tylko dla naruszonych potworów lub elity)
-                if (e.hp < e.maxHp || e.type !== 'normal') {
-                    let barW = e.radius * 2;
-                    let barH = 5;
-                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-                    ctx.fillRect(scrX - barW/2, scrY - e.radius - 12, barW, barH);
-                    ctx.fillStyle = e.state === 'returning' ? '#3498db' : '#ff3336'; // Niebieski pasek jeśli wraca i się leczy
-                    ctx.fillRect(scrX - barW/2, scrY - e.radius - 12, barW * (e.hp / e.maxHp), barH);
-                }
-
-                // Tekst pomocniczy stanu AI (Opcjonalnie dla debugu/efektu RPG)
-                if (e.type === 'elite' || e.type === 'boss') {
-                    ctx.font = '9px monospace'; ctx.fillStyle = '#ccc'; ctx.textAlign = 'center';
-                    let stanTxt = e.state === 'aggressive' ? '🔥 AGGRO' : (e.state === 'returning' ? '💤 REGEN' : '🍃 PATROL');
-                    ctx.fillText(stanTxt, scrX, scrY - e.radius - 18);
-                }
+                ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.stroke();
+                
+                // Pasek życia potwora
+                ctx.fillStyle = '#222'; ctx.fillRect(-15, -e.radius - 8, 30, 4);
+                ctx.fillStyle = '#ff0000'; ctx.fillRect(-15, -e.radius - 8, (e.hp / e.maxHp) * 30, 4);
+                ctx.restore();
             });
 
-            // 4. RYSOWANIE POCISKÓW (BULLETS)
+            // Rysowanie pocisków
             bullets.forEach(b => {
-                let scrX = b.worldX - player.worldX + screenCenterX;
-                let scrY = b.worldY - player.worldY + screenCenterY;
-                ctx.beginPath(); ctx.arc(scrX, scrY, b.radius, 0, Math.PI * 2);
-                ctx.fillStyle = b.color; ctx.fill();
-                if(b.type==='magic_orb') {
-                    ctx.shadowColor = b.color; ctx.shadowBlur = 10;
+                ctx.beginPath(); ctx.arc(b.worldX, b.worldY, b.radius, 0, Math.PI * 2);
+                ctx.fillStyle = b.type === 'energy_ball' ? '#00ffcc' : '#f1c40f'; ctx.fill();
+            });
+
+            // Cięcia miecza (wojownik)
+            visualEffects.forEach(v => {
+                if(v.type === 'slash') {
+                    ctx.save(); ctx.translate(v.worldX, v.worldY); ctx.rotate(v.angle);
+                    ctx.beginPath(); ctx.arc(0, 0, 50, -0.4, 0.4); ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+                    ctx.lineWidth = 4; ctx.stroke(); ctx.restore();
                 }
             });
-            ctx.shadowBlur = 0; // Reset blasku shadow
 
-            // 5. RYSOWANIE CZĄSTECZEK (PARTICLES)
-            particles.forEach(p => {
-                let scrX = p.worldX - player.worldX + screenCenterX;
-                let scrY = p.worldY - player.worldY + screenCenterY;
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = p.life / p.maxLife;
-                ctx.fillRect(scrX, scrY, p.size, p.size);
-            });
-            ctx.globalAlpha = 1.0; // Reset alphy
+            // Rysowanie samego siebie (Głównego gracza)
+            ctx.save();
+            ctx.translate(player.worldX, player.worldY);
+            ctx.rotate(player.angle);
+            ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = player.charClass === 'mag' ? '#00e1ff' : player.charClass === 'wojownik' ? '#ff1e1e' : '#1eff1e';
+            ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(24, 0); ctx.stroke();
+            ctx.restore();
 
-            // 6. RYSOWANIE GŁÓWNEGO GRACZA (HERO PLAYER)
-            if (player.hp > 0) {
-                // Cień bohatera
-                ctx.beginPath(); ctx.arc(screenCenterX, screenCenterY + 12, 12, 0, Math.PI*2);
-                ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill();
+            ctx.restore(); // Przywrócenie kamery
 
-                ctx.beginPath(); ctx.arc(screenCenterX, screenCenterY, player.radius, 0, Math.PI * 2);
-                ctx.fillStyle = player.class === 'mag' ? '#00ffcc' : (player.class === 'wojownik' ? '#e74c3c' : '#2ecc71');
-                ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+            // Efekty pogodowe overlay na ekranie
+            drawWeatherParticles();
 
-                // Kierunek patrzenia gracza
-                let pEyeX = screenCenterX + Math.cos(player.angle) * 8;
-                let pEyeY = screenCenterY + Math.sin(player.angle) * 8;
-                ctx.beginPath(); ctx.arc(pEyeX, pEyeY, 3, 0, Math.PI * 2);
-                ctx.fillStyle = '#111'; ctx.fill();
-            }
+            // PRAWY DOLNY RÓG - INTERFEJS MINIMAPY
+            drawMinimap();
 
-            ctx.restore(); // Przywrócenie bez trzęsienia kamery
-
-            // 7. INTERFEJS INTERFEJSU MOBILNEGO (JOYSTICK + ATK BTN) NA EKRANIE STATYCZNYM
+            // Mobilny joystick
             if (joystick.active) {
                 ctx.beginPath(); ctx.arc(joystick.startX, joystick.startY, joystick.maxRadius, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.08)'; ctx.fill();
-                ctx.strokeStyle = 'rgba(0, 255, 204, 0.4)'; ctx.stroke();
-                
-                let knobX = joystick.curX, knobY = joystick.curY;
-                let dx = joystick.curX - joystick.startX, dy = joystick.curY - joystick.startY;
-                let dist = Math.sqrt(dx*dx + dy*dy);
+                ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.stroke();
+                let dx = joystick.currentX - joystick.startX, dy = joystick.currentY - joystick.startY;
+                let dist = Math.hypot(dx, dy);
+                let knobX = joystick.currentX, knobY = joystick.currentY;
                 if (dist > joystick.maxRadius) {
                     let angle = Math.atan2(dy, dx);
                     knobX = joystick.startX + Math.cos(angle) * joystick.maxRadius;
                     knobY = joystick.startY + Math.sin(angle) * joystick.maxRadius;
                 }
                 ctx.beginPath(); ctx.arc(knobX, knobY, 24, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(0, 255, 204, 0.5)'; ctx.fill(); ctx.stroke();
+                ctx.fillStyle = 'rgba(0, 255, 204, 0.5)'; ctx.fill();
             }
-
-            // Mobilny przycisk ataku
-            if (window.innerWidth < 1024) { // Pokaż tylko na urządzeniach przenośnych/małych ekranach
-                ctx.beginPath(); ctx.arc(actionBtn.x, actionBtn.y, actionBtn.radius, 0, Math.PI * 2);
-                ctx.fillStyle = actionBtn.pressed ? 'rgba(0, 255, 204, 0.5)' : 'rgba(0, 0, 0, 0.6)'; ctx.fill();
-                ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 2; ctx.stroke();
-                ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText("ATAK", actionBtn.x, actionBtn.y);
-            }
-
-            // 8. RYSOWANIE MINIMAPY (Maly radar w rogu ekranu)
-            ctx.save();
-            let miniRadius = 65, miniCenterX = canvas.width - miniRadius - 20, miniCenterY = canvas.height - miniRadius - 20;
-            ctx.beginPath(); ctx.arc(miniCenterX, miniCenterY, miniRadius, 0, Math.PI * 2); ctx.clip(); 
-            ctx.fillStyle = 'rgba(20, 20, 20, 0.85)'; ctx.fillRect(miniCenterX - miniRadius, miniCenterY - miniRadius, miniRadius*2, miniRadius*2);
-            
-            // Kropki wrogów na radarze
-            enemies.forEach(e => {
-                let mdx = (e.worldX - player.worldX) / 12, mdy = (e.worldY - player.worldY) / 12;
-                if (mdx*mdx + mdy*mdy < miniRadius*miniRadius) {
-                    ctx.beginPath(); ctx.arc(miniCenterX + mdx, miniCenterY + mdy, e.type === 'boss' ? 5 : 2.5, 0, Math.PI * 2);
-                    ctx.fillStyle = e.state === 'returning' ? '#3498db' : '#ff3333';
-                    ctx.fill();
-                }
-            });
-            // Kropka gracza na środku radaru
-            ctx.beginPath(); ctx.arc(miniCenterX, miniCenterY, 3, 0, Math.PI * 2); ctx.fillStyle = '#00ffcc'; ctx.fill();
-            ctx.restore();
-            ctx.beginPath(); ctx.arc(miniCenterX, miniCenterY, miniRadius, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.stroke();
         }
 
-        updateTouchLayout();
-        window.addEventListener('resize', updateTouchLayout);
+        function drawWeatherParticles() {
+            ctx.save();
+            if (currentWeather === 'fog') { ctx.fillStyle = 'rgba(200,220,230,0.15)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+            particles.forEach(p => {
+                ctx.beginPath();
+                if (p.type === 'rain') { ctx.strokeStyle = 'rgba(174,214,241,0.5)'; ctx.lineWidth=1.5; ctx.moveTo(p.x, p.y); ctx.lineTo(p.x+1, p.y+p.len); ctx.stroke(); }
+                else { ctx.fillStyle = '#fff'; ctx.arc(p.x, p.y, p.len, 0, Math.PI*2); ctx.fill(); }
+            });
+            ctx.restore();
+        }
 
-        // Rozpoczęcie nasłuchiwania pętli gry
-        requestAnimationFrame(update);
+        function drawMinimap() {
+            let miniRadius = 65, miniCenterX = canvas.width - miniRadius - 20, miniCenterY = canvas.height - miniRadius - 20;
+            ctx.save();
+            ctx.beginPath(); ctx.arc(miniCenterX, miniCenterY, miniRadius, 0, Math.PI * 2); ctx.clip();
+            ctx.fillStyle = 'rgba(15,20,30,0.9)'; ctx.fillRect(miniCenterX-miniRadius, miniCenterY-miniRadius, miniRadius*2, miniRadius*2);
+            
+            // Kropka gracza centralna
+            ctx.beginPath(); ctx.arc(miniCenterX, miniCenterY, 3.5, 0, Math.PI*2); ctx.fillStyle = '#00ffcc'; ctx.fill();
+            
+            // Kropki potworów na minimapie
+            enemies.forEach(e => {
+                let mdx = (e.worldX - player.worldX) / 14;
+                let mdy = (e.worldY - player.worldY) / 14;
+                if (mdx*mdx + mdy*mdy < miniRadius*miniRadius) {
+                    ctx.beginPath(); ctx.arc(miniCenterX + mdx, miniCenterY + mdy, 2.5, 0, Math.PI*2);
+                    ctx.fillStyle = '#ff3333'; ctx.fill();
+                }
+            });
+            ctx.restore();
+            ctx.beginPath(); ctx.arc(miniCenterX, miniCenterY, miniRadius, 0, Math.PI*2);
+            ctx.strokeStyle = 'rgba(0,255,204,0.6)'; ctx.lineWidth = 2; ctx.stroke();
+        }
+
+        // --- GENERATOR PEŁNOEKRANOWEJ DUŻEJ MAPY ŚWIATA ---
+        function drawFullWorldMap() {
+            const mapCanvas = document.getElementById('world-map-canvas');
+            const mctx = mapCanvas.getContext('2d');
+            
+            mapCanvas.width = mapCanvas.clientWidth;
+            mapCanvas.height = mapCanvas.clientHeight;
+            
+            mctx.fillStyle = '#111';
+            mctx.fillRect(0, 0, mapCanvas.width, mapCanvas.height);
+
+            let scale = 1.5; // stopień przybliżenia mapy świata
+            let centerX = mapCanvas.width / 2;
+            let centerY = mapCanvas.height / 2;
+
+            // Rysowanie kafelków w przestrzeni pełnoekranowej
+            let rangeX = Math.ceil(mapCanvas.width / (TILE_SIZE / scale)) + 2;
+            let rangeY = Math.ceil(mapCanvas.height / (TILE_SIZE / scale)) + 2;
+            
+            let pTileX = Math.floor(player.worldX / TILE_SIZE);
+            let pTileY = Math.floor(player.worldY / TILE_SIZE);
+
+            for(let x = -rangeX; x <= rangeX; x++) {
+                for(let y = -rangeY; y <= rangeY; y++) {
+                    let currentX = pTileX + x;
+                    let currentY = pTileY + y;
+                    let tile = getTileAt(currentX, currentY);
+
+                    let drawX = centerX + (x * TILE_SIZE / scale) - ((player.worldX % TILE_SIZE) / scale);
+                    let drawY = centerY + (y * TILE_SIZE / scale) - ((player.worldY % TILE_SIZE) / scale);
+
+                    mctx.fillStyle = tile.c2; // używamy alternatywnego nasyconego koloru biomu
+                    mctx.fillRect(drawX, drawY, TILE_SIZE / scale + 0.5, TILE_SIZE / scale + 0.5);
+                }
+            }
+
+            // Inni gracze na dużej mapie
+            if (window.remotePlayers) {
+                Object.keys(window.remotePlayers).forEach(nick => {
+                    if (nick === window.getCurrentUser()) return;
+                    let rp = window.remotePlayers[nick];
+                    let rdx = centerX + (rp.worldX - player.worldX) / scale;
+                    let rdy = centerY + (rp.worldY - player.worldY) / scale;
+                    
+                    if (rdx >= 0 && rdx <= mapCanvas.width && rdy >= 0 && rdy <= mapCanvas.height) {
+                        mctx.beginPath(); mctx.arc(rdx, rdy, 5, 0, Math.PI * 2);
+                        mctx.fillStyle = '#ffaa00'; mctx.fill();
+                        mctx.fillStyle = '#fff'; mctx.font = '10px Arial';
+                        mctx.fillText(nick, rdx + 7, rdy + 3);
+                    }
+                });
+            }
+
+            // Wrogowie na dużej mapie
+            enemies.forEach(e => {
+                let edx = centerX + (e.worldX - player.worldX) / scale;
+                let edy = centerY + (e.worldY - player.worldY) / scale;
+                if (edx >= 0 && edx <= mapCanvas.width && edy >= 0 && edy <= mapCanvas.height) {
+                    mctx.beginPath(); mctx.arc(edx, edy, 3, 0, Math.PI * 2);
+                    mctx.fillStyle = '#ff0055'; mctx.fill();
+                }
+            });
+
+            // Kropka Ciebie (Głównego gracza) na środku mapy
+            mctx.beginPath();
+            mctx.arc(centerX, centerY, 7, 0, Math.PI * 2);
+            mctx.fillStyle = '#00ffcc';
+            mctx.fill();
+            mctx.strokeStyle = '#fff';
+            mctx.lineWidth = 2;
+            mctx.stroke();
+            
+            mctx.fillStyle = '#fff';
+            mctx.font = 'bold 12px sans-serif';
+            mctx.fillText("TY (Tutaj)", centerX + 10, centerY - 10);
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            if(worldMapIsOpen) drawFullWorldMap();
+            requestAnimationFrame(gameLoop);
+        }
     </script>
 </body>
 </html>
