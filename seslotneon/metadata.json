@@ -1,0 +1,7 @@
+{
+  "name": "Crypto Pixi RPG",
+  "description": "A sandbox multiplayer canvas RPG adventure with customizable administrative editor capabilities.",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
