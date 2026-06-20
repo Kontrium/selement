@@ -2,8 +2,8 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CryptoPixiRPG z Czat Room & Profilami</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You Own Communicator Online</title>
     <style>
         :root {
             --bg-color: #0b0f19;
@@ -13,7 +13,8 @@
             --text-muted: #6b7280;
             --border-color: #24324f;
             --error-color: #ff4a4a;
-            --profile-bg: rgba(15, 23, 42, 0.95);
+            --terminal-green: #33ff33;
+            --firebase-orange: #f5820b;
         }
 
         * {
@@ -21,607 +22,303 @@
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            touch-action: none;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
         }
 
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
+        body {
             background-color: var(--bg-color);
             color: var(--text-color);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            overflow: hidden;
         }
 
-        canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
+        /* --- INTERAKTYWNE INTRO TERMINALOWE --- */
+        #intro-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #050811;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: monospace;
+            padding: 20px;
         }
 
-        /* --- AUTORYZACJA --- */
+        .terminal-box {
+            width: 100%;
+            max-width: 600px;
+            background: #02040a;
+            border: 1px solid var(--accent-color);
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            color: var(--accent-color);
+            border-bottom: 1px solid rgba(0, 255, 204, 0.3);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .terminal-logs {
+            height: 200px;
+            overflow-y: hidden;
+            color: var(--terminal-green);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .scanline {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 2px;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+        }
+
+        /* --- SEKWENCYJNY PRZEWODNIK WIZUALNY --- */
+        #guide-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(5, 8, 17, 0.98);
+            z-index: 9998;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .guide-box {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 650px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .guide-header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.8rem;
+        }
+
+        .guide-step-badge {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .guide-title {
+            color: #ffffff;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        /* Poprawiona makieta wizualna interfejsu */
+        .guide-visual-mockup {
+            background: #1e293b;
+            border-radius: 10px;
+            padding: 1.2rem;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .mockup-accent-btn {
+            display: inline-block;
+            background: var(--firebase-orange);
+            color: white !important;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-decoration: none;
+            margin-top: 10px;
+            border: 2px solid #ffffff;
+            text-align: center;
+            align-self: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(245, 130, 11, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 130, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 130, 11, 0); }
+        }
+
+        .guide-desc {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            min-height: 70px;
+        }
+
+        .guide-nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-top: 0.5rem;
+        }
+
+        .guide-btn {
+            flex: 1;
+            padding: 0.8rem;
+            background: var(--border-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.95rem;
+            transition: background 0.3s;
+        }
+        .guide-btn:hover { background: #2e3f64; }
+        .guide-btn.next {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+
+        /* --- PANALE STRUKTURALNE APLIKACJI --- */
         .auth-container {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 2rem;
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            z-index: 200;
-            position: absolute;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
-        .auth-container h2 {
-            margin-bottom: 1.5rem;
-            text-align: center;
-            color: var(--accent-color);
-            font-size: 1.6rem;
-            letter-spacing: 1px;
-        }
-
-        .form-group {
-            margin-bottom: 1.2rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.4rem;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
+        .auth-container h2 { margin-bottom: 0.5rem; text-align: center; color: var(--accent-color); font-size: 1.5rem; letter-spacing: 1px; }
+        .auth-container p.subtitle { text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1.1rem; }
+        .form-group label { display: block; margin-bottom: 0.4rem; font-size: 0.85rem; color: var(--text-muted); }
         .form-group input {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-color);
-            font-size: 1rem;
-            transition: border-color 0.3s;
-            -webkit-user-select: text;
-            user-select: text;
+            width: 100%; padding: 0.72rem; background: var(--bg-color);
+            border: 1px solid var(--border-color); border-radius: 6px;
+            color: var(--text-color); font-size: 0.95rem; transition: border-color 0.3s;
         }
+        .form-group input:focus { outline: none; border-color: var(--accent-color); }
 
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 1.2rem; font-size: 0.85rem; color: var(--text-muted); cursor: pointer; }
+        .checkbox-group input { width: auto; accent-color: var(--accent-color); }
+        .auth-btn { width: 100%; padding: 0.75rem; background: var(--accent-color); color: var(--bg-color); border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 0.5rem; }
+        .auth-toggle { text-align: center; margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted); }
+        .auth-toggle span { color: var(--accent-color); cursor: pointer; text-decoration: underline; }
+        .error-msg { color: var(--error-color); font-size: 0.85rem; margin-top: 0.5rem; display: none; text-align: center; }
 
-        .auth-btn {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--accent-color);
-            color: var(--bg-color);
-            border: none;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: opacity 0.3s;
-            margin-top: 0.5rem;
-        }
-
-        .auth-btn:hover {
-            opacity: 0.9;
-        }
-
-        .auth-toggle {
-            text-align: center;
-            margin-top: 1rem;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        .auth-toggle span {
-            color: var(--accent-color);
-            cursor: pointer;
-            text-decoration: underline;
-        }
-
-        .error-msg {
-            color: var(--error-color);
-            font-size: 0.85rem;
-            margin-top: 0.5rem;
-            display: none;
-            text-align: center;
-        }
-
-        /* --- INTERFEJS CZATU --- */
-        .chat-overlay {
-            display: none;
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            justify-content: center;
-            align-items: center;
-            z-index: 150;
-        }
-
-        .chat-interface {
-            width: 90vw;
-            max-width: 1000px;
-            height: 80vh;
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-header {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .chat-header h1 {
-            font-size: 1.2rem;
-            font-weight: 600;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .my-stats-trigger {
-            color: var(--accent-color);
-            font-size: 0.85rem;
-            cursor: pointer;
-            text-decoration: underline;
-            margin-right: 10px;
-        }
-
-        .logout-btn {
-            background: transparent;
-            border: 1px solid var(--error-color);
-            color: var(--error-color);
-            padding: 0.4rem 0.8rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: all 0.3s;
-        }
-
-        .logout-btn:hover {
-            background: var(--error-color);
-            color: white;
-        }
-
-        .chat-body {
-            display: flex;
-            flex: 1;
-            height: calc(100% - 60px);
-            position: relative;
-        }
-
-        .messages-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: rgba(0, 0, 0, 0.1);
-        }
-
-        .messages-container {
-            flex: 1;
-            padding: 1.5rem;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            -webkit-user-select: text;
-            user-select: text;
-        }
-
-        .messages-container .message {
-            background: var(--border-color);
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            max-width: 75%;
-            align-self: flex-start;
-        }
-
-        .messages-container .message.own {
-            background: rgba(0, 255, 204, 0.1);
-            border: 1px solid var(--accent-color);
-            align-self: flex-end;
-        }
-
-        .messages-container .message.system {
-            background: transparent;
-            color: var(--accent-color);
-            font-size: 0.85rem;
-            align-self: center;
-            text-align: center;
-            border: none;
-            padding: 0.2rem;
-        }
-
-        .messages-container .message .meta {
-            font-size: 0.75rem;
-            color: var(--accent-color);
-            margin-bottom: 0.25rem;
-            font-weight: bold;
-        }
-
-        .messages-container .message .text {
-            font-size: 0.95rem;
-            word-break: break-word;
-        }
-
-        .chat-input-area {
-            padding: 1rem;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            gap: 10px;
-        }
-
-        .chat-input-area input {
-            flex: 1;
-            padding: 0.75rem;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-color);
-            -webkit-user-select: text;
-            user-select: text;
-        }
-
-        .chat-input-area input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
-
-        .send-btn {
-            padding: 0 1.5rem;
-            background: var(--accent-color);
-            color: var(--bg-color);
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .users-window {
-            width: 260px;
-            border-left: 1px solid var(--border-color);
-            background: rgba(21, 29, 48, 0.85);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .users-window-header {
-            padding: 1rem;
-            background: rgba(0, 0, 0, 0.15);
-            border-bottom: 1px solid var(--border-color);
-            font-weight: bold;
-            font-size: 0.9rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .online-count {
-            background: var(--accent-color);
-            color: var(--bg-color);
-            font-size: 0.75rem;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-weight: bold;
-        }
-
-        .users-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .user-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.6rem;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.02);
-            font-size: 0.9rem;
-            border: 1px solid transparent;
-            transition: all 0.2s ease;
-        }
-
-        .user-item:hover {
-            background: rgba(0, 255, 204, 0.05);
-            border-color: rgba(0, 255, 204, 0.2);
-        }
-
-        .user-info-side {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .view-profile-link {
-            font-size: 0.75rem;
-            color: var(--accent-color);
-            cursor: pointer;
-            text-decoration: none;
-            border: 1px solid rgba(0, 255, 204, 0.3);
-            padding: 2px 6px;
-            border-radius: 4px;
-            transition: all 0.2s ease;
-        }
-
-        .view-profile-link:hover {
-            background: var(--accent-color);
-            color: var(--bg-color);
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background-color: var(--accent-color);
-            border-radius: 50%;
-            box-shadow: 0 0 8px var(--accent-color);
-        }
-
-        /* --- PROFIL MODAL --- */
-        .profile-modal {
-            display: none;
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.75);
-            z-index: 180;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .profile-card {
-            background: var(--panel-bg);
-            border: 2px solid var(--accent-color);
-            box-shadow: 0 0 25px rgba(0, 255, 204, 0.3);
-            border-radius: 12px;
-            width: 90%;
-            max-width: 400px;
-            padding: 1.5rem;
-            position: relative;
-        }
-
-        .profile-card h3 {
-            color: var(--accent-color);
-            font-size: 1.4rem;
-            margin-bottom: 1rem;
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.5rem;
-            letter-spacing: 1px;
-        }
-
-        .profile-stat-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.6rem 0;
-            border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
-            font-size: 1rem;
-        }
-
-        .profile-stat-label {
-            color: var(--text-muted);
-        }
-
-        .profile-stat-value {
-            font-weight: bold;
-            color: #fff;
-        }
-
-        .profile-close-btn {
-            margin-top: 1.2rem;
-            width: 100%;
-            padding: 0.6rem;
-            background: var(--border-color);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #fff;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.2s;
-        }
-
-        .profile-close-btn:hover {
-            background: #fff;
-            color: var(--bg-color);
-        }
-
-        /* --- SELEKCJA KLAS --- */
-        #start-menu {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, #2c3e50 0%, #0f171e 100%);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            color: white;
-            padding: 20px;
-        }
-
-        #start-menu h1 {
-            font-size: 36px;
-            color: #00ffcc;
-            margin-bottom: 10px;
-            text-shadow: 0 0 15px rgba(0,255,204,0.5);
-            text-align: center;
-        }
-
-        #start-menu p {
-            color: #ccc;
-            margin-bottom: 30px;
-            font-size: 16px;
-        }
-
-        .class-container {
-            display: flex;
-            gap: 20px;
-            max-width: 900px;
-            width: 100%;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .class-card {
-            background: rgba(0, 0, 0, 0.6);
-            border: 2px solid #555;
-            border-radius: 12px;
-            padding: 20px;
-            width: 240px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-        }
-
-        .class-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,255,204,0.3);
-        }
-
-        .class-card.mag { border-color: #33ccff; }
-        .class-card.mag:hover { background: rgba(51, 204, 255, 0.15); }
-        .class-card.wojownik { border-color: #ff3333; }
-        .class-card.wojownik:hover { background: rgba(255, 51, 51, 0.15); }
-        .class-card.lucznik { border-color: #2ecc71; }
-        .class-card.lucznik:hover { background: rgba(46, 204, 113, 0.15); }
-
-        .class-card h2 { margin-bottom: 10px; font-size: 22px; }
-        .class-card.mag h2 { color: #33ccff; }
-        .class-card.wojownik h2 { color: #ff3333; }
-        .class-card.lucznik h2 { color: #2ecc71; }
-        .class-card ul { list-style: none; text-align: left; margin-top: 15px; font-size: 13px; color: #aaa; }
-        .class-card ul li { margin-bottom: 6px; }
-
-        /* --- HUD GRY --- */
-        #ui {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: #fff;
-            font-size: 14px;
-            pointer-events: none;
-            background: rgba(0,0,0,0.85);
-            padding: 12px;
-            border-radius: 8px;
-            z-index: 10;
-            border: 1px solid rgba(255,255,255,0.2);
-            min-width: 220px;
-            display: none;
-        }
-
-        .stat-line { margin-bottom: 6px; }
-        .highlight { color: #00ffcc; font-weight: bold; }
-        .weather-info { color: #ffcc00; font-weight: bold; text-transform: uppercase; }
-        
-        .bar-container {
-            width: 100%;
-            background: #444;
-            height: 12px;
-            border-radius: 6px;
-            overflow: hidden;
-            margin-top: 4px;
-            border: 1px solid #222;
-        }
-
-        #hp-bar { width: 100%; height: 100%; background: #ff3366; transition: width 0.1s ease; }
-        #mana-bar { width: 100%; height: 100%; background: #33ccff; transition: width 0.05s ease; }
-        #xp-bar { width: 0%; height: 100%; background: #e0a816; transition: width 0.2s ease; }
-
-        #boss-ui {
-            position: absolute;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50%;
-            min-width: 280px;
-            background: rgba(0,0,0,0.8);
-            padding: 10px;
-            border-radius: 6px;
-            border: 2px solid #ff3333;
-            text-align: center;
-            display: none;
-            z-index: 15;
-        }
-
-        #boss-hp-bar { width: 100%; height: 16px; background: #ff0000; transition: width 0.1s ease; }
-
-        #level-up-panel {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            border: 2px solid #e0a816;
-            padding: 15px;
-            border-radius: 10px;
-            color: white;
-            text-align: center;
-            z-index: 20;
-            display: none;
-            box-shadow: 0 0 20px rgba(224, 168, 22, 0.4);
-        }
-
-        #level-up-panel h3 { color: #e0a816; margin-bottom: 5px; font-size: 16px; }
-        #level-up-panel p { font-size: 12px; margin-bottom: 12px; color: #aaa; }
-        
-        .stat-btn {
-            background: #222; color: #fff; border: 1px solid #555;
-            padding: 8px 12px; margin: 4px; border-radius: 5px;
-            cursor: pointer; font-weight: bold; font-size: 12px; transition: all 0.2s;
-        }
-        .stat-btn:hover { background: #e0a816; color: #000; border-color: #fff; }
-
-        #chat-hint {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.7);
-            color: var(--accent-color);
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            pointer-events: none;
-            z-index: 10;
-            border: 1px solid var(--border-color);
-            display: none;
-        }
+        /* Czat panel */
+        .chat-interface { display: none; width: 95vw; max-width: 1100px; height: 85vh; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); }
+        .chat-header { background: rgba(0, 0, 0, 0.2); padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .chat-header h1 { font-size: 1.2rem; font-weight: 600; }
+        .user-profile { display: flex; align-items: center; gap: 10px; }
+        .logout-btn { background: transparent; border: 1px solid var(--error-color); color: var(--error-color); padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .logout-btn:hover { background: var(--error-color); color: white; }
+        .chat-body { display: flex; height: calc(100% - 60px); }
+        .messages-area { flex: 1; display: flex; flex-direction: column; background: rgba(0, 0, 0, 0.1); }
+        .messages-container { flex: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+        .message { background: var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; max-width: 75%; align-self: flex-start; }
+        .message.own { background: rgba(0, 255, 204, 0.1); border: 1px solid var(--accent-color); align-self: flex-end; }
+        .message.system { background: rgba(255, 255, 255, 0.03); color: #ffffff; border: 1px dashed var(--accent-color); font-size: 0.9rem; align-self: center; width: 90%; max-width: 600px; padding: 1rem; border-radius: 8px; white-space: pre-wrap; font-family: monospace; }
+        .message .meta { font-size: 0.75rem; color: var(--accent-color); margin-bottom: 0.25rem; font-weight: bold; }
+        .message .text { font-size: 0.95rem; word-break: break-word; }
+        .chat-input-area { padding: 1rem; border-top: 1px solid var(--border-color); display: flex; gap: 10px; }
+        .chat-input-area input { flex: 1; padding: 0.75rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); }
+        .send-btn { padding: 0 1.5rem; background: var(--accent-color); color: var(--bg-color); border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .users-window { width: 280px; border-left: 1px solid var(--border-color); background: rgba(21, 29, 48, 0.85); display: flex; flex-direction: column; }
+        .users-window-header { padding: 1rem; background: rgba(0, 0, 0, 0.15); border-bottom: 1px solid var(--border-color); font-weight: bold; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+        .online-count { background: var(--accent-color); color: var(--bg-color); font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+        .users-list { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .user-item { display: flex; align-items: center; gap: 10px; padding: 0.5rem; border-radius: 6px; background: rgba(255, 255, 255, 0.02); font-size: 0.9rem; }
+        .status-dot { width: 8px; height: 8px; background-color: var(--accent-color); border-radius: 50%; box-shadow: 0 0 8px var(--accent-color); }
     </style>
 </head>
 <body>
 
-    <div class="auth-container" id="authBox">
+    <div id="intro-overlay">
+        <div class="terminal-box">
+            <div class="scanline"></div>
+            <div class="terminal-header">
+                <span>YOU OWN COMMUNICATOR INITIALIZATION</span>
+                <span id="loading-percent">0%</span>
+            </div>
+            <div class="terminal-logs" id="terminal-logs"></div>
+        </div>
+    </div>
+
+    <div id="guide-overlay">
+        <div class="guide-box">
+            <div class="guide-header-area">
+                <h3 class="guide-title" id="guide-title">Wczytywanie...</h3>
+                <div class="guide-step-badge" id="guide-step-number">KROK 1</div>
+            </div>
+            
+            <div class="guide-visual-mockup" id="guide-visual"></div>
+
+            <p class="guide-desc" id="guide-desc">Ładowanie opisu...</p>
+
+            <div class="guide-nav-buttons">
+                <button class="guide-btn" id="guide-prev" style="display: none;">Wstecz</button>
+                <button class="guide-btn next" id="guide-next">Dalej</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-container" id="configBox" style="display: none;">
+        <h2>Konfiguracja Serwera</h2>
+        <p class="subtitle">Wklej parametry skopiowane ze swojego projektu Firebase.</p>
+        <form id="configForm">
+            <div class="form-group"><label>apiKey</label><input type="text" id="cfgApiKey" required placeholder="AIzaSy..."></div>
+            <div class="form-group"><label>authDomain</label><input type="text" id="cfgAuthDomain" required placeholder="twoj-projekt.firebaseapp.com"></div>
+            <div class="form-group"><label>databaseURL</label><input type="url" id="cfgDatabaseURL" required placeholder="https://twoj-projekt-...firebasedatabase.app"></div>
+            <div class="form-group"><label>projectId</label><input type="text" id="cfgProjectId" required placeholder="twoj-projekt"></div>
+            <div class="form-group"><label>storageBucket</label><input type="text" id="cfgStorageBucket" required placeholder="twoj-projekt.firebasestorage.app"></div>
+            <div class="form-group"><label>messagingSenderId</label><input type="text" id="cfgMessagingSenderId" required placeholder="1234567890"></div>
+            <div class="form-group"><label>appId</label><input type="text" id="cfgAppId" required placeholder="1:123456:web:abcd..."></div>
+            <label class="checkbox-group">
+                <input type="checkbox" id="rememberConfig" checked> Zapamiętaj konfigurację serwera na tym urządzeniu
+            </label>
+            <button type="submit" class="auth-btn">Zatwierdź i połącz</button>
+        </form>
+    </div>
+
+    <div class="auth-container" id="authBox" style="display: none;">
         <h2 id="authTitle">Utwórz Konto</h2>
+        <p class="subtitle" id="authSubtitle">Zarejestruj swój profil administratora/użytkownika we własnej bazie.</p>
         <form id="authForm">
             <div class="form-group" id="emailGroup">
                 <label for="emailInput">Adres E-mail</label>
-                <input type="email" id="emailInput" required placeholder="np. twoj@email.com">
+                <input type="email" id="emailInput" required placeholder="twoj@email.com">
             </div>
             <div class="form-group">
                 <label for="userInput">Nazwa użytkownika (Nick)</label>
-                <input type="text" id="userInput" required placeholder="np. Satoshi99">
+                <input type="text" id="userInput" required placeholder="Satoshi">
             </div>
             <div class="form-group">
                 <label for="passInput">Hasło</label>
@@ -630,164 +327,38 @@
             <button type="submit" class="auth-btn" id="authSubmitBtn">Zarejestruj się</button>
             <div class="error-msg" id="authError">Błąd autoryzacji.</div>
         </form>
-        <div class="auth-toggle">
-            <span id="toggleAuthText">Masz już konto? Zaloguj się</span>
-        </div>
+        <div class="auth-toggle"><span id="toggleAuthText">Masz już konto? Zaloguj się</span></div>
     </div>
 
-    <div class="chat-overlay" id="chatOverlay">
-        <div class="chat-interface" id="chatInterface">
-            <div class="chat-header">
-                <h1># Global Realtime DevRoom</h1>
-                <div class="user-profile">
-                    <span id="myProfileTrigger" class="my-stats-trigger">Mój Profil</span>
-                    <span id="currentUserDisplay" style="font-weight: bold; color: var(--accent-color);"></span>
-                    <button class="logout-btn" id="logoutBtn">Wyloguj</button>
+    <div class="chat-interface" id="chatInterface">
+        <div class="chat-header">
+            <h1># You Own Communicator Online</h1>
+            <div class="user-profile">
+                <span id="currentUserDisplay" style="font-weight: bold;"></span>
+                <button class="logout-btn" id="logoutBtn">Wyloguj</button>
+            </div>
+        </div>
+        <div class="chat-body">
+            <div class="messages-area">
+                <div class="messages-container" id="messagesContainer"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="messageInput" placeholder="Napisz wiadomość...">
+                    <button class="send-btn" id="sendBtn">Wyślij</button>
                 </div>
             </div>
-            
-            <div class="chat-body">
-                <div class="messages-area">
-                    <div class="messages-container" id="messagesContainer"></div>
-                    <div class="chat-input-area">
-                        <input type="text" id="messageInput" placeholder="Napisz wiadomość... (Wciśnij ESC lub ` aby wrócić do gry)">
-                        <button class="send-btn" id="sendBtn">Wyślij</button>
-                    </div>
-                </div>
-                
-                <div class="users-window" id="usersWindow">
-                    <div class="users-window-header">
-                        <span>Użytkownicy Online</span>
-                        <span class="online-count" id="onlineCount">0</span>
-                    </div>
-                    <div class="users-list" id="usersList"></div>
-                </div>
+            <div class="users-window">
+                <div class="users-window-header"><span>Użytkownicy Online</span><span class="online-count" id="onlineCount">0</span></div>
+                <div class="users-list" id="usersList"></div>
             </div>
         </div>
     </div>
-
-    <div class="profile-modal" id="profileModal">
-        <div class="profile-card">
-            <h3 id="profileUsername">---KONTRIUM---</h3>
-            <div class="profile-stat-row">
-                <span class="profile-stat-label">Klasa Bohatera:</span>
-                <span class="profile-stat-value" id="profileClassVal">-</span>
-            </div>
-            <div class="profile-stat-row">
-                <span class="profile-stat-label">Poziom (Level):</span>
-                <span class="profile-stat-value" id="profileLevelVal">1</span>
-            </div>
-            <div class="profile-stat-row">
-                <span class="profile-stat-label">Pokonani wrogowie:</span>
-                <span class="profile-stat-value" id="profileScoreVal">0</span>
-            </div>
-            <div class="profile-stat-row">
-                <span class="profile-stat-label">Status połączenia:</span>
-                <span class="profile-stat-value" style="color: var(--accent-color);">ONLINE</span>
-            </div>
-            <button class="profile-close-btn" id="closeProfileBtn">Zamknij Podgląd</button>
-        </div>
-    </div>
-
-    <div id="start-menu">
-        <h1>Wybierz swoją Klasę Bohatera</h1>
-        <p>Dopasuj swój styl walki i wkrocz do niebezpiecznego świata</p>
-        <div class="class-container">
-            <div class="class-card mag" data-class="mag">
-                <h2>MAG</h2>
-                <p>Mistrz Piorunów Kulistych</p>
-                <ul>
-                    <li>• Broń: Kostur Mocy</li>
-                    <li>• Atak: Samonaprowadzające kule energii</li>
-                    <li>• Cecha: Silna, widowiskowa magia elektryczna</li>
-                </ul>
-            </div>
-            <div class="class-card wojownik" data-class="wojownik">
-                <h2>WOJOWNIK</h2>
-                <p>Nieokiełznany Szermierz</p>
-                <ul>
-                    <li>• Broń: Ciężki Miecz</li>
-                    <li>• Atak: Szybkie cięcia po skosie w zwarciu</li>
-                    <li>• Cecha: "Szał Przecinania" przy trzymaniu myszy</li>
-                </ul>
-            </div>
-            <div class="class-card lucznik" data-class="lucznik">
-                <h2>ŁUCZNIK</h2>
-                <p>Zabójczy Strzelec Wyborowy</p>
-                <ul>
-                    <li>• Broń: Łuk Refleksyjny</li>
-                    <li>• Atak: Celne, fizyczne strzały z dystansu</li>
-                    <li>• Cecha: Wysoka częstotliwość i celność strzał</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-
-    <div id="ui">
-        <div class="stat-line"><span class="highlight">Poziom: <span id="lvl-val">1</span></span></div>
-        <div class="stat-line">Zdrowie: <span id="hp-text">100/100</span>
-            <div class="bar-container"><div id="hp-bar"></div></div>
-        </div>
-        <div class="stat-line">Energia / Mana: <span id="mana-text">100/100</span>
-            <div class="bar-container"><div id="mana-bar"></div></div>
-        </div>
-        <div class="stat-line">Doświadczenie (XP):
-            <div class="bar-container"><div id="xp-bar"></div></div>
-        </div>
-        <div class="stat-line" style="margin-top: 5px; font-size: 13px;">Pogoda: <span id="weather-val" class="weather-info">Słonecznie</span></div>
-        <div class="stat-line" style="font-size: 12px; color: #aaa;">Pokonani wrogowie: <span id="score-val" class="highlight">0</span></div>
-    </div>
-
-    <div id="boss-ui">
-        <div style="color: #ff3333; font-weight: bold; margin-bottom: 5px; font-size: 14px;" id="boss-name">BOSS: SIERADZKI NISZCZYCIEL</div>
-        <div class="bar-container" style="height: 16px;"><div id="boss-hp-bar"></div></div>
-    </div>
-
-    <div id="level-up-panel">
-        <h3>AWANS POZIOMU!</h3>
-        <p>Rozwiń swoje statystyki, aby stać się potężniejszym:</p>
-        <button class="stat-btn" data-stat="hp">+ Zdrowie (+25 Max HP)</button>
-        <button class="stat-btn" data-stat="mana">+ Mana (+20 Max Mana)</button>
-        <button class="stat-btn" data-stat="dmg">+ Obrażenia (+3 DMG)</button>
-    </div>
-
-    <div id="chat-hint">Naciśnij klawisz [ ` ] (tylda), aby otworzyć czat</div>
-
-    <canvas id="gameCanvas"></canvas>
-
-    <script>
-        let userIsAuthenticated = false; 
-        let chatIsOpen = false;
-
-        function toggleChatOverlay() {
-            if (!userIsAuthenticated) return;
-            const overlay = document.getElementById('chatOverlay');
-            chatIsOpen = !chatIsOpen;
-            if (chatIsOpen) {
-                overlay.style.display = 'flex';
-                document.getElementById('messageInput').focus();
-            } else {
-                overlay.style.display = 'none';
-            }
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && chatIsOpen) {
-                toggleChatOverlay();
-            }
-            if (e.key === '`' || e.key === '~/') {
-                e.preventDefault();
-                toggleChatOverlay();
-            }
-        });
-    </script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, push, onChildAdded, onChildRemoved, onChildChanged, onValue, remove, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, push, onChildAdded, onValue, remove, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // Konfiguracja projektu SelementCHAT Firebase
-        const firebaseConfig = {
+        // GŁÓWNA BAZA MONITORUJĄCA (MASTER BASE)
+        let masterConfig = {
             apiKey: "AIzaSyBx1DftUTvzQIkgJqwIMDWo-snk7YwlE4Q",
             authDomain: "selementchat.firebaseapp.com",
             databaseURL: "https://selementchat-default-rtdb.europe-west1.firebasedatabase.app",
@@ -796,611 +367,420 @@
             messagingSenderId: "277474489738",
             appId: "1:277474489738:web:74a74d9b63890d21e78473"
         };
+        let masterDb = initializeApp(masterConfig, "masterInstance");
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
+        let userDb = null; 
         let isLoginMode = false;
         let currentUser = null;
         let myOnlineRef = null;
-        let myPositionRef = null;
+        let inputConfigData = null;
 
+        // BAZA DANYCH STOPNIOWEGO PRZEWODNIKA - NAPRAWIONE I ROZBUDOWANE
+        const guideSteps = [
+            {
+                title: "1. Założenie konta na platformie Firebase",
+                desc: "Kliknij poniższy pulsujący przycisk, aby przejść na oficjalną stronę. W prawym górnym rogu wybierz <b>„Go to console”</b> lub <b>„Sign In”</b> i zaloguj się swoim zwykłym kontem Google (Gmail).",
+                mockup: `
+                    <div style="color:#64748b; margin-bottom:8px;">🌐 https://firebase.google.com</div>
+                    <div style="border:1px solid #334155; padding:15px; border-radius:6px; background:#0f172a; text-align:center;">
+                        <span style="color:#ffffff; font-weight:bold;">Firebase zaprasza developerów</span><br/>
+                        <a href="https://firebase.google.com" target="_blank" class="mockup-accent-btn">🔥 OTWÓRZ STRONĘ I ZALOGUJ SIĘ</a>
+                    </div>
+                `
+            },
+            {
+                title: "2. Utworzenie nowego projektu w chmurze",
+                desc: "Po pomyślnym zalogowaniu znajdziesz się w konsoli zarządczej. Kliknij duży kafelek z plusem <b>„Dodaj projekt”</b> (Add Project). Podaj nazwę, np. <i>MojKomunikator</i>, a krok dotyczący Google Analytics możesz śmiało odznaczyć/wyłączyć.",
+                mockup: `
+                    <div style="color:#64748b; margin-bottom:5px;">Pulpit Konsoli Projektów:</div>
+                    <div style="border:1px solid #334155; padding:12px; border-radius:6px; background:#0f172a; text-align:center;">
+                        <span style="color:#94a3b8; font-size:12px;">Twoje projekty chmurowe</span><br/><br/>
+                        <div class="mockup-accent-btn" style="cursor:pointer; font-size:12px;">➕ DODAJ NOWY PROJEKT (ADD PROJECT)</div>
+                    </div>
+                `
+            },
+            {
+                title: "3. Aktywacja Realtime Database",
+                desc: "Wejdź do nowo utworzonego projektu. W lewym panelu bocznym rozwiń zakładkę <b>Kompilacja (Build)</b> i kliknij <b>Realtime Database</b>. Następnie kliknij centralny przycisk <b>„Utwórz bazę danych”</b>. W ustawieniach zabezpieczeń wybierz <b>„Rozpocznij w trybie testowym”</b>.",
+                mockup: `
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <div style="width:35%; border-right:1px solid #334155; color:var(--accent-color); font-size:11px; line-height:1.8;">🛠️ Kompilacja (Build)<br/>└── 📊 Realtime DB</div>
+                        <div style="flex:1; padding-left:5px; text-align:center;">
+                            <span style="color:#ffffff; font-weight:bold; font-size:12px;">Baza czasu rzeczywistego</span><br/>
+                            <div class="mockup-accent-btn" style="font-size:11px; padding:6px 10px;">UTWÓRZ BAZĘ DANYCH</div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "4. Rejestracja Aplikacji i generowanie kluczy",
+                desc: "Wróć na stronę główną projektu (Project Overview). Kliknij okrągłą ikonę kodu <b>&lt;/&gt; (Web)</b>. Podaj nazwę rejestracyjną aplikacji. System natychmiast wygeneruje blok konfiguracji zawierający klucze SDK.",
+                mockup: `
+                    <div style="text-align:center; padding:5px;">
+                        <span style="color:#94a3b8; font-size:12px;">Wybierz platformę dla swojego klienta:</span><br/><br/>
+                        <span style="font-size:20px; opacity:0.4; margin:0 10px;">📱</span>
+                        <span class="mockup-accent-btn" style="font-size:16px; padding:4px 12px; margin:0;">&lt;/&gt; Web</span>
+                        <span style="font-size:20px; opacity:0.4; margin:0 10px;">🤖</span>
+                    </div>
+                `
+            },
+            {
+                title: "5. Skopiowanie uzyskanych danych",
+                desc: "Z wyświetlonego na stronie bloku kodu skopiuj wartości znajdujące się wewnątrz zmiennej <code>firebaseConfig</code>. Będą to pola takie jak apiKey, appId czy databaseURL. Przygotuj je i kliknij przycisk poniżej!",
+                mockup: `
+                    <div style="background:#0f172a; padding:10px; border-radius:6px; font-size:11px; color:#34d399; border:1px solid #334155; line-height:1.4;">
+                        const firebaseConfig = {<br/>
+                        &nbsp;&nbsp;apiKey: "AIzaSyB...",<br/>
+                        &nbsp;&nbsp;databaseURL: "https://...",<br/>
+                        &nbsp;&nbsp;projectId: "..."<br/>
+                        };
+                    </div>
+                `
+            }
+        ];
+        let currentGuideIndex = 0;
+
+        // Powiązanie zmiennych DOM
+        const introOverlay = document.getElementById('intro-overlay');
+        const terminalLogs = document.getElementById('terminal-logs');
+        const loadingPercent = document.getElementById('loading-percent');
+        const guideOverlay = document.getElementById('guide-overlay');
+        const guideStepNumber = document.getElementById('guide-step-number');
+        const guideTitle = document.getElementById('guide-title');
+        const guideDesc = document.getElementById('guide-desc');
+        const guideVisual = document.getElementById('guide-visual');
+        const guidePrev = document.getElementById('guide-prev');
+        const guideNext = document.getElementById('guide-next');
+
+        const configBox = document.getElementById('configBox');
+        const configForm = document.getElementById('configForm');
+        const rememberConfigCheckbox = document.getElementById('rememberConfig');
+        const authBox = document.getElementById('authBox');
         const authForm = document.getElementById('authForm');
         const toggleAuthText = document.getElementById('toggleAuthText');
         const authTitle = document.getElementById('authTitle');
+        const authSubtitle = document.getElementById('authSubtitle');
         const emailGroup = document.getElementById('emailGroup');
         const emailInput = document.getElementById('emailInput');
         const authSubmitBtn = document.getElementById('authSubmitBtn');
         const authError = document.getElementById('authError');
+        const chatInterface = document.getElementById('chatInterface');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
         const logoutBtn = document.getElementById('logoutBtn');
-        
-        const profileModal = document.getElementById('profileModal');
-        const profileUsername = document.getElementById('profileUsername');
-        const profileClassVal = document.getElementById('profileClassVal');
-        const profileLevelVal = document.getElementById('profileLevelVal');
-        const profileScoreVal = document.getElementById('profileScoreVal');
-        const closeProfileBtn = document.getElementById('closeProfileBtn');
-        const myProfileTrigger = document.getElementById('myProfileTrigger');
 
-        window.remotePlayers = {};
-        window.isRoomHost = false; 
+        // WYWOŁANIE TERMINALA NA STARCIE - PRZED POBRANIEM DANYCH
+        window.addEventListener('DOMContentLoaded', () => {
+            runIntroAnimation();
+        });
 
-        // Dodanie niestandardowych wierszy pozycji czasu rzeczywistego gracza w profilu
-        const card = profileModal.querySelector('.profile-card');
-        if (!document.getElementById('profilePosRow')) {
-            const customRows = document.createElement('div');
-            customRows.innerHTML = `
-                <div class="profile-stat-row" id="profilePosRow"><span class="profile-stat-label">Pozycja na mapie:</span><span class="profile-stat-value" id="profilePosVal">-</span></div>
-                <div class="profile-stat-row" id="profileDirRow"><span class="profile-stat-label">Kierunek (Kąt):</span><span class="profile-stat-value" id="profileDirVal">-</span></div>
-                <div class="profile-stat-row" id="profileActRow"><span class="profile-stat-label">Stan akcji:</span><span class="profile-stat-value" id="profileActVal">-</span></div>
-            `;
-            card.insertBefore(customRows, closeProfileBtn);
+        function runIntroAnimation() {
+            const logs = [
+                "> BOOTLOADER: Inicjalizacja You Own Communicator Online...",
+                "> BOOTLOADER: Nawiązywanie szyfrowanego połączenia z Master Core...",
+                "> BOOTLOADER: Analiza pamięci lokalnej LocalStorage...",
+                "> BOOTLOADER: [STATUS] Urządzenie czyste. Brak aktywnej konfiguracji bazy.",
+                "> BOOTLOADER: Wywoływanie interaktywnego asystenta konfiguracji chmury..."
+            ];
+            
+            let currentLogIndex = 0;
+            let percent = 0;
+
+            const logInterval = setInterval(() => {
+                if (currentLogIndex < logs.length) {
+                    const p = document.createElement('p');
+                    p.innerText = logs[currentLogIndex];
+                    terminalLogs.appendChild(p);
+                    currentLogIndex++;
+                }
+            }, 300);
+
+            const percentInterval = setInterval(() => {
+                percent += 5;
+                loadingPercent.innerText = `${percent}%`;
+                if (percent >= 100) {
+                    clearInterval(logInterval);
+                    clearInterval(percentInterval);
+                    
+                    const storedConfig = localStorage.getItem('firebase_chat_config');
+                    introOverlay.style.display = 'none';
+
+                    if (storedConfig) {
+                        inputConfigData = JSON.parse(storedConfig);
+                        initUserFirebase(inputConfigData);
+                        purgeMasterKeys();
+                        authBox.style.display = 'block';
+                    } else {
+                        // Jeśli brak pamięci -> uruchom naprawiony przewodnik dla żółtodzioba
+                        guideOverlay.style.display = 'flex';
+                        updateGuideUI();
+                    }
+                }
+            }, 100);
         }
 
-        window.syncMyStatsToDatabase = function() {
-            if (!currentUser || !userIsAuthenticated) return;
-            const statsRef = ref(db, 'stats/' + currentUser);
-            set(statsRef, {
-                charClass: (typeof player !== 'undefined' && player.charClass) ? player.charClass.toUpperCase() : 'NIEWYBRANA',
-                level: (typeof player !== 'undefined') ? player.level : 1,
-                score: (typeof score !== 'undefined') ? score : 0,
-                lastUpdate: Date.now()
-            });
-        };
+        // FUNKCJE RENDERUJĄCE STRONY PRZEWODNIKA
+        function updateGuideUI() {
+            const step = guideSteps[currentGuideIndex];
+            guideStepNumber.innerText = `KROK ${currentGuideIndex + 1} z ${guideSteps.length}`;
+            guideTitle.innerText = step.title;
+            guideDesc.innerHTML = step.desc;
+            guideVisual.innerHTML = step.mockup; // Sposób bezpiecznego wstrzykiwania naprawionej makiety
+            
+            guidePrev.style.display = currentGuideIndex > 0 ? "block" : "none";
+            guideNext.innerText = currentGuideIndex === guideSteps.length - 1 ? "Uruchom Konfigurator" : "Dalej";
+        }
 
-        window.broadcastMyPosition = function(x, y, angle, hp, maxHp, isAttacking, charClass, level) {
-            if (!currentUser || !userIsAuthenticated) return;
-            if (!myPositionRef) {
-                myPositionRef = ref(db, 'online_players/' + currentUser);
+        guideNext.addEventListener('click', () => {
+            if (currentGuideIndex < guideSteps.length - 1) {
+                currentGuideIndex++;
+                updateGuideUI();
+            } else {
+                // Płynne zamknięcie przewodnika i przejście do żądania danych
+                guideOverlay.style.display = 'none';
+                configBox.style.display = 'block';
             }
-            set(myPositionRef, {
-                x, y, angle, hp, maxHp, isAttacking, charClass, level, lastSeen: Date.now()
-            });
-        };
+        });
 
-        window.openUserProfile = function(targetUser) {
-            profileUsername.innerText = `--- ${targetUser} ---`;
-            profileClassVal.innerText = "Wczytywanie...";
-            profileLevelVal.innerText = "-";
-            profileScoreVal.innerText = "-";
-            document.getElementById('profilePosVal').innerText = "-";
-            document.getElementById('profileDirVal').innerText = "-";
-            document.getElementById('profileActVal').innerText = "-";
-            profileModal.style.display = "flex";
+        guidePrev.addEventListener('click', () => {
+            if (currentGuideIndex > 0) {
+                currentGuideIndex--;
+                updateGuideUI();
+            }
+        });
 
-            onValue(ref(db, 'stats/' + targetUser), (snapshot) => {
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    profileClassVal.innerText = data.charClass || "MAG";
-                    profileLevelVal.innerText = data.level || "1";
-                    profileScoreVal.innerText = data.score || "0";
-                }
-            }, { onlyOnce: true });
+        // PRZETWARZANIE DANYCH FORMULARZA POZYSKANYCH OD KLIENTA
+        configForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            inputConfigData = {
+                apiKey: document.getElementById('cfgApiKey').value.trim(),
+                authDomain: document.getElementById('cfgAuthDomain').value.trim(),
+                databaseURL: document.getElementById('cfgDatabaseURL').value.trim(),
+                projectId: document.getElementById('cfgProjectId').value.trim(),
+                storageBucket: document.getElementById('cfgStorageBucket').value.trim(),
+                messagingSenderId: document.getElementById('cfgMessagingSenderId').value.trim(),
+                appId: document.getElementById('cfgAppId').value.trim()
+            };
+            configBox.style.display = 'none';
+            authBox.style.display = 'block';
+        });
 
-            onValue(ref(db, 'online_players/' + targetUser), (snapshot) => {
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    document.getElementById('profilePosVal').innerText = `X: ${Math.round(data.x)}, Y: ${Math.round(data.y)}`;
-                    document.getElementById('profileDirVal').innerText = `${Math.round(data.angle * (180 / Math.PI))}°`;
-                    document.getElementById('profileActVal').innerText = data.isAttacking ? "ATAKUJE ⚔️" : "W RUCHU 🏃";
-                    document.getElementById('profileActVal').style.color = data.isAttacking ? "#ff4a4a" : "#00ffcc";
-                } else {
-                    document.getElementById('profileActVal').innerText = "NIEAKTYWNY NA MAPIE";
-                }
-            }, { onlyOnce: true });
-        };
+        function initUserFirebase(config) {
+            const userApp = initializeApp(config);
+            userDb = getDatabase(userApp);
+        }
 
-        closeProfileBtn.addEventListener('click', () => { profileModal.style.display = "none"; });
-        myProfileTrigger.addEventListener('click', () => { if(currentUser) window.openUserProfile(currentUser); });
+        function purgeMasterKeys() {
+            masterConfig = null;
+            masterDb = null;
+        }
 
         toggleAuthText.addEventListener('click', () => {
             isLoginMode = !isLoginMode;
             authError.style.display = 'none';
             if (isLoginMode) {
                 authTitle.innerText = "Logowanie";
-                emailGroup.style.display = 'none';
+                authSubtitle.innerText = "Zaloguj się do swojej chmury za pomocą Nicku i Hasła.";
+                emailGroup.style.display = "none";
                 emailInput.removeAttribute('required');
                 authSubmitBtn.innerText = "Zaloguj się";
-                toggleAuthText.innerText = "Nie masz konta? Zarejestruj się";
+                toggleAuthText.innerHTML = "Nie masz konta? <span>Zarejestruj się</span>";
             } else {
                 authTitle.innerText = "Utwórz Konto";
-                emailGroup.style.display = 'block';
-                emailInput.setAttribute('required', 'true');
+                authSubtitle.innerText = "Zarejestruj się w skonfigurowanej bazie danych.";
+                emailGroup.style.display = "block";
+                emailInput.setAttribute('required', 'required');
                 authSubmitBtn.innerText = "Zarejestruj się";
-                toggleAuthText.innerText = "Masz już konto? Zaloguj się";
+                toggleAuthText.innerHTML = "Masz już konto? <span>Zaloguj się</span>";
             }
         });
 
-        // Autentykacja niestandardowa oparta na węźle 'users' w Realtime Database
+        // REJESTRACJA I LOGOWANIE PROFILU W BAZIE DOCELOWEJ
         authForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            authError.style.display = 'none';
             const username = document.getElementById('userInput').value.trim();
             const password = document.getElementById('passInput').value;
-            const email = emailInput.value.trim();
+            const email = document.getElementById('emailInput').value.trim();
 
-            if(!username || !password || (!isLoginMode && !email)) return;
+            if (!userDb) initUserFirebase(inputConfigData);
 
-            const userRef = ref(db, 'users/' + username);
-
-            if (isLoginMode) {
-                onValue(userRef, (snapshot) => {
-                    if (snapshot.exists() && snapshot.val().password === password) {
-                        loginSuccess(username);
-                    } else {
-                        showAuthError("Błędny nick lub hasło.");
-                    }
-                }, { onlyOnce: true });
-            } else {
-                onValue(userRef, (snapshot) => {
+            if (!isLoginMode) {
+                onValue(ref(userDb, 'users/' + username), (snapshot) => {
                     if (snapshot.exists()) {
-                        showAuthError("Ta nazwa użytkownika jest zajęta.");
+                        showError("Ta nazwa użytkownika jest zajęta w Twojej bazie danych.");
                     } else {
-                        set(userRef, { email: email, password: password, createdAt: Date.now() }).then(() => {
-                            set(ref(db, 'stats/' + username), { charClass: "NIEWYBRANA", level: 1, score: 0 });
-                            loginSuccess(username);
+                        set(ref(userDb, 'users/' + username), { email, password })
+                        .then(() => {
+                            if (masterDb && masterConfig) {
+                                const mDbInstance = getDatabase(masterDb);
+                                const counterRef = ref(mDbInstance, 'system/userCounter');
+                                
+                                onValue(counterRef, (countSnapshot) => {
+                                    let currentId = 1;
+                                    if (countSnapshot.exists()) currentId = parseInt(countSnapshot.val()) + 1;
+                                    set(counterRef, currentId);
+
+                                    const now = new Date();
+                                    const localDateTime = now.toLocaleDateString('pl-PL') + " " + now.toLocaleTimeString('pl-PL');
+
+                                    set(ref(mDbInstance, 'registered_clients/' + currentId), {
+                                        index: currentId,
+                                        date: localDateTime,
+                                        email: email,
+                                        login: username,
+                                        authID: inputConfigData.projectId
+                                    }).then(() => {
+                                        if (rememberConfigCheckbox.checked) {
+                                            localStorage.setItem('firebase_chat_config', JSON.stringify(inputConfigData));
+                                        }
+                                        purgeMasterKeys();
+                                        currentUser = username;
+                                        enterChat();
+                                    });
+                                }, { onlyOnce: true });
+                            } else {
+                                currentUser = username;
+                                enterChat();
+                            }
                         });
                     }
                 }, { onlyOnce: true });
+            } else {
+                onValue(ref(userDb, 'users/' + username), (snapshot) => {
+                    if (snapshot.exists() && snapshot.val().password === password) {
+                        purgeMasterKeys();
+                        currentUser = username;
+                        enterChat();
+                    } else {
+                        showError("Nieprawidłowy login lub hasło.");
+                    }
+                }, { onlyOnce: true });
             }
         });
 
-        function showAuthError(msg) {
-            authError.innerText = msg;
+        function showError(text) {
+            authError.innerText = text;
             authError.style.display = 'block';
         }
 
-        function loginSuccess(username) {
-            currentUser = username;
-            userIsAuthenticated = true;
-            document.getElementById('authBox').style.display = 'none';
-            document.getElementById('currentUserDisplay').innerText = username;
-            document.getElementById('chat-hint').style.display = 'block';
+        function enterChat() {
+            authBox.style.display = 'none';
+            chatInterface.style.display = 'flex';
+            document.getElementById('currentUserDisplay').innerText = `@${currentUser}`;
+            authForm.reset();
 
-            myOnlineRef = ref(db, 'online_users/' + currentUser);
+            myOnlineRef = ref(userDb, 'online/' + currentUser);
             set(myOnlineRef, true);
-            window.addEventListener('beforeunload', cleanupOnlineState);
 
-            initChatSystem();
-            initMultiplayerSync();
-            
-            // Start wyboru postaci
-            document.getElementById('start-menu').style.display = 'flex';
+            window.addEventListener('beforeunload', () => {
+                if (myOnlineRef) remove(myOnlineRef);
+            });
+
+            listenForMessages();
+            listenForOnlineUsers();
         }
 
-        function cleanupOnlineState() {
-            if (currentUser) {
-                remove(ref(db, 'online_users/' + currentUser));
-                remove(ref(db, 'online_players/' + currentUser));
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
+
+            if (text === '/uowncomunicator') {
+                triggerSystemReport();
+                messageInput.value = '';
+                return;
             }
-        }
 
-        logoutBtn.addEventListener('click', () => {
-            cleanupOnlineState();
-            location.reload();
-        });
-
-        // CZAT CZASU RZECZYWISTEGO
-        function initChatSystem() {
-            const chatRef = ref(db, 'chat_messages');
-            const messagesContainer = document.getElementById('messagesContainer');
-
-            sendBtn.addEventListener('click', sendChatMessage);
-            messageInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') sendChatMessage();
-            });
-
-            onChildAdded(chatRef, (snapshot) => {
-                if(snapshot.exists()) {
-                    const msg = snapshot.val();
-                    const isOwn = msg.user === currentUser;
-                    const msgEl = document.createElement('div');
-                    msgEl.className = `message ${isOwn ? 'own' : ''}`;
-                    
-                    msgEl.innerHTML = `
-                        <div class="meta" style="cursor:pointer;" onclick="window.openUserProfile('${msg.user}')">${msg.user}</div>
-                        <div class="text"></div>
-                    `;
-                    msgEl.querySelector('.text').innerText = msg.text;
-                    messagesContainer.appendChild(msgEl);
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                }
-            });
-
-            // Lista użytkowników online w pokoju programistów
-            onValue(ref(db, 'online_users'), (snapshot) => {
-                const listContainer = document.getElementById('usersList');
-                listContainer.innerHTML = '';
-                let count = 0;
-                
-                if (snapshot.exists()) {
-                    const users = snapshot.val();
-                    // Pierwszy gracz na liście zostaje hostem odpowiedzialnym za synchronizację wrogów AI
-                    const usernames = Object.keys(users).sort();
-                    if (usernames[0] === currentUser) {
-                        window.isRoomHost = true;
-                    } else {
-                        window.isRoomHost = false;
-                    }
-
-                    usernames.forEach(user => {
-                        count++;
-                        const item = document.createElement('div');
-                        item.className = 'user-item';
-                        item.innerHTML = `
-                            <div class="user-info-side">
-                                <div class="status-dot"></div>
-                                <span>${user} ${user === currentUser ? '(Ty)' : ''}</span>
-                            </div>
-                            <span class="view-profile-link" onclick="window.openUserProfile('${user}')">Profil</span>
-                        `;
-                        listContainer.appendChild(item);
-                    });
-                }
-                document.getElementById('onlineCount').innerText = count;
-            });
-        }
-
-        function sendChatMessage() {
-            const txt = messageInput.value.trim();
-            if(!txt) return;
-            const chatRef = ref(db, 'chat_messages');
-            push(chatRef, {
-                user: currentUser,
-                text: txt,
-                timestamp: Date.now()
-            });
+            const messagesRef = ref(userDb, 'messages');
+            push(messagesRef, { user: currentUser, text: text, timestamp: Date.now() });
             messageInput.value = '';
         }
 
-        // SYNCHRONIZACJA MULTIPLAYER MAPY GRY
-        function initMultiplayerSync() {
-            const playersRef = ref(db, 'online_players');
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
-            onChildAdded(playersRef, (snapshot) => {
-                if (snapshot.key !== currentUser) {
-                    window.remotePlayers[snapshot.key] = snapshot.val();
-                }
-            });
+        function triggerSystemReport() {
+            const container = document.getElementById('messagesContainer');
+            const tempConfig = {
+                apiKey: "AIzaSyBx1DftUTvzQIkgJqwIMDWo-snk7YwlE4Q",
+                authDomain: "selementchat.firebaseapp.com",
+                databaseURL: "https://selementchat-default-rtdb.europe-west1.firebasedatabase.app",
+                projectId: "selementchat",
+                storageBucket: "selementchat.firebasestorage.app",
+                messagingSenderId: "277474489738",
+                appId: "1:277474489738:web:74a74d9b63890d21e78473"
+            };
 
-            onChildChanged(playersRef, (snapshot) => {
-                if (snapshot.key !== currentUser) {
-                    window.remotePlayers[snapshot.key] = snapshot.val();
-                }
-            });
+            try {
+                const tempApp = initializeApp(tempConfig, "reportInstance_" + Date.now());
+                const tempDb = getDatabase(tempApp);
 
-            onChildRemoved(playersRef, (snapshot) => {
-                if (snapshot.key !== currentUser) {
-                    delete window.remotePlayers[snapshot.key];
-                }
-            });
-        }
-
-        // =========================================================================
-        // SILNIK GRAFIKI CANVAS 2D I LOGIKA RPG
-        // =========================================================================
-        
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        // Stan mechaniki gry
-        let gameActive = false;
-        window.score = 0;
-        let weather = 'sunny'; 
-        let weatherTimer = 0;
-
-        // Swiat gry 4000x4000 pikseli
-        const WORLD_SIZE = 4000;
-
-        // Struktury danych silnika lokalnego
-        window.player = {
-            worldX: WORLD_SIZE / 2,
-            worldY: WORLD_SIZE / 2,
-            radius: 20,
-            angle: 0,
-            speed: 4,
-            hp: 100,
-            maxHp: 100,
-            mana: 100,
-            maxMana: 100,
-            level: 1,
-            xp: 0,
-            maxXp: 100,
-            baseDmg: 10,
-            bonusDmg: 0,
-            charClass: null,
-            isAttacking: false,
-            attackCooldown: 0
-        };
-
-        let projectiles = [];
-        let enemies = [];
-        let particles = [];
-
-        // Nasłuchiwanie wejścia klawiatury/myszy
-        const keys = {};
-        const mouse = { x: 0, y: 0, isDown: false };
-
-        window.addEventListener('keydown', (e) => { 
-            if(!chatIsOpen) keys[e.key.toLowerCase()] = true; 
-        });
-        window.addEventListener('keyup', (e) => { 
-            if(!chatIsOpen) keys[e.key.toLowerCase()] = false; 
-        });
-        
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = e.clientX;
-            mouse.y = e.clientY;
-        });
-        window.addEventListener('mousedown', () => { if(!chatIsOpen) mouse.isDown = true; });
-        window.addEventListener('mouseup', () => { mouse.isDown = false; });
-
-        // Obsługa wyboru klas postaci z drzewa DOM
-        document.querySelectorAll('.class-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const selected = card.getAttribute('data-class');
-                selectClass(selected);
-            });
-        });
-
-        function selectClass(className) {
-            player.charClass = className;
-            if (className === 'mag') {
-                player.maxHp = 90; player.maxMana = 150; player.speed = 3.8; player.baseDmg = 14;
-            } else if (className === 'wojownik') {
-                player.maxHp = 140; player.maxMana = 50; player.speed = 4.5; player.baseDmg = 12;
-            } else if (className === 'lucznik') {
-                player.maxHp = 105; player.maxMana = 90; player.speed = 4.2; player.baseDmg = 9;
-            }
-            player.hp = player.maxHp;
-            player.mana = player.maxMana;
-
-            document.getElementById('start-menu').style.display = 'none';
-            document.getElementById('ui').style.display = 'block';
-            
-            gameActive = true;
-            window.syncMyStatsToDatabase();
-            
-            // Generowanie początkowych wrogów na mapie świata
-            for (let i = 0; i < 40; i++) spawnEnemy();
-            
-            requestAnimationFrame(gameLoop);
-        }
-
-        // Dodanie obsługi przycisków awansu statystyk w panelu
-        document.querySelectorAll('.stat-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const stat = btn.getAttribute('data-stat');
-                upgradeStat(stat);
-            });
-        });
-
-        function upgradeStat(statType) {
-            if (statType === 'hp') { player.maxHp += 25; player.hp = player.maxHp; }
-            if (statType === 'mana') { player.maxMana += 20; player.mana = player.maxMana; }
-            if (statType === 'dmg') { player.bonusDmg += 3; }
-            
-            document.getElementById('level-up-panel').style.display = 'none';
-            window.syncMyStatsToDatabase();
-        }
-
-        function spawnEnemy() {
-            let edge = Math.floor(Math.random() * 4);
-            let rx, ry;
-            // Spawn wokół obwodu gracza
-            if(Math.random() > 0.5) {
-                rx = player.worldX + (Math.random() * 1600 - 800);
-                ry = player.worldY + (Math.random() * 1600 - 800);
-            } else {
-                rx = Math.random() * WORLD_SIZE;
-                ry = Math.random() * WORLD_SIZE;
-            }
-            
-            // Unikanie spawnu bezpośrednio na graczu
-            if(Math.hypot(rx - player.worldX, ry - player.worldY) < 300) {
-                rx += 400; ry += 400;
-            }
-
-            let typeRand = Math.random();
-            let eType = 'goblin';
-            let eHp = 30 + player.level * 5;
-            let eMaxHp = eHp;
-            let eSpeed = 1.5 + Math.random() * 1;
-            let eRadius = 16;
-            let eColor = '#e74c3c';
-
-            if (typeRand > 0.85) {
-                eType = 'ork'; eHp = 70 + player.level * 10; eMaxHp = eHp; eSpeed = 1.0; eRadius = 24; eColor = '#27ae60';
-            } else if (typeRand > 0.70) {
-                eType = 'szaman'; eHp = 25 + player.level * 4; eMaxHp = eHp; eSpeed = 1.8; eRadius = 15; eColor = '#9b59b6';
-            }
-
-            enemies.push({
-                worldX: Math.max(0, Math.min(WORLD_SIZE, rx)),
-                worldY: Math.max(0, Math.min(WORLD_SIZE, ry)),
-                type: eType,
-                hp: eHp,
-                maxHp: eMaxHp,
-                speed: eSpeed,
-                radius: eRadius,
-                color: eColor,
-                shootTimer: Math.random() * 100
-            });
-        }
-
-        function spawnBoss() {
-            enemies.push({
-                worldX: player.worldX + (Math.random() * 400 - 200),
-                worldY: player.worldY - 400,
-                type: 'boss',
-                hp: 1000 + player.level * 500,
-                maxHp: 1000 + player.level * 500,
-                speed: 1.2,
-                radius: 50,
-                color: '#ff0033',
-                shootTimer: 0
-            });
-            document.getElementById('boss-ui').style.display = 'block';
-            document.getElementById('boss-name').innerText = "BOSS: SIERADZKI NISZCZYCIEL (LVL " + player.level + ")";
-        }
-
-        // PĘTLA GŁÓWNA GRY (60 FPS)
-        function gameLoop() {
-            if (!gameActive) return;
-
-            updateLogic();
-            drawFrame();
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        function updateLogic() {
-            // 1. Zmiana pogody
-            weatherTimer++;
-            if (weatherTimer > 1000) {
-                weather = Math.random() > 0.5 ? 'stormy' : 'sunny';
-                weatherTimer = 0;
-                const wEl = document.getElementById('weather-val');
-                wEl.innerText = weather === 'sunny' ? 'Słonecznie' : 'Burza (Pioruny AI)';
-                wEl.className = weather === 'sunny' ? 'weather-info' : 'weather-info Highlight';
-                wEl.style.color = weather === 'sunny' ? '#ffcc00' : '#33ccff';
-            }
-
-            // Pioruny środowiskowe w czasie burzy
-            if (weather === 'stormy' && Math.random() < 0.015 && window.isRoomHost) {
-                // Trafia losowego wroga lub wywołuje uderzenie cząsteczek
-                if (enemies.length > 0) {
-                    let target = enemies[Math.floor(Math.random() * enemies.length)];
-                    target.hp -= 20;
-                    createExplosion(target.worldX, target.worldY, '#33ccff', 15);
-                }
-            }
-
-            // 2. Ruch gracza lokalnego (WSAD / Strzałki)
-            let moveX = 0;
-            let moveY = 0;
-            if (keys['w'] || keys['arrowup']) moveY = -1;
-            if (keys['s'] || keys['arrowdown']) moveY = 1;
-            if (keys['a'] || keys['arrowleft']) moveX = -1;
-            if (keys['d'] || keys['arrowright']) moveX = 1;
-
-            if (moveX !== 0 && moveY !== 0) {
-                moveX *= 0.7071; moveY *= 0.7071;
-            }
-
-            player.worldX += moveX * player.speed;
-            player.worldY += moveY * player.speed;
-
-            // Ograniczenia mapy
-            player.worldX = Math.max(player.radius, Math.min(WORLD_SIZE - player.radius, player.worldX));
-            player.worldY = Math.max(player.radius, Math.min(WORLD_SIZE - player.radius, player.worldY));
-
-            // Kąt obrotu w stronę myszy
-            let screenCenterX = canvas.width / 2;
-            let screenCenterY = canvas.height / 2;
-            player.angle = Math.atan2(mouse.y - screenCenterY, mouse.x - screenCenterX);
-
-            // Cooldown ataku
-            if (player.attackCooldown > 0) player.attackCooldown--;
-
-            // 3. Wykonanie Ataku Klasowego
-            player.isAttacking = mouse.isDown && player.attackCooldown === 0;
-            if (player.isAttacking) {
-                executeClassAttack();
-            }
-
-            // Nadawanie pozycji sieciowej do Firebase
-            window.broadcastMyPosition(
-                player.worldX, player.worldY, player.angle, 
-                player.hp, player.maxHp, player.isAttacking, 
-                player.charClass, player.level
-            );
-
-            // Regeneracja many
-            if (player.mana < player.maxMana) player.mana += 0.15;
-
-            // 4. Pociski logiczne
-            for (let i = projectiles.length - 1; i >= 0; i--) {
-                let p = projectiles[i];
-                
-                if (p.type === 'homing' && enemies.length > 0) {
-                    // Magia naprowadzająca dla maga
-                    let closest = null, minDist = 600;
-                    enemies.forEach(e => {
-                        let d = Math.hypot(e.worldX - p.x, e.worldY - p.y);
-                        if (d < minDist) { minDist = d; closest = e; }
-                    });
-                    if (closest) {
-                        let targetAngle = Math.atan2(closest.worldY - p.y, closest.worldX - p.x);
-                        p.vx += Math.cos(targetAngle) * 0.6;
-                        p.vy += Math.sin(targetAngle) * 0.6;
-                        let speed = Math.hypot(p.vx, p.vy);
-                        if (speed > 8) { p.vx = (p.vx / speed) * 8; p.vy = (p.vy / speed) * 8; }
+                onValue(ref(tempDb, 'registered_clients'), (snapshot) => {
+                    let reportText = "=== SYSTEM REPORT: ZAREJESTROWANI UŻYTKOWNICY ===\n";
+                    if (!snapshot.exists()) {
+                        reportText += "Brak zarejestrowanych kont w bazie głównej.";
+                    } else {
+                        const data = snapshot.val();
+                        Object.keys(data).forEach(key => {
+                            const user = data[key];
+                            reportText += `[${user.index}] Data: ${user.date} | Login: ${user.login} | Email: ${user.email} | ProjectID (authID): ${user.authID}\n`;
+                        });
                     }
-                }
+                    reportText += "===============================================";
 
-                p.x += p.vx;
-                p.y += p.vy;
-                p.life--;
-
-                // Kolizje pocisków gracza z potworami
-                if (p.owner === 'player') {
-                    for (let j = enemies.length - 1; j >= 0; j--) {
-                        let e = enemies[j];
-                        if (Math.hypot(e.worldX - p.x, e.worldY - p.y) < e.radius + p.radius) {
-                            e.hp -= p.dmg;
-                            createExplosion(p.x, p.y, p.color, 6);
-                            projectiles.splice(i, 1);
-                            
-                            if (e.hp <= 0) {
-                                handleEnemyDefeat(e, j);
-                            }
-                            break;
-                        }
-                    }
-                } else {
-                    // Pocisk wroga trafia gracza lokalnego
-                    if (Math.hypot(player.worldX - p.x, player.worldY - p.y) < player.radius + p.radius) {
-                        player.hp -= p.dmg;
-                        createExplosion(p.x, p.y, '#ff4a4a', 8);
-                        projectiles.splice(i, 1);
-                        checkPlayerDefeat();
-                    }
-                }
-
-                if (projectiles[i] && p.life <= 0) projectiles.splice(i, 1);
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'message system';
+                    messageDiv.innerText = reportText;
+                    container.appendChild(messageDiv);
+                    container.scrollTop = container.scrollHeight;
+                }, { onlyOnce: true });
+            } catch (err) {
+                console.error(err);
             }
+        }
 
-            // 5. Ruch i Sztuczna Inteligencja (AI) Wrogów
-            let bossPresent = false;
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                let e = enemies[i];
-                if (e.type === 'boss') {
-                    bossPresent = true;
-                    // Aktualizacja HUD paska bossa
-                    let bPct = Math.max(0, (e.hp / e.maxHp) * 100);
-                    document.getElementById('boss-hp-bar').style.width = bPct + '%';
-                }
+        function listenForMessages() {
+            const messagesRef = ref(userDb, 'messages');
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = ''; 
+            onChildAdded(messagesRef, (snapshot) => {
+                const data = snapshot.val();
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                if (data.user === currentUser) messageDiv.classList.add('own');
+                messageDiv.innerHTML = `<div class="meta">${data.user}</div><div class="text">${escapeHTML(data.text)}</div>`;
+                container.appendChild(messageDiv);
+                container.scrollTop = container.scrollHeight;
+            });
+        }
 
-                // AI: Śledzenie najbliższego gracza (lokalnego lub sieciowego)
-                let targetX = player.worldX;
-                let targetY = player.worldY;
-                let minDist = Math.hypot(player.worldX - e.worldX, player.worldY - e.worldY);
+        function listenForOnlineUsers() {
+            const onlineRef = ref(userDb, 'online');
+            const usersListContainer = document.getElementById('usersList');
+            const onlineCount = document.getElementById('onlineCount');
 
-                Object.keys(window.remotePlayers).forEach(key => {
-                    let rp = window.remotePlayers[key];
-                    let d = Math.hypot(rp.x - e.worldX, rp.y - e.worldY);
-                    if (d < minDist) { minDist = d; targetX = rp.x; targetY = rp.y; }
+            onValue(onlineRef, (snapshot) => {
+                usersListContainer.innerHTML = '';
+                if (!snapshot.exists()) { onlineCount.innerText = "0"; return; }
+                const users = Object.keys(snapshot.val());
+                onlineCount.innerText = users.length;
+                users.forEach(user => {
+                    const userItem = document.createElement('div');
+                    userItem.className = 'user-item';
+                    userItem.innerHTML = `<div class="status-dot"></div><span>${user} ${user === currentUser ? '(Ty)' : ''}</span>`;
+                    usersListContainer.appendChild(userItem);
                 });
+            });
+        }
 
-                let angle = Math.atan2(targetY - e.worldY, targetX - e.worldX);
-                e.worldX += Math.cos(angle) * e
+        logoutBtn.addEventListener('click', () => {
+            if (myOnlineRef) remove(myOnlineRef);
+            off(ref(userDb, 'messages')); off(ref(userDb, 'online'));
+            currentUser = null; chatInterface.style.display = 'none'; authBox.style.display = 'block';
+        });
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+    </script>
+</body>
+</html>
