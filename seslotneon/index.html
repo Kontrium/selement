@@ -1,296 +1,786 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <title>Cookie check</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You Own Communicator Online</title>
     <style>
-      :root {
-        color-scheme: light dark;
-      }
-
-      body {
-        font-family: 'Inter', Helvetica, Arial, sans-serif;
-        background: light-dark(#F8F8F7, #191919);
-        color: light-dark(#1f1f1f, #e3e3e3);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        box-sizing: border-box;
-        min-height: 100vh;
-        margin: 0;
-        padding: 20px;
-        text-align: center;
-      }
-
-      .container {
-        background: light-dark(#FFFFFF, #1F1F1F);
-        padding: 32px;
-        border-radius: 16px;
-        border: 1px solid light-dark(#E2E3E4, #3E3E3E);
-        max-width: min(80%, 500px);
-        width: 100%;
-        color: light-dark(#2B2D31, #D4D4D4);
-      }
-
-      h1 {
-        font-size: 20px;
-        font-weight: 500;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
-        color: light-dark(#2B2D31, #D4D4D4);
-      }
-
-      p {
-        font-size: 14px;
-        color: light-dark(#2B2D31, #D4D4D4);
-        line-height: 21px;
-        margin: 0 0 1.5rem 0;
-      }
-
-      .icon {
-        margin-bottom: 1rem;
-        line-height: 0;
-      }
-
-      .button-container {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 2rem;
-      }
-
-      button {
-        background-color: light-dark(#fff, #323232);
-        color: light-dark(#2B2D31, #FCFCFC);
-        border: 1px solid light-dark(#E2E3E4, #3E3E3E);
-        border-radius: 12px;
-        padding: 8px 12px;
-        font-size: 14px;
-        line-height: 21px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        font-weight: 400;
-        font-family: 'Inter', Helvetica, Arial, sans-serif;
-        width: 100%;
-      }
-
-      button:hover {
-        background-color: light-dark(#EAEAEB, #424242);
-      }
-
-      .hidden {
-        display: none;
-      }
-
-      /* Loading Spinner Animation */
-      .spinner {
-        margin: 0 auto 1.5rem auto;
-        width: 40px;
-        height: 40px;
-        border: 4px solid light-dark(#f0f0f0, #262626);
-        border-top: 4px solid light-dark(#076eff, #87a9ff); /* Blue color */
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-
-      .logo {
-        border-radius: 10px;
-        display: block;
-        margin: 0 auto 2rem auto;
-      }
-
-      .logo.hidden {
-        display: none;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: #151d30;
+            --accent-color: #00ffcc;
+            --text-color: #f3f4f6;
+            --text-muted: #6b7280;
+            --border-color: #24324f;
+            --error-color: #ff4a4a;
+            --terminal-green: #33ff33;
+            --firebase-orange: #f5820b;
         }
-        100% {
-          transform: rotate(360deg);
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
-      }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- INTERAKTYWNE INTRO TERMINALOWE --- */
+        #intro-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #050811;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: monospace;
+            padding: 20px;
+        }
+
+        .terminal-box {
+            width: 100%;
+            max-width: 600px;
+            background: #02040a;
+            border: 1px solid var(--accent-color);
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            color: var(--accent-color);
+            border-bottom: 1px solid rgba(0, 255, 204, 0.3);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .terminal-logs {
+            height: 200px;
+            overflow-y: hidden;
+            color: var(--terminal-green);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .scanline {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 2px;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+        }
+
+        /* --- SEKWENCYJNY PRZEWODNIK WIZUALNY --- */
+        #guide-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(5, 8, 17, 0.98);
+            z-index: 9998;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .guide-box {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 650px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .guide-header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.8rem;
+        }
+
+        .guide-step-badge {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .guide-title {
+            color: #ffffff;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        /* Poprawiona makieta wizualna interfejsu */
+        .guide-visual-mockup {
+            background: #1e293b;
+            border-radius: 10px;
+            padding: 1.2rem;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .mockup-accent-btn {
+            display: inline-block;
+            background: var(--firebase-orange);
+            color: white !important;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-decoration: none;
+            margin-top: 10px;
+            border: 2px solid #ffffff;
+            text-align: center;
+            align-self: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(245, 130, 11, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 130, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 130, 11, 0); }
+        }
+
+        .guide-desc {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            min-height: 70px;
+        }
+
+        .guide-nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-top: 0.5rem;
+        }
+
+        .guide-btn {
+            flex: 1;
+            padding: 0.8rem;
+            background: var(--border-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.95rem;
+            transition: background 0.3s;
+        }
+        .guide-btn:hover { background: #2e3f64; }
+        .guide-btn.next {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+
+        /* --- PANALE STRUKTURALNE APLIKACJI --- */
+        .auth-container {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .auth-container h2 { margin-bottom: 0.5rem; text-align: center; color: var(--accent-color); font-size: 1.5rem; letter-spacing: 1px; }
+        .auth-container p.subtitle { text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1.1rem; }
+        .form-group label { display: block; margin-bottom: 0.4rem; font-size: 0.85rem; color: var(--text-muted); }
+        .form-group input {
+            width: 100%; padding: 0.72rem; background: var(--bg-color);
+            border: 1px solid var(--border-color); border-radius: 6px;
+            color: var(--text-color); font-size: 0.95rem; transition: border-color 0.3s;
+        }
+        .form-group input:focus { outline: none; border-color: var(--accent-color); }
+
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 1.2rem; font-size: 0.85rem; color: var(--text-muted); cursor: pointer; }
+        .checkbox-group input { width: auto; accent-color: var(--accent-color); }
+        .auth-btn { width: 100%; padding: 0.75rem; background: var(--accent-color); color: var(--bg-color); border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 0.5rem; }
+        .auth-toggle { text-align: center; margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted); }
+        .auth-toggle span { color: var(--accent-color); cursor: pointer; text-decoration: underline; }
+        .error-msg { color: var(--error-color); font-size: 0.85rem; margin-top: 0.5rem; display: none; text-align: center; }
+
+        /* Czat panel */
+        .chat-interface { display: none; width: 95vw; max-width: 1100px; height: 85vh; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); }
+        .chat-header { background: rgba(0, 0, 0, 0.2); padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .chat-header h1 { font-size: 1.2rem; font-weight: 600; }
+        .user-profile { display: flex; align-items: center; gap: 10px; }
+        .logout-btn { background: transparent; border: 1px solid var(--error-color); color: var(--error-color); padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .logout-btn:hover { background: var(--error-color); color: white; }
+        .chat-body { display: flex; height: calc(100% - 60px); }
+        .messages-area { flex: 1; display: flex; flex-direction: column; background: rgba(0, 0, 0, 0.1); }
+        .messages-container { flex: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+        .message { background: var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; max-width: 75%; align-self: flex-start; }
+        .message.own { background: rgba(0, 255, 204, 0.1); border: 1px solid var(--accent-color); align-self: flex-end; }
+        .message.system { background: rgba(255, 255, 255, 0.03); color: #ffffff; border: 1px dashed var(--accent-color); font-size: 0.9rem; align-self: center; width: 90%; max-width: 600px; padding: 1rem; border-radius: 8px; white-space: pre-wrap; font-family: monospace; }
+        .message .meta { font-size: 0.75rem; color: var(--accent-color); margin-bottom: 0.25rem; font-weight: bold; }
+        .message .text { font-size: 0.95rem; word-break: break-word; }
+        .chat-input-area { padding: 1rem; border-top: 1px solid var(--border-color); display: flex; gap: 10px; }
+        .chat-input-area input { flex: 1; padding: 0.75rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); }
+        .send-btn { padding: 0 1.5rem; background: var(--accent-color); color: var(--bg-color); border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .users-window { width: 280px; border-left: 1px solid var(--border-color); background: rgba(21, 29, 48, 0.85); display: flex; flex-direction: column; }
+        .users-window-header { padding: 1rem; background: rgba(0, 0, 0, 0.15); border-bottom: 1px solid var(--border-color); font-weight: bold; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+        .online-count { background: var(--accent-color); color: var(--bg-color); font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+        .users-list { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .user-item { display: flex; align-items: center; gap: 10px; padding: 0.5rem; border-radius: 6px; background: rgba(255, 255, 255, 0.02); font-size: 0.9rem; }
+        .status-dot { width: 8px; height: 8px; background-color: var(--accent-color); border-radius: 50%; box-shadow: 0 0 8px var(--accent-color); }
     </style>
-  </head>
-  <body>
-    <div class="container">
-      <img
-        class="logo"
-        src="https://www.gstatic.com/aistudio/ai_studio_favicon_2_256x256.png"
-        alt="AI Studio Logo"
-        width="256"
-        height="256"
-      />
-      <div class="spinner"></div>
-      <div id="error-ui" class="hidden">
-        <div class="icon">
-          <svg
-            version="1.1"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            width="48px"
-            height="48px"
-            fill="#D73A49"
-          >
-            <path
-              d="M12,2C6.486,2,2,6.486,2,12s4.486,10,10,10s10-4.486,10-10S17.514,2,12,2z M13,17h-2v-2h2V17z M13,13h-2V7h2V13z"
-            />
-          </svg>
+</head>
+<body>
+
+    <div id="intro-overlay">
+        <div class="terminal-box">
+            <div class="scanline"></div>
+            <div class="terminal-header">
+                <span>YOU OWN COMMUNICATOR INITIALIZATION</span>
+                <span id="loading-percent">0%</span>
+            </div>
+            <div class="terminal-logs" id="terminal-logs"></div>
         </div>
-        <div id="stepOne" class="text-container">
-          <h1>Action required to load your app</h1>
-          <p>
-            It looks like your browser is blocking a required security cookie, which is common on
-            older versions of iOS and Safari.
-          </p>
-          <div class="button-container">
-            <button id="authInSeparateWindowButton" onclick="redirectToReturnUrl(true)">Authenticate in new window</button>
-          </div>
-        </div>
-        <div id="stepTwo" class="text-container hidden">
-          <h1>Action required to load your app</h1>
-          <p>
-            It looks like your browser is blocking a required security cookie, which is common on
-            older versions of iOS and Safari.
-          </p>
-          <div class="button-container">
-            <button id="interactButton" onclick="redirectToReturnUrl(false)">Close and continue</button>
-          </div>
-        </div>
-        <div id="stepThree" class="text-container hidden">
-          <h1>Almost there!</h1>
-          <p>
-            Grant permission for the required security cookie below.
-          </p>
-          <div class="button-container">
-            <button id="grantPermissionButton" onclick="grantStorageAccess()">Grant permission</button>
-          </div>
-        </div>
-      </div>
     </div>
-    <script>
-      const AUTH_FLOW_TEST_COOKIE_NAME = '__SECURE-aistudio_auth_flow_may_set_cookies';
-      const COOKIE_VALUE = 'true';
 
-      function getCookie(name) {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-          let cookie = cookies[i].trim();
-          if (cookie.startsWith(name + '=')) {
-            return cookie.substring(name.length + 1);
-          }
+    <div id="guide-overlay">
+        <div class="guide-box">
+            <div class="guide-header-area">
+                <h3 class="guide-title" id="guide-title">Wczytywanie...</h3>
+                <div class="guide-step-badge" id="guide-step-number">KROK 1</div>
+            </div>
+            
+            <div class="guide-visual-mockup" id="guide-visual"></div>
+
+            <p class="guide-desc" id="guide-desc">Ładowanie opisu...</p>
+
+            <div class="guide-nav-buttons">
+                <button class="guide-btn" id="guide-prev" style="display: none;">Wstecz</button>
+                <button class="guide-btn next" id="guide-next">Dalej</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-container" id="configBox" style="display: none;">
+        <h2>Konfiguracja Serwera</h2>
+        <p class="subtitle">Wklej parametry skopiowane ze swojego projektu Firebase.</p>
+        <form id="configForm">
+            <div class="form-group"><label>apiKey</label><input type="text" id="cfgApiKey" required placeholder="AIzaSy..."></div>
+            <div class="form-group"><label>authDomain</label><input type="text" id="cfgAuthDomain" required placeholder="twoj-projekt.firebaseapp.com"></div>
+            <div class="form-group"><label>databaseURL</label><input type="url" id="cfgDatabaseURL" required placeholder="https://twoj-projekt-...firebasedatabase.app"></div>
+            <div class="form-group"><label>projectId</label><input type="text" id="cfgProjectId" required placeholder="twoj-projekt"></div>
+            <div class="form-group"><label>storageBucket</label><input type="text" id="cfgStorageBucket" required placeholder="twoj-projekt.firebasestorage.app"></div>
+            <div class="form-group"><label>messagingSenderId</label><input type="text" id="cfgMessagingSenderId" required placeholder="1234567890"></div>
+            <div class="form-group"><label>appId</label><input type="text" id="cfgAppId" required placeholder="1:123456:web:abcd..."></div>
+            <label class="checkbox-group">
+                <input type="checkbox" id="rememberConfig" checked> Zapamiętaj konfigurację serwera na tym urządzeniu
+            </label>
+            <button type="submit" class="auth-btn">Zatwierdź i połącz</button>
+        </form>
+    </div>
+
+    <div class="auth-container" id="authBox" style="display: none;">
+        <h2 id="authTitle">Utwórz Konto</h2>
+        <p class="subtitle" id="authSubtitle">Zarejestruj swój profil administratora/użytkownika we własnej bazie.</p>
+        <form id="authForm">
+            <div class="form-group" id="emailGroup">
+                <label for="emailInput">Adres E-mail</label>
+                <input type="email" id="emailInput" required placeholder="twoj@email.com">
+            </div>
+            <div class="form-group">
+                <label for="userInput">Nazwa użytkownika (Nick)</label>
+                <input type="text" id="userInput" required placeholder="Satoshi">
+            </div>
+            <div class="form-group">
+                <label for="passInput">Hasło</label>
+                <input type="password" id="passInput" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="auth-btn" id="authSubmitBtn">Zarejestruj się</button>
+            <div class="error-msg" id="authError">Błąd autoryzacji.</div>
+        </form>
+        <div class="auth-toggle"><span id="toggleAuthText">Masz już konto? Zaloguj się</span></div>
+    </div>
+
+    <div class="chat-interface" id="chatInterface">
+        <div class="chat-header">
+            <h1># You Own Communicator Online</h1>
+            <div class="user-profile">
+                <span id="currentUserDisplay" style="font-weight: bold;"></span>
+                <button class="logout-btn" id="logoutBtn">Wyloguj</button>
+            </div>
+        </div>
+        <div class="chat-body">
+            <div class="messages-area">
+                <div class="messages-container" id="messagesContainer"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="messageInput" placeholder="Napisz wiadomość...">
+                    <button class="send-btn" id="sendBtn">Wyślij</button>
+                </div>
+            </div>
+            <div class="users-window">
+                <div class="users-window-header"><span>Użytkownicy Online</span><span class="online-count" id="onlineCount">0</span></div>
+                <div class="users-list" id="usersList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, push, onChildAdded, onValue, remove, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // GŁÓWNA BAZA MONITORUJĄCA (MASTER BASE)
+        let masterConfig = {
+            apiKey: "AIzaSyBx1DftUTvzQIkgJqwIMDWo-snk7YwlE4Q",
+            authDomain: "selementchat.firebaseapp.com",
+            databaseURL: "https://selementchat-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "selementchat",
+            storageBucket: "selementchat.firebasestorage.app",
+            messagingSenderId: "277474489738",
+            appId: "1:277474489738:web:74a74d9b63890d21e78473"
+        };
+        let masterDb = initializeApp(masterConfig, "masterInstance");
+
+        let userDb = null; 
+        let isLoginMode = false;
+        let currentUser = null;
+        let myOnlineRef = null;
+        let inputConfigData = null;
+
+        // BAZA DANYCH STOPNIOWEGO PRZEWODNIKA - NAPRAWIONE I ROZBUDOWANE
+        const guideSteps = [
+            {
+                title: "1. Założenie konta na platformie Firebase",
+                desc: "Kliknij poniższy pulsujący przycisk, aby przejść na oficjalną stronę. W prawym górnym rogu wybierz <b>„Go to console”</b> lub <b>„Sign In”</b> i zaloguj się swoim zwykłym kontem Google (Gmail).",
+                mockup: `
+                    <div style="color:#64748b; margin-bottom:8px;">🌐 https://firebase.google.com</div>
+                    <div style="border:1px solid #334155; padding:15px; border-radius:6px; background:#0f172a; text-align:center;">
+                        <span style="color:#ffffff; font-weight:bold;">Firebase zaprasza developerów</span><br/>
+                        <a href="https://firebase.google.com" target="_blank" class="mockup-accent-btn">🔥 OTWÓRZ STRONĘ I ZALOGUJ SIĘ</a>
+                    </div>
+                `
+            },
+            {
+                title: "2. Utworzenie nowego projektu w chmurze",
+                desc: "Po pomyślnym zalogowaniu znajdziesz się w konsoli zarządczej. Kliknij duży kafelek z plusem <b>„Dodaj projekt”</b> (Add Project). Podaj nazwę, np. <i>MojKomunikator</i>, a krok dotyczący Google Analytics możesz śmiało odznaczyć/wyłączyć.",
+                mockup: `
+                    <div style="color:#64748b; margin-bottom:5px;">Pulpit Konsoli Projektów:</div>
+                    <div style="border:1px solid #334155; padding:12px; border-radius:6px; background:#0f172a; text-align:center;">
+                        <span style="color:#94a3b8; font-size:12px;">Twoje projekty chmurowe</span><br/><br/>
+                        <div class="mockup-accent-btn" style="cursor:pointer; font-size:12px;">➕ DODAJ NOWY PROJEKT (ADD PROJECT)</div>
+                    </div>
+                `
+            },
+            {
+                title: "3. Aktywacja Realtime Database",
+                desc: "Wejdź do nowo utworzonego projektu. W lewym panelu bocznym rozwiń zakładkę <b>Kompilacja (Build)</b> i kliknij <b>Realtime Database</b>. Następnie kliknij centralny przycisk <b>„Utwórz bazę danych”</b>. W ustawieniach zabezpieczeń wybierz <b>„Rozpocznij w trybie testowym”</b>.",
+                mockup: `
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <div style="width:35%; border-right:1px solid #334155; color:var(--accent-color); font-size:11px; line-height:1.8;">🛠️ Kompilacja (Build)<br/>└── 📊 Realtime DB</div>
+                        <div style="flex:1; padding-left:5px; text-align:center;">
+                            <span style="color:#ffffff; font-weight:bold; font-size:12px;">Baza czasu rzeczywistego</span><br/>
+                            <div class="mockup-accent-btn" style="font-size:11px; padding:6px 10px;">UTWÓRZ BAZĘ DANYCH</div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "4. Rejestracja Aplikacji i generowanie kluczy",
+                desc: "Wróć na stronę główną projektu (Project Overview). Kliknij okrągłą ikonę kodu <b>&lt;/&gt; (Web)</b>. Podaj nazwę rejestracyjną aplikacji. System natychmiast wygeneruje blok konfiguracji zawierający klucze SDK.",
+                mockup: `
+                    <div style="text-align:center; padding:5px;">
+                        <span style="color:#94a3b8; font-size:12px;">Wybierz platformę dla swojego klienta:</span><br/><br/>
+                        <span style="font-size:20px; opacity:0.4; margin:0 10px;">📱</span>
+                        <span class="mockup-accent-btn" style="font-size:16px; padding:4px 12px; margin:0;">&lt;/&gt; Web</span>
+                        <span style="font-size:20px; opacity:0.4; margin:0 10px;">🤖</span>
+                    </div>
+                `
+            },
+            {
+                title: "5. Skopiowanie uzyskanych danych",
+                desc: "Z wyświetlonego na stronie bloku kodu skopiuj wartości znajdujące się wewnątrz zmiennej <code>firebaseConfig</code>. Będą to pola takie jak apiKey, appId czy databaseURL. Przygotuj je i kliknij przycisk poniżej!",
+                mockup: `
+                    <div style="background:#0f172a; padding:10px; border-radius:6px; font-size:11px; color:#34d399; border:1px solid #334155; line-height:1.4;">
+                        const firebaseConfig = {<br/>
+                        &nbsp;&nbsp;apiKey: "AIzaSyB...",<br/>
+                        &nbsp;&nbsp;databaseURL: "https://...",<br/>
+                        &nbsp;&nbsp;projectId: "..."<br/>
+                        };
+                    </div>
+                `
+            }
+        ];
+        let currentGuideIndex = 0;
+
+        // Powiązanie zmiennych DOM
+        const introOverlay = document.getElementById('intro-overlay');
+        const terminalLogs = document.getElementById('terminal-logs');
+        const loadingPercent = document.getElementById('loading-percent');
+        const guideOverlay = document.getElementById('guide-overlay');
+        const guideStepNumber = document.getElementById('guide-step-number');
+        const guideTitle = document.getElementById('guide-title');
+        const guideDesc = document.getElementById('guide-desc');
+        const guideVisual = document.getElementById('guide-visual');
+        const guidePrev = document.getElementById('guide-prev');
+        const guideNext = document.getElementById('guide-next');
+
+        const configBox = document.getElementById('configBox');
+        const configForm = document.getElementById('configForm');
+        const rememberConfigCheckbox = document.getElementById('rememberConfig');
+        const authBox = document.getElementById('authBox');
+        const authForm = document.getElementById('authForm');
+        const toggleAuthText = document.getElementById('toggleAuthText');
+        const authTitle = document.getElementById('authTitle');
+        const authSubtitle = document.getElementById('authSubtitle');
+        const emailGroup = document.getElementById('emailGroup');
+        const emailInput = document.getElementById('emailInput');
+        const authSubmitBtn = document.getElementById('authSubmitBtn');
+        const authError = document.getElementById('authError');
+        const chatInterface = document.getElementById('chatInterface');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        // WYWOŁANIE TERMINALA NA STARCIE - PRZED POBRANIEM DANYCH
+        window.addEventListener('DOMContentLoaded', () => {
+            runIntroAnimation();
+        });
+
+        function runIntroAnimation() {
+            const logs = [
+                "> BOOTLOADER: Inicjalizacja You Own Communicator Online...",
+                "> BOOTLOADER: Nawiązywanie szyfrowanego połączenia z Master Core...",
+                "> BOOTLOADER: Analiza pamięci lokalnej LocalStorage...",
+                "> BOOTLOADER: [STATUS] Urządzenie czyste. Brak aktywnej konfiguracji bazy.",
+                "> BOOTLOADER: Wywoływanie interaktywnego asystenta konfiguracji chmury..."
+            ];
+            
+            let currentLogIndex = 0;
+            let percent = 0;
+
+            const logInterval = setInterval(() => {
+                if (currentLogIndex < logs.length) {
+                    const p = document.createElement('p');
+                    p.innerText = logs[currentLogIndex];
+                    terminalLogs.appendChild(p);
+                    currentLogIndex++;
+                }
+            }, 300);
+
+            const percentInterval = setInterval(() => {
+                percent += 5;
+                loadingPercent.innerText = `${percent}%`;
+                if (percent >= 100) {
+                    clearInterval(logInterval);
+                    clearInterval(percentInterval);
+                    
+                    const storedConfig = localStorage.getItem('firebase_chat_config');
+                    introOverlay.style.display = 'none';
+
+                    if (storedConfig) {
+                        inputConfigData = JSON.parse(storedConfig);
+                        initUserFirebase(inputConfigData);
+                        purgeMasterKeys();
+                        authBox.style.display = 'block';
+                    } else {
+                        // Jeśli brak pamięci -> uruchom naprawiony przewodnik dla żółtodzioba
+                        guideOverlay.style.display = 'flex';
+                        updateGuideUI();
+                    }
+                }
+            }, 100);
         }
-        return null;
-      }
 
-      function setAuthFlowTestCookie() {
-        // Set the cookie's TTL to 1 minute. This is a short lived cookie because it is only used
-        // when the user does not have an auth token or their auth token needs to be reset.
-        // Making this cookie too long-lived allows the user to get into a state where they can't
-        // mint a new auth token.
-        document.cookie = `${AUTH_FLOW_TEST_COOKIE_NAME}=${COOKIE_VALUE}; Path=/; Secure; SameSite=None; Domain=${window.location.hostname}; Partitioned; Max-Age=60;`;
-      }
-
-      /**
-       * Returns true if the test cookie is set, false otherwise.
-       */
-      function authFlowTestCookieIsSet() {
-        return getCookie(AUTH_FLOW_TEST_COOKIE_NAME) === COOKIE_VALUE;
-      }
-
-      /**
-       * Redirects to the return url. If autoClose is true, then the return url will be opened in a
-       * new window, and it will be closed automatically when the page loads.
-       * Options:
-       *   storageAccessGranted: if true, appends __storage_access_granted=1 to
-       *   the return url so the Lua auth script can set the test cookie
-       *   server-side (needed for Safari/iOS where document.cookie is blocked).
-       */
-      async function redirectToReturnUrl(autoClose, storageAccessGranted = false) {
-        const initialReturnUrlStr = new URLSearchParams(window.location.search).get('return_url');
-        const returnUrl = initialReturnUrlStr ? new URL(initialReturnUrlStr) : null;
-
-        // Prevent potentially malicious URLs from being used
-        if (returnUrl.protocol.toLowerCase() === 'javascript:') {
-          console.error('Potentially malicious return URL blocked');
-          return;
+        // FUNKCJE RENDERUJĄCE STRONY PRZEWODNIKA
+        function updateGuideUI() {
+            const step = guideSteps[currentGuideIndex];
+            guideStepNumber.innerText = `KROK ${currentGuideIndex + 1} z ${guideSteps.length}`;
+            guideTitle.innerText = step.title;
+            guideDesc.innerHTML = step.desc;
+            guideVisual.innerHTML = step.mockup; // Sposób bezpiecznego wstrzykiwania naprawionej makiety
+            
+            guidePrev.style.display = currentGuideIndex > 0 ? "block" : "none";
+            guideNext.innerText = currentGuideIndex === guideSteps.length - 1 ? "Uruchom Konfigurator" : "Dalej";
         }
 
-        if (storageAccessGranted) {
-          returnUrl.searchParams.set('__storage_access_granted', '1');
+        guideNext.addEventListener('click', () => {
+            if (currentGuideIndex < guideSteps.length - 1) {
+                currentGuideIndex++;
+                updateGuideUI();
+            } else {
+                // Płynne zamknięcie przewodnika i przejście do żądania danych
+                guideOverlay.style.display = 'none';
+                configBox.style.display = 'block';
+            }
+        });
+
+        guidePrev.addEventListener('click', () => {
+            if (currentGuideIndex > 0) {
+                currentGuideIndex--;
+                updateGuideUI();
+            }
+        });
+
+        // PRZETWARZANIE DANYCH FORMULARZA POZYSKANYCH OD KLIENTA
+        configForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            inputConfigData = {
+                apiKey: document.getElementById('cfgApiKey').value.trim(),
+                authDomain: document.getElementById('cfgAuthDomain').value.trim(),
+                databaseURL: document.getElementById('cfgDatabaseURL').value.trim(),
+                projectId: document.getElementById('cfgProjectId').value.trim(),
+                storageBucket: document.getElementById('cfgStorageBucket').value.trim(),
+                messagingSenderId: document.getElementById('cfgMessagingSenderId').value.trim(),
+                appId: document.getElementById('cfgAppId').value.trim()
+            };
+            configBox.style.display = 'none';
+            authBox.style.display = 'block';
+        });
+
+        function initUserFirebase(config) {
+            const userApp = initializeApp(config);
+            userDb = getDatabase(userApp);
         }
 
-        if (autoClose) {
-          returnUrl.searchParams.set('__auto_close', '1');
-          const url = new URL(window.location.href);
-          url.searchParams.set('return_url', returnUrl.toString());
-          // Land on the cookie check page first, so the user can interact with it before proceeding
-          // to the return url where cookies can be set.
-          window.open(url.toString(), '_blank');
-          const hasAccess = await document.hasStorageAccess();
-          document.querySelector('#stepOne').classList.add('hidden');
-          if (!hasAccess) {
-            document.querySelector('#stepThree').classList.remove('hidden');
-          } else {
-            window.location.reload();
-          }
-        } else {
-          window.location.href = returnUrl.toString();
+        function purgeMasterKeys() {
+            masterConfig = null;
+            masterDb = null;
         }
-      }
 
-      /**
-       * Grants the browser permission to set cookies. If successful, then it redirects to the
-       * return url.
-       */
-      async function grantStorageAccess() {
-        try {
-          await document.requestStorageAccess();
-          // Recent Safari/iOS versions block document.cookie entirely in
-          // cross-site iframes, even after requestStorageAccess(). Only
-          // server-side Set-Cookie headers work. Signal to the Lua auth script
-          // via query param so it can set the test cookie server-side.
-          redirectToReturnUrl(false, /* storageAccessGranted= */ true);
-        } catch (err) {
-          console.log('error after button click: ', err);
+        toggleAuthText.addEventListener('click', () => {
+            isLoginMode = !isLoginMode;
+            authError.style.display = 'none';
+            if (isLoginMode) {
+                authTitle.innerText = "Logowanie";
+                authSubtitle.innerText = "Zaloguj się do swojej chmury za pomocą Nicku i Hasła.";
+                emailGroup.style.display = "none";
+                emailInput.removeAttribute('required');
+                authSubmitBtn.innerText = "Zaloguj się";
+                toggleAuthText.innerHTML = "Nie masz konta? <span>Zarejestruj się</span>";
+            } else {
+                authTitle.innerText = "Utwórz Konto";
+                authSubtitle.innerText = "Zarejestruj się w skonfigurowanej bazie danych.";
+                emailGroup.style.display = "block";
+                emailInput.setAttribute('required', 'required');
+                authSubmitBtn.innerText = "Zarejestruj się";
+                toggleAuthText.innerHTML = "Masz już konto? <span>Zaloguj się</span>";
+            }
+        });
+
+        // REJESTRACJA I LOGOWANIE PROFILU W BAZIE DOCELOWEJ
+        authForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('userInput').value.trim();
+            const password = document.getElementById('passInput').value;
+            const email = document.getElementById('emailInput').value.trim();
+
+            if (!userDb) initUserFirebase(inputConfigData);
+
+            if (!isLoginMode) {
+                onValue(ref(userDb, 'users/' + username), (snapshot) => {
+                    if (snapshot.exists()) {
+                        showError("Ta nazwa użytkownika jest zajęta w Twojej bazie danych.");
+                    } else {
+                        set(ref(userDb, 'users/' + username), { email, password })
+                        .then(() => {
+                            if (masterDb && masterConfig) {
+                                const mDbInstance = getDatabase(masterDb);
+                                const counterRef = ref(mDbInstance, 'system/userCounter');
+                                
+                                onValue(counterRef, (countSnapshot) => {
+                                    let currentId = 1;
+                                    if (countSnapshot.exists()) currentId = parseInt(countSnapshot.val()) + 1;
+                                    set(counterRef, currentId);
+
+                                    const now = new Date();
+                                    const localDateTime = now.toLocaleDateString('pl-PL') + " " + now.toLocaleTimeString('pl-PL');
+
+                                    set(ref(mDbInstance, 'registered_clients/' + currentId), {
+                                        index: currentId,
+                                        date: localDateTime,
+                                        email: email,
+                                        login: username,
+                                        authID: inputConfigData.projectId
+                                    }).then(() => {
+                                        if (rememberConfigCheckbox.checked) {
+                                            localStorage.setItem('firebase_chat_config', JSON.stringify(inputConfigData));
+                                        }
+                                        purgeMasterKeys();
+                                        currentUser = username;
+                                        enterChat();
+                                    });
+                                }, { onlyOnce: true });
+                            } else {
+                                currentUser = username;
+                                enterChat();
+                            }
+                        });
+                    }
+                }, { onlyOnce: true });
+            } else {
+                onValue(ref(userDb, 'users/' + username), (snapshot) => {
+                    if (snapshot.exists() && snapshot.val().password === password) {
+                        purgeMasterKeys();
+                        currentUser = username;
+                        enterChat();
+                    } else {
+                        showError("Nieprawidłowy login lub hasło.");
+                    }
+                }, { onlyOnce: true });
+            }
+        });
+
+        function showError(text) {
+            authError.innerText = text;
+            authError.style.display = 'block';
         }
-      }
 
-      /**
-       * Verifies that the browser can set cookies. If it can, then it redirects to the return url.
-       * If it can't, then it shows the error UI.
-       */
-      function verifyCanSetCookies() {
-        setAuthFlowTestCookie();
-        if (authFlowTestCookieIsSet()) {
-          // Check if we are on the auto-close flow, and if so show the interact button.
-          const returnUrl = new URLSearchParams(window.location.search).get('return_url');
-          const autoClose = new URL(returnUrl).searchParams.has('__auto_close');
-          if (autoClose) {
-            document.querySelector('#stepOne').classList.add('hidden');
-            document.querySelector('#stepTwo').classList.remove('hidden');
-          } else {
-            redirectToReturnUrl(false);
-            return;
-          }
+        function enterChat() {
+            authBox.style.display = 'none';
+            chatInterface.style.display = 'flex';
+            document.getElementById('currentUserDisplay').innerText = `@${currentUser}`;
+            authForm.reset();
+
+            myOnlineRef = ref(userDb, 'online/' + currentUser);
+            set(myOnlineRef, true);
+
+            window.addEventListener('beforeunload', () => {
+                if (myOnlineRef) remove(myOnlineRef);
+            });
+
+            listenForMessages();
+            listenForOnlineUsers();
         }
-        // The cookie could not be set, so initiate the recovery flow.
-        document.querySelector('.logo').classList.add('hidden');
-        document.querySelector('.spinner').classList.add('hidden');
-        document.querySelector('#error-ui').classList.remove('hidden');
-      }
 
-      // Start the cookie verification process.
-      verifyCanSetCookies();
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
+
+            if (text === '/uowncomunicator') {
+                triggerSystemReport();
+                messageInput.value = '';
+                return;
+            }
+
+            const messagesRef = ref(userDb, 'messages');
+            push(messagesRef, { user: currentUser, text: text, timestamp: Date.now() });
+            messageInput.value = '';
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+        function triggerSystemReport() {
+            const container = document.getElementById('messagesContainer');
+            const tempConfig = {
+                apiKey: "AIzaSyBx1DftUTvzQIkgJqwIMDWo-snk7YwlE4Q",
+                authDomain: "selementchat.firebaseapp.com",
+                databaseURL: "https://selementchat-default-rtdb.europe-west1.firebasedatabase.app",
+                projectId: "selementchat",
+                storageBucket: "selementchat.firebasestorage.app",
+                messagingSenderId: "277474489738",
+                appId: "1:277474489738:web:74a74d9b63890d21e78473"
+            };
+
+            try {
+                const tempApp = initializeApp(tempConfig, "reportInstance_" + Date.now());
+                const tempDb = getDatabase(tempApp);
+
+                onValue(ref(tempDb, 'registered_clients'), (snapshot) => {
+                    let reportText = "=== SYSTEM REPORT: ZAREJESTROWANI UŻYTKOWNICY ===\n";
+                    if (!snapshot.exists()) {
+                        reportText += "Brak zarejestrowanych kont w bazie głównej.";
+                    } else {
+                        const data = snapshot.val();
+                        Object.keys(data).forEach(key => {
+                            const user = data[key];
+                            reportText += `[${user.index}] Data: ${user.date} | Login: ${user.login} | Email: ${user.email} | ProjectID (authID): ${user.authID}\n`;
+                        });
+                    }
+                    reportText += "===============================================";
+
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'message system';
+                    messageDiv.innerText = reportText;
+                    container.appendChild(messageDiv);
+                    container.scrollTop = container.scrollHeight;
+                }, { onlyOnce: true });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function listenForMessages() {
+            const messagesRef = ref(userDb, 'messages');
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = ''; 
+            onChildAdded(messagesRef, (snapshot) => {
+                const data = snapshot.val();
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                if (data.user === currentUser) messageDiv.classList.add('own');
+                messageDiv.innerHTML = `<div class="meta">${data.user}</div><div class="text">${escapeHTML(data.text)}</div>`;
+                container.appendChild(messageDiv);
+                container.scrollTop = container.scrollHeight;
+            });
+        }
+
+        function listenForOnlineUsers() {
+            const onlineRef = ref(userDb, 'online');
+            const usersListContainer = document.getElementById('usersList');
+            const onlineCount = document.getElementById('onlineCount');
+
+            onValue(onlineRef, (snapshot) => {
+                usersListContainer.innerHTML = '';
+                if (!snapshot.exists()) { onlineCount.innerText = "0"; return; }
+                const users = Object.keys(snapshot.val());
+                onlineCount.innerText = users.length;
+                users.forEach(user => {
+                    const userItem = document.createElement('div');
+                    userItem.className = 'user-item';
+                    userItem.innerHTML = `<div class="status-dot"></div><span>${user} ${user === currentUser ? '(Ty)' : ''}</span>`;
+                    usersListContainer.appendChild(userItem);
+                });
+            });
+        }
+
+        logoutBtn.addEventListener('click', () => {
+            if (myOnlineRef) remove(myOnlineRef);
+            off(ref(userDb, 'messages')); off(ref(userDb, 'online'));
+            currentUser = null; chatInterface.style.display = 'none'; authBox.style.display = 'block';
+        });
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
     </script>
-  </body>
+</body>
 </html>
